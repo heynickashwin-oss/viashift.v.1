@@ -450,28 +450,26 @@ const SankeyFlowV3Inner = ({
   const dataIdentity = useMemo(() => getDataIdentity(state.data), [state.data]);
 
   useEffect(() => {
-    if (!layout) return;
+  if (!layout) return;
 
-    // Cancel any existing animation
-    if (drawAnimationRef.current) {
-      cancelAnimationFrame(drawAnimationRef.current);
-      drawAnimationRef.current = null;
-    }
+  // Cancel any existing animation
+  if (drawAnimationRef.current) {
+    cancelAnimationFrame(drawAnimationRef.current);
+    drawAnimationRef.current = null;
+  }
 
-    // Check if we've already animated this exact data
-    const shouldAnimate = animated && animatedDataRef.current !== dataIdentity;
+  setDrawProgress(0);
+  setUiVisible(false);
+  setMetricsVisible([]);
+  setAnchoredVisible(false);
 
-    if (!shouldAnimate) {
-      // Skip animation - just show final state
-      setDrawProgress(1);
-      setUiVisible(true);
-      setMetricsVisible(state.metrics.map(() => true));
-      setAnchoredVisible(true);
-      return;
-    }
-
-    // Mark this data as being animated
-    animatedDataRef.current = dataIdentity;
+  if (!animated) {
+    setDrawProgress(1);
+    setUiVisible(true);
+    setMetricsVisible(state.metrics.map(() => true));
+    setAnchoredVisible(true);
+    return;
+  }
 
     setDrawProgress(0);
     setUiVisible(false);
