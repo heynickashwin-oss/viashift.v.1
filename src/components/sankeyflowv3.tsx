@@ -1290,9 +1290,10 @@ const SankeyFlowV3Inner = ({
   );
 };
 
-// CRITICAL FIX: Wrap with React.memo to prevent re-renders from parent
-// Custom comparison to check if props that matter have changed
-export const SankeyFlowV3 = memo(SankeyFlowV3Inner, (prevProps, nextProps) => {
+// Wrap with React.memo - use shallow comparison
+export const SankeyFlowV3 = memo(SankeyFlowV3Inner);
+
+export default SankeyFlowV3;
   // Return true if props are equal (should NOT re-render)
   // Return false if props differ (should re-render)
   
