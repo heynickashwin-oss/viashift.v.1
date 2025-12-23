@@ -891,20 +891,20 @@ export const SankeyFlowV3 = ({
 
         {/* Links */}
         <g>
-          {layout?.links.map(link => {
+      {layout?.links.map(link => {
             const gradId = link.type === 'loss' ? 'grad-loss' :
                           (link.type === 'new' || link.type === 'revenue') ? 'grad-secondary' : 'grad-primary';
-
             const sourceLayer = link.source.layer;
             const targetLayer = link.target.layer;
             const linkLayer = Math.max(sourceLayer, targetLayer);
-
             // For forge transition (after state)
             const linkForgeProgress = forgeLayer >= linkLayer ? 1 :
                                      forgeLayer === linkLayer - 1 ? (forgeProgress % 0.25) * 4 : 0;
-
             // For initial draw - use layer-staggered progress
             const layerDrawProgress = getLayerProgress(linkLayer, drawProgress);
+            
+            // DEBUG: trace layer stagger
+            if (link.from === 'seller-effort') console.log('Link draw:', { linkLayer, drawProgress, layerDrawProgress, isForging });
             
             const connectionVisible = revealPhase >= 3 || (isForging && linkForgeProgress > 0) || layerDrawProgress > 0;
             const currentLinkProgress = isForging ? linkForgeProgress : layerDrawProgress;
