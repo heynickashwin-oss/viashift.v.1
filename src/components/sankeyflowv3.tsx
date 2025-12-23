@@ -277,9 +277,6 @@ const SankeyFlowV3Inner = ({
   const pulseAnimationRef = useRef<number | null>(null);
   const isRunningRef = useRef(false);
 
-  // Track which data we've animated
-  const animatedDataRef = useRef<string | null>(null);
-
   // Refs for animation loop
   const drawProgressRef = useRef(0);
   const revealPhaseRef = useRef(0);
@@ -447,7 +444,6 @@ const SankeyFlowV3Inner = ({
 
   // CRITICAL FIX: Track animation by data identity, not layout reference
   // This prevents resize from restarting animation
-  const dataIdentity = useMemo(() => getDataIdentity(state.data), [state.data]);
 
   useEffect(() => {
   if (!layout) return;
@@ -513,7 +509,7 @@ const SankeyFlowV3Inner = ({
         drawAnimationRef.current = null;
       }
     };
-  }, [layout, animated, dataIdentity, state.metrics.length]);
+  }, [layout, animated, state.metrics.length]);
 
   // Forge transition with slower timing
   useEffect(() => {
