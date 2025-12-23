@@ -1294,29 +1294,3 @@ const SankeyFlowV3Inner = ({
 export const SankeyFlowV3 = memo(SankeyFlowV3Inner);
 
 export default SankeyFlowV3;
-  // Return true if props are equal (should NOT re-render)
-  // Return false if props differ (should re-render)
-  
-  // Always re-render if these change
-  if (prevProps.variant !== nextProps.variant) return false;
-  if (prevProps.animated !== nextProps.animated) return false;
-  if (prevProps.transitionPhase !== nextProps.transitionPhase) return false;
-  if (prevProps.hideUI !== nextProps.hideUI) return false;
-  
-  // Check data identity (not reference) for state
-  const prevDataId = getDataIdentity(prevProps.state.data);
-  const nextDataId = getDataIdentity(nextProps.state.data);
-  if (prevDataId !== nextDataId) return false;
-  
-  // Check metrics length
-  if (prevProps.state.metrics.length !== nextProps.state.metrics.length) return false;
-  
-  // Check brand (shallow)
-  if (prevProps.brand?.name !== nextProps.brand?.name) return false;
-  if (prevProps.brand?.logoUrl !== nextProps.brand?.logoUrl) return false;
-  
-  // Props are equal, don't re-render
-  return true;
-});
-
-export default SankeyFlowV3;
