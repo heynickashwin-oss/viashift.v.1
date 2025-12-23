@@ -181,6 +181,7 @@ export const TransformationExperience = ({
   transitionPhase={variant === 'before' ? transitionPhase : 'idle'}
   hideUI={variant !== 'before'}
   showLabels={showLabels}
+  editable={true}
 />
         </div>
         
@@ -206,6 +207,7 @@ export const TransformationExperience = ({
   transitionPhase={variant === 'after' ? transitionPhase : 'idle'}
   hideUI={variant !== 'after'}
   showLabels={showLabels}
+  editable={true}
 />
         </div>
       </div>
