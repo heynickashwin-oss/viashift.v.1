@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { TransformationExperience, TransformationStory } from '../components/TransformationExperience';
@@ -183,7 +183,7 @@ export const Shift = () => {
     setSharePromptDismissedThisSession(true);
   };
 
-const buildStory = (): TransformationStory => {
+const story = useMemo((): TransformationStory => {
   const templateId = shift?.template_id || 'b2b-sales-enablement';
   const template = templates[templateId] || templates['b2b-sales-enablement'];
     return {
@@ -205,7 +205,7 @@ const buildStory = (): TransformationStory => {
         insight: template.shiftedState.insight.replace('[company]', config.companyName || 'Your company'),
       },
     };
-  };
+  }, [shift?.id, shift?.template_id, config.companyName]);
 
   // Use config state for live updates (not shift which requires reload)
   const buildBrand = (): BrandConfig => {
@@ -272,7 +272,7 @@ const buildStory = (): TransformationStory => {
       {/* Transformation Phase */}
       {viewPhase === 'transformation' && (
         <TransformationExperience
-          story={buildStory()}
+          story={story}
           initialBrand={buildBrand()}
           onShare={handleShare}
           onConfigure={() => setShowConfigPanel(true)}
