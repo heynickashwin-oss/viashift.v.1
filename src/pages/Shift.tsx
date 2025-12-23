@@ -187,7 +187,7 @@ const [config, setConfig] = useState({
   };
 
 const story = useMemo((): TransformationStory => {
-  const templateId = shift?.template_id || 'b2b-sales-enablement';
+const templateId = shift?.template_id || 'cfo-value-case';
   const template = templates[templateId] || templates['b2b-sales-enablement'];
   
   // Generate display values based on template format
