@@ -187,7 +187,7 @@ const [config, setConfig] = useState({
   };
 
 const story = useMemo((): TransformationStory => {
-const templateId = shift?.template_id || 'cfo-value-case';
+const templateId = 'cfo-value-case'; // TEMP: force CFO for testing
   const template = templates[templateId] || templates['b2b-sales-enablement'];
   console.log('Template debug:', { templateId, template: template?.id, hasValueFormat: !!template?.valueFormat });
   // Generate display values based on template format
