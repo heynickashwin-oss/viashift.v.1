@@ -1,0 +1,308 @@
+/**
+ * useNarrativeController - v1.0
+ * 
+ * Orchestrates the phased reveal of the Sankey visualization story.
+ * 
+ * PHASES:
+ * 1. SETUP    - Flows draw layer by layer (sequential reveal)
+ * 2. BLEED    - Loss flows pulse, loss labels appear with pain metrics
+ * 3. READY    - Insight text appears, transform button powers up
+ * 4. COMPLETE - All UI visible, particles flowing normally
+ * 
+ * For "after" state, the existing forge system handles reveals.
+ * This controller primarily enhances the "before" state storytelling.
+ */
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+
+export type NarrativePhase = 
+  | 'idle'           // Not started
+  | 'setup-0'        // Drawing layer 0
+  | 'setup-1'        // Drawing layer 1  
+  | 'setup-2'        // Drawing layer 2
+  | 'setup-3'        // Drawing layer 3
+  | 'bleed'          // Loss flows pulsing, pain metrics appearing
+  | 'ready'          // Insight visible, button powering up
+  | 'complete';      // All revealed, normal animation
+
+export interface NarrativeState {
+  phase: NarrativePhase;
+  
+  // Granular visibility controls
+  visibleLayers: number[];           // Which flow layers are drawn
+  lossHighlightActive: boolean;      // Loss nodes/flows pulsing
+  lossPulseIntensity: number;        // 0-1 pulse animation value
+  
+  // Metric visibility
+  anchoredMetricVisible: boolean;    // The metric anchored to a node
+  summaryMetricsVisible: boolean[];  // The side panel metrics
+  insightVisible: boolean;           // The insight text in action zone
+  
+  // Progress values for animations
+  layerDrawProgress: number[];       // 0-1 draw progress per layer
+  overallProgress: number;           // 0-1 overall narrative progress
+  
+  // For the transform button
+  buttonReady: boolean;
+}
+
+export interface NarrativeConfig {
+  // Timing (all in ms)
+  layerDrawDuration: number;      // How long to draw each layer
+  layerStagger: number;           // Delay between starting each layer
+  bleedDuration: number;          // How long the bleed phase lasts
+  bleedPulseCycles: number;       // How many pulse cycles during bleed
+  metricRevealDelay: number;      // Delay before metrics appear in bleed
+  readyDuration: number;          // How long before complete
+}
+
+const DEFAULT_CONFIG: NarrativeConfig = {
+  layerDrawDuration: 800,
+  layerStagger: 400,
+  bleedDuration: 2000,
+  bleedPulseCycles: 3,
+  metricRevealDelay: 600,
+  readyDuration: 1500,
+};
+
+export interface UseNarrativeControllerProps {
+  variant: 'before' | 'after';
+  isActive: boolean;                 // Should narrative be running
+  layerCount: number;                // Number of layers (usually 4: 0-3)
+  metricCount: number;               // Number of summary metrics
+  hasAnchoredMetric: boolean;        // Whether there's a node-anchored metric
+  config?: Partial<NarrativeConfig>;
+  onPhaseChange?: (phase: NarrativePhase) => void;
+  onComplete?: () => void;
+}
+
+export function useNarrativeController({
+  variant,
+  isActive,
+  layerCount,
+  metricCount,
+  hasAnchoredMetric,
+  config: configOverrides,
+  onPhaseChange,
+  onComplete,
+}: UseNarrativeControllerProps) {
+  const config = { ...DEFAULT_CONFIG, ...configOverrides };
+  
+  const [state, setState] = useState<NarrativeState>({
+    phase: 'idle',
+    visibleLayers: [],
+    lossHighlightActive: false,
+    lossPulseIntensity: 0,
+    anchoredMetricVisible: false,
+    summaryMetricsVisible: Array(metricCount).fill(false),
+    insightVisible: false,
+    layerDrawProgress: Array(layerCount).fill(0),
+    overallProgress: 0,
+    buttonReady: false,
+  });
+  
+  const animationRef = useRef<number | null>(null);
+  const phaseStartTimeRef = useRef<number>(0);
+  const currentPhaseRef = useRef<NarrativePhase>('idle');
+  
+  // Update phase and notify
+  const setPhase = useCallback((phase: NarrativePhase) => {
+    currentPhaseRef.current = phase;
+    phaseStartTimeRef.current = performance.now();
+    setState(prev => ({ ...prev, phase }));
+    onPhaseChange?.(phase);
+  }, [onPhaseChange]);
+  
+  // Reset to initial state
+  const reset = useCallback(() => {
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+      animationRef.current = null;
+    }
+    
+    setState({
+      phase: 'idle',
+      visibleLayers: [],
+      lossHighlightActive: false,
+      lossPulseIntensity: 0,
+      anchoredMetricVisible: false,
+      summaryMetricsVisible: Array(metricCount).fill(false),
+      insightVisible: false,
+      layerDrawProgress: Array(layerCount).fill(0),
+      overallProgress: 0,
+      buttonReady: false,
+    });
+    
+    currentPhaseRef.current = 'idle';
+  }, [metricCount, layerCount]);
+  
+  // Skip to complete (for non-animated scenarios)
+  const skipToComplete = useCallback(() => {
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+      animationRef.current = null;
+    }
+    
+    setState({
+      phase: 'complete',
+      visibleLayers: Array.from({ length: layerCount }, (_, i) => i),
+      lossHighlightActive: false,
+      lossPulseIntensity: 0,
+      anchoredMetricVisible: hasAnchoredMetric,
+      summaryMetricsVisible: Array(metricCount).fill(true),
+      insightVisible: true,
+      layerDrawProgress: Array(layerCount).fill(1),
+      overallProgress: 1,
+      buttonReady: true,
+    });
+    
+    currentPhaseRef.current = 'complete';
+    onComplete?.();
+  }, [layerCount, metricCount, hasAnchoredMetric, onComplete]);
+  
+  // Main animation loop for "before" variant
+  useEffect(() => {
+    // Only run narrative for "before" variant when active
+    // "after" variant uses the existing forge system
+    if (!isActive || variant !== 'before') {
+      return;
+    }
+    
+    reset();
+    
+    const {
+      layerDrawDuration,
+      layerStagger,
+      bleedDuration,
+      bleedPulseCycles,
+      metricRevealDelay,
+      readyDuration,
+    } = config;
+    
+    // Calculate total timeline
+    const setupDuration = layerDrawDuration + (layerCount - 1) * layerStagger;
+    const totalDuration = setupDuration + bleedDuration + readyDuration;
+    
+    const startTime = performance.now();
+    phaseStartTimeRef.current = startTime;
+    setPhase('setup-0');
+    
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const overallProgress = Math.min(elapsed / totalDuration, 1);
+      
+      // Determine current phase based on elapsed time
+      let newPhase: NarrativePhase = currentPhaseRef.current;
+      
+      // SETUP PHASES (layer by layer)
+      for (let layer = 0; layer < layerCount; layer++) {
+        const layerStartTime = layer * layerStagger;
+        if (elapsed >= layerStartTime && elapsed < setupDuration) {
+          newPhase = `setup-${layer}` as NarrativePhase;
+        }
+      }
+      
+      // BLEED PHASE
+      if (elapsed >= setupDuration && elapsed < setupDuration + bleedDuration) {
+        newPhase = 'bleed';
+      }
+      
+      // READY PHASE
+      if (elapsed >= setupDuration + bleedDuration && elapsed < totalDuration) {
+        newPhase = 'ready';
+      }
+      
+      // COMPLETE
+      if (elapsed >= totalDuration) {
+        newPhase = 'complete';
+      }
+      
+      // Update phase if changed
+      if (newPhase !== currentPhaseRef.current) {
+        setPhase(newPhase);
+      }
+      
+      // Calculate layer draw progress
+      const layerDrawProgress = Array(layerCount).fill(0).map((_, layer) => {
+        const layerStartTime = layer * layerStagger;
+        const layerElapsed = elapsed - layerStartTime;
+        if (layerElapsed <= 0) return 0;
+        return Math.min(layerElapsed / layerDrawDuration, 1);
+      });
+      
+      // Calculate visible layers (any with progress > 0)
+      const visibleLayers = layerDrawProgress
+        .map((progress, layer) => progress > 0 ? layer : -1)
+        .filter(layer => layer >= 0);
+      
+      // Bleed phase calculations
+      const inBleed = elapsed >= setupDuration && elapsed < setupDuration + bleedDuration;
+      const bleedElapsed = Math.max(0, elapsed - setupDuration);
+      const bleedProgress = Math.min(bleedElapsed / bleedDuration, 1);
+      
+      // Pulse intensity (sin wave during bleed)
+      const pulseFrequency = (bleedPulseCycles * Math.PI * 2) / bleedDuration;
+      const lossPulseIntensity = inBleed 
+        ? Math.sin(bleedElapsed * pulseFrequency) * 0.5 + 0.5
+        : 0;
+      
+      // Anchored metric appears during bleed after delay
+      const anchoredMetricVisible = hasAnchoredMetric && 
+        (bleedElapsed > metricRevealDelay || newPhase === 'ready' || newPhase === 'complete');
+      
+      // Summary metrics appear during ready phase, staggered
+      const inReady = elapsed >= setupDuration + bleedDuration;
+      const readyElapsed = Math.max(0, elapsed - setupDuration - bleedDuration);
+      const summaryMetricsVisible = Array(metricCount).fill(false).map((_, i) => {
+        const metricDelay = i * 200;
+        return inReady && readyElapsed > metricDelay;
+      });
+      
+      // Insight and button ready
+      const insightVisible = inReady && readyElapsed > 300;
+      const buttonReady = newPhase === 'complete' || (newPhase === 'ready' && readyElapsed > 800);
+      
+      // Update state
+      setState({
+        phase: newPhase,
+        visibleLayers,
+        lossHighlightActive: inBleed,
+        lossPulseIntensity,
+        anchoredMetricVisible,
+        summaryMetricsVisible,
+        insightVisible,
+        layerDrawProgress,
+        overallProgress,
+        buttonReady,
+      });
+      
+      // Continue or complete
+      if (newPhase !== 'complete') {
+        animationRef.current = requestAnimationFrame(animate);
+      } else {
+        onComplete?.();
+      }
+    };
+    
+    animationRef.current = requestAnimationFrame(animate);
+    
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+      }
+    };
+  }, [isActive, variant, layerCount, metricCount, hasAnchoredMetric, config, setPhase, reset, onComplete]);
+  
+  return {
+    ...state,
+    reset,
+    skipToComplete,
+    isSetupPhase: state.phase.startsWith('setup'),
+    isBleedPhase: state.phase === 'bleed',
+    isReadyPhase: state.phase === 'ready',
+    isComplete: state.phase === 'complete',
+  };
+}
+
+export default useNarrativeController;
