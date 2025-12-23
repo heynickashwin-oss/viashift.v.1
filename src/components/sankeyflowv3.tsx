@@ -1,5 +1,10 @@
 /**
- * SankeyFlowV3 - v3.8
+ * SankeyFlowV3 - v3.9
+ *
+ * CHANGES from v3.8:
+ * - Removed particle system for cleaner static visualization
+ * - Added arrow direction indicators at flow endpoints
+ * - Reduced performance overhead
  *
  * CHANGES from v3.7:
  * - Added displayValue to SankeyNode for showing values on nodes
@@ -15,19 +20,9 @@
  *   - Track animation completion by data identity, not layout reference
  *   - Moved pulsePhase to useRef + requestAnimationFrame (no state re-renders)
  *   - Removed console.log spam
- *
- * CHANGES from v3.5:
- * - Fixed metrics visibility bug: metrics now show on initial load
- *
- * CHANGES from v3.4:
- * - Layer-staggered draw animation (flows draw sequentially by layer)
- * - Proper animation cleanup on unmount/re-render
- * - Increased draw duration to 3s for better comprehension
- * - Loss flows fade in with layer (don't draw along path)
- * - Fixed node appearance to sync with layer progress
  */
 
-import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
+import { useEffect, useRef, useState, useMemo, memo } from 'react';
 import { BrandConfig, DEFAULT_BRAND, resolveTheme } from './branding/brandUtils';
 
 // ============================================
@@ -119,18 +114,6 @@ interface LayoutLink {
   pathLength: number;
   displayLabel?: string;
   midpoint: { x: number; y: number };
-}
-
-interface Particle {
-  link: LayoutLink;
-  t: number;
-  speed: number;
-  size: number;
-  offset: number;
-  opacity: number;
-  fallOffset: number;
-  fadeProgress: number;
-  isFalling: boolean;
 }
 
 // ============================================
@@ -233,7 +216,6 @@ const LAYOUT = {
   nodeMaxHeight: 90,
   drawDuration: 3000,
   staggerDelay: 60,
-  particleSpeed: 0.0015,
   forgeDuration: 1200,
 };
 
@@ -263,7 +245,6 @@ const SankeyFlowV3Inner = ({
   const theme = useMemo(() => resolveTheme(brand), [brand]);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const [dimensions, setDimensions] = useState({ width: 1200, height: 800 });
   const [drawProgress, setDrawProgress] = useState(0);
@@ -275,22 +256,13 @@ const SankeyFlowV3Inner = ({
   const [forgeLayer, setForgeLayer] = useState(-1);
   const [isForging, setIsForging] = useState(false);
   const [exitPhase, setExitPhase] = useState<'none' | 'freeze' | 'desaturate' | 'gone'>('none');
-  
+
   // Use ref for pulse to avoid re-renders
   const pulsePhaseRef = useRef(0);
   const [, forceUpdate] = useState(0);
 
-  const particlesRef = useRef<Particle[]>([]);
-  const leaderParticlesRef = useRef<Array<{
-    link: LayoutLink;
-    t: number;
-    speed: number;
-    brightness: number;
-  }>>([]);
-  const animationRef = useRef<number | null>(null);
   const drawAnimationRef = useRef<number | null>(null);
   const pulseAnimationRef = useRef<number | null>(null);
-  const isRunningRef = useRef(false);
 
   // Refs for animation loop
   const drawProgressRef = useRef(0);
@@ -453,22 +425,6 @@ const SankeyFlowV3Inner = ({
   useEffect(() => { exitPhaseRef.current = exitPhase; }, [exitPhase]);
   useEffect(() => { isBeforeRef.current = variant === 'before'; }, [variant]);
 
-  const getBezierPoint = useCallback((link: LayoutLink, t: number) => {
-    const x0 = link.source.x + link.source.width;
-    const y0 = link.source.y;
-    const x1 = link.target.x;
-    const y1 = link.target.y;
-    const dx = x1 - x0;
-    const cp1x = x0 + dx * 0.45;
-    const cp2x = x0 + dx * 0.55;
-
-    const mt = 1 - t;
-    return {
-      x: mt*mt*mt*x0 + 3*mt*mt*t*cp1x + 3*mt*t*t*cp2x + t*t*t*x1,
-      y: mt*mt*mt*y0 + 3*mt*mt*t*y0 + 3*mt*t*t*y1 + t*t*t*y1,
-    };
-  }, []);
-
   // CRITICAL FIX: Track animation by data identity, not layout reference
   // This prevents resize from restarting animation
 
@@ -580,7 +536,6 @@ const SankeyFlowV3Inner = ({
       setTimeout(() => {
         setRevealPhase(5);
         setIsForging(false);
-        leaderParticlesRef.current = [];
       }, layerDuration * 4);
 
     } else if (variant === 'before' && transitionPhase === 'idle') {
@@ -602,210 +557,6 @@ const SankeyFlowV3Inner = ({
       setIsForging(false);
     }
   }, [variant, transitionPhase, layout]);
-
-  // Initialize particles with loss behavior
-  useEffect(() => {
-    if (!layout || !animated) return;
-
-    particlesRef.current = [];
-    layout.links.forEach(link => {
-      const isLoss = link.type === 'loss';
-      const baseCount = Math.max(3, Math.ceil(link.value / 10));
-      const count = variant === 'after' ? Math.ceil(baseCount * 1.5) : baseCount;
-      
-      for (let i = 0; i < count; i++) {
-        particlesRef.current.push({
-          link,
-          t: Math.random(),
-          speed: isLoss 
-            ? LAYOUT.particleSpeed * 0.6
-            : LAYOUT.particleSpeed * (variant === 'after' ? (0.9 + Math.random() * 0.6) : (0.7 + Math.random() * 0.5)),
-          size: isLoss
-            ? (2 + Math.random() * 2)
-            : (variant === 'after' ? (2.5 + Math.random() * 2.5) : (2 + Math.random() * 2)),
-          offset: (Math.random() - 0.5) * link.thickness * 0.4,
-          opacity: isLoss ? (0.4 + Math.random() * 0.3) : (0.6 + Math.random() * 0.3),
-          fallOffset: 0,
-          fadeProgress: 0,
-          isFalling: isLoss && Math.random() > 0.5,
-        });
-      }
-    });
-
-    // Leader particles for forge
-    if (variant === 'after') {
-      leaderParticlesRef.current = [];
-      layout.links.forEach(link => {
-        if (link.type === 'loss') return;
-        for (let i = 0; i < 2; i++) {
-          leaderParticlesRef.current.push({
-            link,
-            t: 0,
-            speed: LAYOUT.particleSpeed * 2.5,
-            brightness: 1.3 + Math.random() * 0.4,
-          });
-        }
-      });
-    }
-
-    isRunningRef.current = true;
-
-    const animate = () => {
-      if (!isRunningRef.current || !canvasRef.current) return;
-
-      const ctx = canvasRef.current.getContext('2d');
-      if (!ctx) return;
-
-      const dpr = window.devicePixelRatio || 1;
-      ctx.clearRect(0, 0, dimensions.width * dpr, dimensions.height * dpr);
-
-      const currentDrawProgress = drawProgressRef.current;
-      const currentRevealPhase = revealPhaseRef.current;
-      const currentIsForging = isForgingRef.current;
-      const currentForgeLayer = forgeLayerRef.current;
-      const currentExitPhase = exitPhaseRef.current;
-      const currentIsBefore = isBeforeRef.current;
-
-      if (currentExitPhase === 'gone') {
-        animationRef.current = requestAnimationFrame(animate);
-        return;
-      }
-
-      const shouldAnimate = currentExitPhase === 'none' || currentExitPhase === 'freeze';
-
-      if (currentDrawProgress < 0.25) {
-        animationRef.current = requestAnimationFrame(animate);
-        return;
-      }
-
-      ctx.save();
-      ctx.scale(dpr, dpr);
-
-      // Leader particles during forge
-      if (currentIsForging && leaderParticlesRef.current.length > 0) {
-        leaderParticlesRef.current.forEach(leader => {
-          const linkLayer = Math.max(leader.link.source.layer, leader.link.target.layer);
-          if (linkLayer > currentForgeLayer + 1) return;
-
-          if (shouldAnimate) {
-            leader.t += leader.speed;
-            if (leader.t > 1) leader.t = 0;
-          }
-
-          const pos = getBezierPoint(leader.link, leader.t);
-          if (!pos) return;
-
-          const color = theme.colors.primary;
-          const size = 5;
-
-          const glow = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, size * 6);
-          glow.addColorStop(0, color + 'AA');
-          glow.addColorStop(0.3, color + '55');
-          glow.addColorStop(0.6, color + '18');
-          glow.addColorStop(1, 'transparent');
-
-          ctx.beginPath();
-          ctx.arc(pos.x, pos.y, size * 6, 0, Math.PI * 2);
-          ctx.fillStyle = glow;
-          ctx.fill();
-
-          ctx.beginPath();
-          ctx.arc(pos.x, pos.y, size, 0, Math.PI * 2);
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fill();
-
-          // Trail
-          for (let trail = 1; trail <= 3; trail++) {
-            const trailT = Math.max(0, leader.t - trail * 0.025);
-            const trailPos = getBezierPoint(leader.link, trailT);
-            if (trailPos) {
-              ctx.beginPath();
-              ctx.arc(trailPos.x, trailPos.y, size * (1 - trail * 0.2), 0, Math.PI * 2);
-              ctx.fillStyle = color + Math.floor((1 - trail * 0.25) * 180).toString(16).padStart(2, '0');
-              ctx.fill();
-            }
-          }
-        });
-      }
-
-      // Regular particles
-      const particlesActive = (!currentIsForging && currentRevealPhase >= 4) || (currentIsBefore && currentExitPhase === 'none');
-
-      if (particlesActive) {
-        particlesRef.current.forEach(p => {
-          const isLoss = p.link.type === 'loss';
-          
-          if (shouldAnimate) {
-            p.t += p.speed;
-            
-            if (isLoss && p.t > 0.7) {
-              p.isFalling = true;
-              p.fallOffset += 1.5;
-              p.fadeProgress = Math.min(1, p.fadeProgress + 0.02);
-            }
-            
-            if (p.t > 1) {
-              p.t = 0;
-              if (isLoss) {
-                p.fallOffset = 0;
-                p.fadeProgress = 0;
-                p.isFalling = Math.random() > 0.5;
-              }
-            }
-          }
-          
-          if (p.t > currentDrawProgress) return;
-
-          const pos = getBezierPoint(p.link, p.t);
-          if (!pos) return;
-
-          const yOffset = p.offset + (isLoss ? p.fallOffset : 0);
-          const particleOpacity = isLoss 
-            ? p.opacity * (1 - p.fadeProgress * 0.8)
-            : (currentExitPhase === 'desaturate' ? p.opacity * 0.3 : p.opacity);
-
-          if (particleOpacity < 0.05) return;
-
-          const color = isLoss
-            ? theme.colors.accent
-            : (p.link.type === 'new' || p.link.type === 'revenue')
-              ? theme.colors.secondary
-              : theme.colors.primary;
-
-          const glowSize = isLoss ? p.size * 3 : p.size * 4;
-          const glow = ctx.createRadialGradient(
-            pos.x, pos.y + yOffset, 0,
-            pos.x, pos.y + yOffset, glowSize
-          );
-          glow.addColorStop(0, color + Math.floor(particleOpacity * 40).toString(16).padStart(2, '0'));
-          glow.addColorStop(0.5, color + '10');
-          glow.addColorStop(1, 'transparent');
-
-          ctx.beginPath();
-          ctx.arc(pos.x, pos.y + yOffset, glowSize, 0, Math.PI * 2);
-          ctx.fillStyle = glow;
-          ctx.fill();
-
-          ctx.beginPath();
-          ctx.arc(pos.x, pos.y + yOffset, p.size * (isLoss ? (1 - p.fadeProgress * 0.5) : 1), 0, Math.PI * 2);
-          ctx.fillStyle = color;
-          ctx.globalAlpha = particleOpacity;
-          ctx.fill();
-          ctx.globalAlpha = 1;
-        });
-      }
-
-      ctx.restore();
-      animationRef.current = requestAnimationFrame(animate);
-    };
-
-    animate();
-
-    return () => {
-      isRunningRef.current = false;
-      if (animationRef.current) cancelAnimationFrame(animationRef.current);
-    };
-  }, [layout, animated, dimensions, theme, variant, getBezierPoint]);
 
   const anchoredPosition = useMemo(() => {
     if (!state.anchoredMetric || !layout) return null;
@@ -830,7 +581,6 @@ const SankeyFlowV3Inner = ({
     return 0.9 + Math.sin(phase * 0.08) * 0.08;
   };
 
-  const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
   const isBefore = variant === 'before';
 
   return (
@@ -879,15 +629,6 @@ const SankeyFlowV3Inner = ({
           transition: 'filter 0.3s ease-out, background 0.3s ease-out, opacity 0.3s ease-out',
           zIndex: exitPhase !== 'none' ? 100 : -1,
         }}
-      />
-
-      {/* Canvas for particles */}
-      <canvas
-        ref={canvasRef}
-        width={dimensions.width * dpr}
-        height={dimensions.height * dpr}
-        className="absolute inset-0 pointer-events-none"
-        style={{ width: dimensions.width, height: dimensions.height }}
       />
 
       {/* SVG for links and nodes */}
@@ -951,6 +692,41 @@ const SankeyFlowV3Inner = ({
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
+
+          {/* Arrow markers for flow direction */}
+          <marker
+            id="arrow-primary"
+            viewBox="0 0 10 10"
+            refX="9"
+            refY="5"
+            markerWidth="4"
+            markerHeight="4"
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" fill={theme.colors.primary} />
+          </marker>
+          <marker
+            id="arrow-secondary"
+            viewBox="0 0 10 10"
+            refX="9"
+            refY="5"
+            markerWidth="4"
+            markerHeight="4"
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" fill={theme.colors.secondary} />
+          </marker>
+          <marker
+            id="arrow-loss"
+            viewBox="0 0 10 10"
+            refX="9"
+            refY="5"
+            markerWidth="4"
+            markerHeight="4"
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" fill={theme.colors.accent} />
+          </marker>
         </defs>
 
         {/* Links */}
@@ -958,16 +734,19 @@ const SankeyFlowV3Inner = ({
           {layout?.links.map(link => {
             const gradId = link.type === 'loss' ? 'grad-loss' :
                           (link.type === 'new' || link.type === 'revenue') ? 'grad-secondary' : 'grad-primary';
-            
+
+            const arrowId = link.type === 'loss' ? 'arrow-loss' :
+                           (link.type === 'new' || link.type === 'revenue') ? 'arrow-secondary' : 'arrow-primary';
+
             const linkLayer = Math.max(link.source.layer, link.target.layer);
             const layerDrawProgress = getLayerProgress(linkLayer, drawProgress);
             const isLoss = link.type === 'loss';
-            
+
             // Loss flows fade in, other flows draw
-            const opacity = isLoss 
+            const opacity = isLoss
               ? layerDrawProgress * 0.6
               : (exitPhase === 'desaturate' ? 0.3 : 0.7);
-            
+
             return (
               <g key={link.id}>
                 {/* Glow layer */}
@@ -985,7 +764,7 @@ const SankeyFlowV3Inner = ({
                     transition: exitPhase !== 'none' ? 'opacity 0.3s' : 'none',
                   }}
                 />
-                
+
                 {/* Main stroke */}
                 <path
                   d={link.path}
@@ -994,6 +773,7 @@ const SankeyFlowV3Inner = ({
                   strokeWidth={link.thickness}
                   strokeLinecap="round"
                   opacity={opacity}
+                  markerEnd={layerDrawProgress > 0.8 ? `url(#${arrowId})` : undefined}
                   style={{
                     strokeDasharray: isLoss ? 'none' : link.pathLength,
                     strokeDashoffset: isLoss ? 0 : link.pathLength * (1 - layerDrawProgress),
