@@ -88,6 +88,9 @@ export interface SankeyFlowProps {
   transitionPhase?: 'idle' | 'anticipation' | 'shifting' | 'revealing';
   hideUI?: boolean;
   showLabels?: boolean; // Toggle value labels on nodes/flows
+  editable?: boolean;
+  onNodeValueChange?: (nodeId: string, newValue: string) => void;
+  onLinkLabelChange?: (linkId: string, newLabel: string) => void;
 }
 
 // ============================================
@@ -241,6 +244,9 @@ const SankeyFlowV3Inner = ({
   transitionPhase = 'idle',
   hideUI = false,
   showLabels = true,
+  editable = false,
+  onNodeValueChange,
+  onLinkLabelChange,
 }: SankeyFlowProps) => {
   const theme = useMemo(() => resolveTheme(brand), [brand]);
 
@@ -256,6 +262,11 @@ const SankeyFlowV3Inner = ({
   const [forgeLayer, setForgeLayer] = useState(-1);
   const [isForging, setIsForging] = useState(false);
   const [exitPhase, setExitPhase] = useState<'none' | 'freeze' | 'desaturate' | 'gone'>('none');
+
+  // Edit state
+  const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
+  const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
 
   // Use ref for pulse to avoid re-renders
   const pulsePhaseRef = useRef(0);
@@ -368,13 +379,44 @@ const SankeyFlowV3Inner = ({
     const layerCount = maxLayer + 1;
     const layerStart = layer / layerCount;
     const layerEnd = (layer + 1) / layerCount;
-    
+
     if (overallProgress <= layerStart) return 0;
     if (overallProgress >= layerEnd) return 1;
-    
+
     const rawProgress = (overallProgress - layerStart) / (layerEnd - layerStart);
     return easeOutCubic(rawProgress);
   }, [maxLayer]);
+
+  // Edit handlers
+  const handleStartEditNode = useCallback((nodeId: string, currentValue: string) => {
+    if (!editable) return;
+    setEditingNodeId(nodeId);
+    setEditValue(currentValue);
+  }, [editable]);
+
+  const handleStartEditLink = useCallback((linkId: string, currentLabel: string) => {
+    if (!editable) return;
+    setEditingLinkId(linkId);
+    setEditValue(currentLabel);
+  }, [editable]);
+
+  const handleSaveEdit = useCallback(() => {
+    if (editingNodeId && onNodeValueChange) {
+      onNodeValueChange(editingNodeId, editValue);
+    }
+    if (editingLinkId && onLinkLabelChange) {
+      onLinkLabelChange(editingLinkId, editValue);
+    }
+    setEditingNodeId(null);
+    setEditingLinkId(null);
+    setEditValue('');
+  }, [editingNodeId, editingLinkId, editValue, onNodeValueChange, onLinkLabelChange]);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingNodeId(null);
+    setEditingLinkId(null);
+    setEditValue('');
+  }, []);
 
   // Pulse animation using requestAnimationFrame instead of setInterval
   useEffect(() => {
@@ -783,36 +825,84 @@ const SankeyFlowV3Inner = ({
                 
                 {/* Flow label at midpoint */}
                 {showLabels && link.displayLabel && (link.type === 'loss' || link.type === 'new' || link.type === 'revenue') && layerDrawProgress > 0.5 && (
-                  <g
-                    transform={`translate(${link.midpoint.x}, ${link.midpoint.y})`}
-                    style={{
-                      opacity: Math.min(1, (layerDrawProgress - 0.5) * 2),
-                      transition: 'opacity 0.3s ease-out',
-                    }}
-                  >
-                    <rect
-                      x={-32}
-                      y={-12}
+                  editingLinkId === link.id ? (
+                    <foreignObject
+                      x={link.midpoint.x - 32}
+                      y={link.midpoint.y - 12}
                       width={64}
                       height={24}
-                      rx={12}
-                      fill="rgba(0, 0, 0, 0.85)"
-                      stroke={link.type === 'loss' ? theme.colors.accent + '66' : theme.colors.secondary + '66'}
-                      strokeWidth={1}
-                    />
-                    <text
-                      x={0}
-                      y={0}
-                      dy="0.35em"
-                      textAnchor="middle"
-                      fill={link.type === 'loss' ? theme.colors.accent : theme.colors.secondary}
-                      fontSize={13}
-                      fontWeight={600}
-                      fontFamily="Inter, system-ui, sans-serif"
+                      style={{
+                        opacity: Math.min(1, (layerDrawProgress - 0.5) * 2),
+                      }}
                     >
-                      {link.displayLabel}
-                    </text>
-                  </g>
+                      <input
+                        type="text"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleSaveEdit();
+                          } else if (e.key === 'Escape') {
+                            e.preventDefault();
+                            handleCancelEdit();
+                          }
+                        }}
+                        onBlur={handleSaveEdit}
+                        autoFocus
+                        style={{
+                          width: '64px',
+                          height: '24px',
+                          background: 'rgba(0, 0, 0, 0.85)',
+                          border: `1px solid ${link.type === 'loss' ? theme.colors.accent + '66' : theme.colors.secondary + '66'}`,
+                          borderRadius: '12px',
+                          color: link.type === 'loss' ? theme.colors.accent : theme.colors.secondary,
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          fontFamily: 'Inter, system-ui, sans-serif',
+                          textAlign: 'center',
+                          outline: 'none',
+                          padding: '0',
+                        }}
+                      />
+                    </foreignObject>
+                  ) : (
+                    <g
+                      transform={`translate(${link.midpoint.x}, ${link.midpoint.y})`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStartEditLink(link.id, link.displayLabel || '');
+                      }}
+                      style={{
+                        opacity: Math.min(1, (layerDrawProgress - 0.5) * 2),
+                        transition: 'opacity 0.3s ease-out',
+                        cursor: editable ? 'pointer' : 'default',
+                      }}
+                    >
+                      <rect
+                        x={-32}
+                        y={-12}
+                        width={64}
+                        height={24}
+                        rx={12}
+                        fill="rgba(0, 0, 0, 0.85)"
+                        stroke={link.type === 'loss' ? theme.colors.accent + '66' : theme.colors.secondary + '66'}
+                        strokeWidth={1}
+                      />
+                      <text
+                        x={0}
+                        y={0}
+                        dy="0.35em"
+                        textAnchor="middle"
+                        fill={link.type === 'loss' ? theme.colors.accent : theme.colors.secondary}
+                        fontSize={13}
+                        fontWeight={600}
+                        fontFamily="Inter, system-ui, sans-serif"
+                      >
+                        {link.displayLabel}
+                      </text>
+                    </g>
+                  )
                 )}
               </g>
             );
@@ -898,36 +988,89 @@ const SankeyFlowV3Inner = ({
 
                {/* Node displayValue - pill box below label */}
 {showLabels && node.displayValue && (
-  <g transform={`translate(${node.layer < 2 ? node.width + 16 : -16}, ${node.height / 2 + 18})`}>
-    <rect
-      x={node.layer < 2 ? 0 : -56}
-      y={-10}
+  editingNodeId === node.id ? (
+    <foreignObject
+      x={node.layer < 2 ? node.width + 16 : -16 - 56}
+      y={node.height / 2 + 8}
       width={56}
       height={20}
-      rx={10}
-      fill="rgba(0, 0, 0, 0.85)"
-      stroke={node.type === 'loss' ? theme.colors.accent + '66' : 
-              node.type === 'solution' || node.type === 'new' || node.type === 'revenue' 
-                ? theme.colors.secondary + '66' 
-                : 'rgba(255, 255, 255, 0.2)'}
-      strokeWidth={1}
-    />
-    <text
-      x={node.layer < 2 ? 28 : -28}
-      y={0}
-      dy="0.35em"
-      textAnchor="middle"
-      fill={node.type === 'loss' ? theme.colors.accent :
-            node.type === 'solution' || node.type === 'new' || node.type === 'revenue' 
-              ? theme.colors.secondary 
-              : 'rgba(255, 255, 255, 0.8)'}
-      fontSize={11}
-      fontWeight={600}
-      fontFamily="Inter, system-ui, sans-serif"
     >
-      {node.displayValue}
-    </text>
-  </g>
+      <input
+        type="text"
+        value={editValue}
+        onChange={(e) => setEditValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            handleSaveEdit();
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            handleCancelEdit();
+          }
+        }}
+        onBlur={handleSaveEdit}
+        autoFocus
+        style={{
+          width: '56px',
+          height: '20px',
+          background: 'rgba(0, 0, 0, 0.85)',
+          border: `1px solid ${node.type === 'loss' ? theme.colors.accent + '66' :
+                  node.type === 'solution' || node.type === 'new' || node.type === 'revenue'
+                    ? theme.colors.secondary + '66'
+                    : 'rgba(255, 255, 255, 0.2)'}`,
+          borderRadius: '10px',
+          color: node.type === 'loss' ? theme.colors.accent :
+                node.type === 'solution' || node.type === 'new' || node.type === 'revenue'
+                  ? theme.colors.secondary
+                  : 'rgba(255, 255, 255, 0.8)',
+          fontSize: '11px',
+          fontWeight: 600,
+          fontFamily: 'Inter, system-ui, sans-serif',
+          textAlign: 'center',
+          outline: 'none',
+          padding: '0',
+        }}
+      />
+    </foreignObject>
+  ) : (
+    <g
+      transform={`translate(${node.layer < 2 ? node.width + 16 : -16}, ${node.height / 2 + 18})`}
+      onClick={(e) => {
+        e.stopPropagation();
+        handleStartEditNode(node.id, node.displayValue || '');
+      }}
+      style={{ cursor: editable ? 'pointer' : 'default' }}
+    >
+      <rect
+        x={node.layer < 2 ? 0 : -56}
+        y={-10}
+        width={56}
+        height={20}
+        rx={10}
+        fill="rgba(0, 0, 0, 0.85)"
+        stroke={node.type === 'loss' ? theme.colors.accent + '66' :
+                node.type === 'solution' || node.type === 'new' || node.type === 'revenue'
+                  ? theme.colors.secondary + '66'
+                  : 'rgba(255, 255, 255, 0.2)'}
+        strokeWidth={1}
+      />
+      <text
+        x={node.layer < 2 ? 28 : -28}
+        y={0}
+        dy="0.35em"
+        textAnchor="middle"
+        fill={node.type === 'loss' ? theme.colors.accent :
+              node.type === 'solution' || node.type === 'new' || node.type === 'revenue'
+                ? theme.colors.secondary
+                : 'rgba(255, 255, 255, 0.8)'}
+        fontSize={11}
+        fontWeight={600}
+        fontFamily="Inter, system-ui, sans-serif"
+      >
+        {node.displayValue}
+      </text>
+    </g>
+  )
 )}
 
                 {/* NEW badge - only show if no displayValue */}
