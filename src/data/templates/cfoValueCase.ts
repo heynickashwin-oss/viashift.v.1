@@ -117,6 +117,8 @@ export const cfoValueCaseTemplate: TransformationTemplateData = {
   name: 'CFO Value Case',
   description: 'The financial impact of deals dying in silence',
   stageLabels: ['Investment', 'Allocation', 'Efficiency', 'Return'],
+  valueFormat: 'currency', // ADD THIS LINE
+  sightlines: {
 
   sightlines: {
     finance: {
