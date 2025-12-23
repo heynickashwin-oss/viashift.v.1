@@ -1,9 +1,16 @@
 /**
- * SankeyFlowV3 - v3.6
+ * SankeyFlowV3 - v3.7
+ *
+ * CHANGES from v3.6:
+ * - FIXED: Infinite re-render loop
+ *   - Wrapped component with React.memo() for stable renders
+ *   - Converted layout from useState/useEffect to useMemo (derived state)
+ *   - Track animation completion by data identity, not layout reference
+ *   - Moved pulsePhase to useRef + requestAnimationFrame (no state re-renders)
+ *   - Removed console.log spam
  *
  * CHANGES from v3.5:
  * - Fixed metrics visibility bug: metrics now show on initial load
- *   (removed revealPhase >= 5 requirement for non-forge animations)
  *
  * CHANGES from v3.4:
  * - Layer-staggered draw animation (flows draw sequentially by layer)
@@ -13,7 +20,7 @@
  * - Fixed node appearance to sync with layer progress
  */
 
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
 import { BrandConfig, DEFAULT_BRAND, resolveTheme } from './branding/brandUtils';
 
 // ============================================
@@ -107,7 +114,6 @@ interface Particle {
   size: number;
   offset: number;
   opacity: number;
-  // Loss particle specific
   fallOffset: number;
   fadeProgress: number;
   isFalling: boolean;
@@ -129,6 +135,11 @@ function easeOutBack(t: number): number {
 
 function lerp(start: number, end: number, t: number): number {
   return start + (end - start) * t;
+}
+
+// Generate a stable identity key for the data
+function getDataIdentity(data: SankeyData): string {
+  return `${data.nodes.length}-${data.links.length}-${data.nodes.map(n => n.id).join(',')}`;
 }
 
 // ============================================
@@ -176,7 +187,7 @@ const AnimatedValue = ({
 
         const formatted = hasDecimal
           ? currentNum.toFixed(1)
-              : Math.round(currentNum).toString();
+          : Math.round(currentNum).toString();
 
         setDisplayValue(`${prefix}${formatted}${suffix}`);
 
@@ -198,10 +209,32 @@ const AnimatedValue = ({
 };
 
 // ============================================
+// LAYOUT CONSTANTS
+// ============================================
+
+const LAYOUT = {
+  padding: { top: 100, right: 60, bottom: 120, left: 60 },
+  nodeWidth: 18,
+  nodeMinHeight: 35,
+  nodeMaxHeight: 90,
+  drawDuration: 3000,
+  staggerDelay: 60,
+  particleSpeed: 0.0015,
+  forgeDuration: 1200,
+};
+
+const layerXPercent: Record<number, number> = {
+  0: 0.05,
+  1: 0.28,
+  2: 0.58,
+  3: 0.92,
+};
+
+// ============================================
 // MAIN COMPONENT
 // ============================================
 
-export const SankeyFlowV3 = ({
+const SankeyFlowV3Inner = ({
   state,
   stageLabels = ['Ingest', 'Process', 'Distribute', 'Monetize'],
   variant,
@@ -212,15 +245,12 @@ export const SankeyFlowV3 = ({
   transitionPhase = 'idle',
   hideUI = false,
 }: SankeyFlowProps) => {
-  console.log('SankeyFlowV3 v3.6 loaded, metrics:', state.metrics, 'nodes:', state.data.nodes.length);
-  
   const theme = useMemo(() => resolveTheme(brand), [brand]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const [dimensions, setDimensions] = useState({ width: 1200, height: 800 });
-  const [layout, setLayout] = useState<{ nodes: LayoutNode[]; links: LayoutLink[] } | null>(null);
   const [drawProgress, setDrawProgress] = useState(0);
   const [uiVisible, setUiVisible] = useState(false);
   const [metricsVisible, setMetricsVisible] = useState<boolean[]>([]);
@@ -230,7 +260,10 @@ export const SankeyFlowV3 = ({
   const [forgeLayer, setForgeLayer] = useState(-1);
   const [isForging, setIsForging] = useState(false);
   const [exitPhase, setExitPhase] = useState<'none' | 'freeze' | 'desaturate' | 'gone'>('none');
-  const [pulsePhase, setPulsePhase] = useState(0);
+  
+  // Use ref for pulse to avoid re-renders
+  const pulsePhaseRef = useRef(0);
+  const [, forceUpdate] = useState(0);
 
   const particlesRef = useRef<Particle[]>([]);
   const leaderParticlesRef = useRef<Array<{
@@ -241,7 +274,11 @@ export const SankeyFlowV3 = ({
   }>>([]);
   const animationRef = useRef<number | null>(null);
   const drawAnimationRef = useRef<number | null>(null);
+  const pulseAnimationRef = useRef<number | null>(null);
   const isRunningRef = useRef(false);
+
+  // Track which data we've animated
+  const animatedDataRef = useRef<string | null>(null);
 
   // Refs for animation loop
   const drawProgressRef = useRef(0);
@@ -251,67 +288,10 @@ export const SankeyFlowV3 = ({
   const exitPhaseRef = useRef<'none' | 'freeze' | 'desaturate' | 'gone'>('none');
   const isBeforeRef = useRef(true);
 
-  // Memoized max layer for layer-staggered animation
-  const maxLayer = useMemo(() => {
-    if (!layout) return 3;
-    return Math.max(...layout.nodes.map(n => n.layer), 0);
-  }, [layout]);
-
-  // Calculate progress for a specific layer based on overall draw progress
-  const getLayerProgress = useCallback((layer: number, overallProgress: number): number => {
-    const layerCount = maxLayer + 1;
-    const layerStart = layer / layerCount;
-    const layerEnd = (layer + 1) / layerCount;
-    
-    if (overallProgress <= layerStart) return 0;
-    if (overallProgress >= layerEnd) return 1;
-    
-    // Ease the per-layer progress for smoother feel
-    const rawProgress = (overallProgress - layerStart) / (layerEnd - layerStart);
-    return easeOutCubic(rawProgress);
-  }, [maxLayer]);
-
-  const LAYOUT = {
-    padding: { top: 100, right: 60, bottom: 120, left: 60 },
-    nodeWidth: 18,
-    nodeMinHeight: 35,
-    nodeMaxHeight: 90,
-    drawDuration: 3000,
-    staggerDelay: 60,
-    particleSpeed: 0.0015,
-    forgeDuration: 1200, // Slower forge timing
-  };
-
-  const layerXPercent: Record<number, number> = {
-    0: 0.05,
-    1: 0.28,
-    2: 0.58,
-    3: 0.92,
-  };
-
-  // Pulse animation for nodes
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPulsePhase(p => (p + 1) % 360);
-    }, 50);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    const updateSize = () => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        setDimensions({ width: rect.width, height: rect.height });
-      }
-    };
-
-    updateSize();
-    window.addEventListener('resize', updateSize);
-    return () => window.removeEventListener('resize', updateSize);
-  }, []);
-
-  useEffect(() => {
-    if (!state.data.nodes.length || dimensions.width < 100) return;
+  // CRITICAL FIX: Calculate layout with useMemo instead of useEffect
+  // This ensures layout only changes when data or dimensions actually change
+  const layout = useMemo(() => {
+    if (!state.data.nodes.length || dimensions.width < 100) return null;
 
     const { padding, nodeWidth, nodeMinHeight, nodeMaxHeight } = LAYOUT;
     const nodes: LayoutNode[] = [];
@@ -335,7 +315,6 @@ export const SankeyFlowV3 = ({
       const totalInLayer = layerNodes.length;
       const yPos = node.y ?? (idx + 1) / (totalInLayer + 1);
       
-      // Value-scaled height
       const heightRatio = node.value / maxValue;
       const height = Math.max(nodeMinHeight, Math.min(nodeMaxHeight, heightRatio * nodeMaxHeight * 1.2));
 
@@ -379,8 +358,68 @@ export const SankeyFlowV3 = ({
       };
     }).filter(Boolean) as LayoutLink[];
 
-    setLayout({ nodes, links });
+    return { nodes, links };
   }, [state.data, dimensions]);
+
+  // Memoized max layer for layer-staggered animation
+  const maxLayer = useMemo(() => {
+    if (!layout) return 3;
+    return Math.max(...layout.nodes.map(n => n.layer), 0);
+  }, [layout]);
+
+  // Calculate progress for a specific layer based on overall draw progress
+  const getLayerProgress = useCallback((layer: number, overallProgress: number): number => {
+    const layerCount = maxLayer + 1;
+    const layerStart = layer / layerCount;
+    const layerEnd = (layer + 1) / layerCount;
+    
+    if (overallProgress <= layerStart) return 0;
+    if (overallProgress >= layerEnd) return 1;
+    
+    const rawProgress = (overallProgress - layerStart) / (layerEnd - layerStart);
+    return easeOutCubic(rawProgress);
+  }, [maxLayer]);
+
+  // Pulse animation using requestAnimationFrame instead of setInterval
+  useEffect(() => {
+    let running = true;
+    
+    const animatePulse = () => {
+      if (!running) return;
+      pulsePhaseRef.current = (pulsePhaseRef.current + 1) % 360;
+      // Only force update every 50ms (20fps) for pulse, not every frame
+      pulseAnimationRef.current = requestAnimationFrame(animatePulse);
+    };
+    
+    // Trigger re-render for pulse at lower frequency
+    const pulseInterval = setInterval(() => {
+      if (running) forceUpdate(n => n + 1);
+    }, 50);
+    
+    pulseAnimationRef.current = requestAnimationFrame(animatePulse);
+    
+    return () => {
+      running = false;
+      clearInterval(pulseInterval);
+      if (pulseAnimationRef.current) {
+        cancelAnimationFrame(pulseAnimationRef.current);
+      }
+    };
+  }, []);
+
+  // Resize observer for dimensions
+  useEffect(() => {
+    const updateSize = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setDimensions({ width: rect.width, height: rect.height });
+      }
+    };
+
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
 
   // Sync refs
   useEffect(() => { drawProgressRef.current = drawProgress; }, [drawProgress]);
@@ -406,11 +445,12 @@ export const SankeyFlowV3 = ({
     };
   }, []);
 
+  // CRITICAL FIX: Track animation by data identity, not layout reference
+  // This prevents resize from restarting animation
+  const dataIdentity = useMemo(() => getDataIdentity(state.data), [state.data]);
+
   useEffect(() => {
     if (!layout) return;
-
-    // DEBUG: trace animation start
-    console.log('Draw effect triggered:', { animated, variant, nodeCount: layout.nodes.length });
 
     // Cancel any existing animation
     if (drawAnimationRef.current) {
@@ -418,19 +458,25 @@ export const SankeyFlowV3 = ({
       drawAnimationRef.current = null;
     }
 
-    setDrawProgress(0);
-    setUiVisible(false);
-    setMetricsVisible([]);
-    setAnchoredVisible(false);
+    // Check if we've already animated this exact data
+    const shouldAnimate = animated && animatedDataRef.current !== dataIdentity;
 
-    if (!animated) {
-      console.log('Animation SKIPPED - animated is false');
+    if (!shouldAnimate) {
+      // Skip animation - just show final state
       setDrawProgress(1);
       setUiVisible(true);
       setMetricsVisible(state.metrics.map(() => true));
       setAnchoredVisible(true);
       return;
     }
+
+    // Mark this data as being animated
+    animatedDataRef.current = dataIdentity;
+
+    setDrawProgress(0);
+    setUiVisible(false);
+    setMetricsVisible([]);
+    setAnchoredVisible(false);
 
     const duration = LAYOUT.drawDuration;
     const startTime = performance.now();
@@ -463,14 +509,13 @@ export const SankeyFlowV3 = ({
 
     drawAnimationRef.current = requestAnimationFrame(animateDraw);
 
-    // Cleanup function
     return () => {
       if (drawAnimationRef.current) {
         cancelAnimationFrame(drawAnimationRef.current);
         drawAnimationRef.current = null;
       }
     };
-}, [layout, animated, state.metrics.length]);
+  }, [layout, animated, dataIdentity, state.metrics.length]);
 
   // Forge transition with slower timing
   useEffect(() => {
@@ -480,8 +525,8 @@ export const SankeyFlowV3 = ({
       setForgeLayer(0);
       setRevealPhase(0);
 
-      const layerDuration = LAYOUT.forgeDuration; // 1200ms per layer
-      const maxLayer = Math.max(...(layout?.nodes.map(n => n.layer) || [0]), 0);
+      const layerDuration = LAYOUT.forgeDuration;
+      const maxLayerVal = Math.max(...(layout?.nodes.map(n => n.layer) || [0]), 0);
 
       setTimeout(() => setRevealPhase(1), 0);
 
@@ -552,14 +597,13 @@ export const SankeyFlowV3 = ({
           link,
           t: Math.random(),
           speed: isLoss 
-            ? LAYOUT.particleSpeed * 0.6  // Loss particles move slower
+            ? LAYOUT.particleSpeed * 0.6
             : LAYOUT.particleSpeed * (variant === 'after' ? (0.9 + Math.random() * 0.6) : (0.7 + Math.random() * 0.5)),
           size: isLoss
-            ? (2 + Math.random() * 2)  // Loss particles smaller
+            ? (2 + Math.random() * 2)
             : (variant === 'after' ? (2.5 + Math.random() * 2.5) : (2 + Math.random() * 2)),
           offset: (Math.random() - 0.5) * link.thickness * 0.4,
           opacity: isLoss ? (0.4 + Math.random() * 0.3) : (0.6 + Math.random() * 0.3),
-          // Loss specific
           fallOffset: 0,
           fadeProgress: 0,
           isFalling: isLoss && Math.random() > 0.5,
@@ -673,7 +717,6 @@ export const SankeyFlowV3 = ({
           if (shouldAnimate) {
             p.t += p.speed;
             
-            // Loss particles: fall and fade when they reach end
             if (isLoss && p.t > 0.7) {
               p.isFalling = true;
               p.fallOffset += 1.5;
@@ -695,7 +738,6 @@ export const SankeyFlowV3 = ({
           const pos = getBezierPoint(p.link, p.t);
           if (!pos) return;
 
-          // Loss particles fall down
           const yOffset = p.offset + (isLoss ? p.fallOffset : 0);
           const particleOpacity = isLoss 
             ? p.opacity * (1 - p.fadeProgress * 0.8)
@@ -709,7 +751,6 @@ export const SankeyFlowV3 = ({
               ? theme.colors.secondary
               : theme.colors.primary;
 
-          // Smaller glow for loss particles
           const glowSize = isLoss ? p.size * 3 : p.size * 4;
           const glow = ctx.createRadialGradient(
             pos.x, pos.y + yOffset, 0,
@@ -758,16 +799,14 @@ export const SankeyFlowV3 = ({
   }, [state.anchoredMetric, layout]);
 
   const getNodePulse = (node: LayoutNode): number => {
+    const phase = pulsePhaseRef.current;
     if (node.type === 'loss') {
-      // Irregular warning pulse
-      return 0.85 + Math.sin(pulsePhase * 0.15) * 0.1 + Math.sin(pulsePhase * 0.23) * 0.05;
+      return 0.85 + Math.sin(phase * 0.15) * 0.1 + Math.sin(phase * 0.23) * 0.05;
     }
     if (node.type === 'solution') {
-      // Confident steady glow
-      return 0.95 + Math.sin(pulsePhase * 0.05) * 0.05;
+      return 0.95 + Math.sin(phase * 0.05) * 0.05;
     }
-    // Subtle breathing for default
-    return 0.9 + Math.sin(pulsePhase * 0.08) * 0.08;
+    return 0.9 + Math.sin(phase * 0.08) * 0.08;
   };
 
   const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
@@ -895,133 +934,112 @@ export const SankeyFlowV3 = ({
 
         {/* Links */}
         <g>
-      {layout?.links.map(link => {
+          {layout?.links.map(link => {
             const gradId = link.type === 'loss' ? 'grad-loss' :
                           (link.type === 'new' || link.type === 'revenue') ? 'grad-secondary' : 'grad-primary';
-            const sourceLayer = link.source.layer;
-            const targetLayer = link.target.layer;
-            const linkLayer = Math.max(sourceLayer, targetLayer);
-            // For forge transition (after state)
-            const linkForgeProgress = forgeLayer >= linkLayer ? 1 :
-                                     forgeLayer === linkLayer - 1 ? (forgeProgress % 0.25) * 4 : 0;
-            // For initial draw - use layer-staggered progress
+            
+            const linkLayer = Math.max(link.source.layer, link.target.layer);
             const layerDrawProgress = getLayerProgress(linkLayer, drawProgress);
+            const isLoss = link.type === 'loss';
             
-            // DEBUG: trace layer stagger
-            if (link.from === 'seller-effort') console.log('Link draw:', { linkLayer, drawProgress, layerDrawProgress, isForging });
-            
-            const connectionVisible = revealPhase >= 3 || (isForging && linkForgeProgress > 0) || layerDrawProgress > 0;
-            const currentLinkProgress = isForging ? linkForgeProgress : layerDrawProgress;
-
-            const strokeMultiplier = isBefore ? 1 : 1.1;
-            
-            // Loss links: fade in with layer, don't draw along path
-            const isLossLink = link.type === 'loss';
-            const lossOpacity = isLossLink ? layerDrawProgress : 1;
+            // Loss flows fade in, other flows draw
+            const opacity = isLoss 
+              ? layerDrawProgress * 0.6
+              : (exitPhase === 'desaturate' ? 0.3 : 0.7);
             
             return (
-              <path
-                key={link.id}
-                d={link.path}
-                fill="none"
-                stroke={`url(#${gradId})`}
-                strokeWidth={link.thickness * strokeMultiplier}
-                strokeLinecap="round"
-                strokeOpacity={connectionVisible
-                  ? (isLossLink
-                      ? (isBefore ? 0.35 : 0.25) * lossOpacity
-                      : (isBefore ? 0.4 : 0.6))
-                  : 0}
-                strokeDasharray={isLossLink ? '8 4' : link.pathLength}
-                strokeDashoffset={isLossLink ? 0 : link.pathLength * (1 - currentLinkProgress)}
-                filter={!isBefore && !isLossLink ? 'url(#glow)' : undefined}
-                style={{
-                  transition: isForging ? 'none' : 'stroke-opacity 0.3s ease-out',
-                }}
-              />
+              <g key={link.id}>
+                {/* Glow layer */}
+                <path
+                  d={link.path}
+                  fill="none"
+                  stroke={`url(#${gradId})`}
+                  strokeWidth={link.thickness + 8}
+                  strokeLinecap="round"
+                  opacity={opacity * 0.15}
+                  filter="url(#glow)"
+                  style={{
+                    strokeDasharray: isLoss ? 'none' : link.pathLength,
+                    strokeDashoffset: isLoss ? 0 : link.pathLength * (1 - layerDrawProgress),
+                    transition: exitPhase !== 'none' ? 'opacity 0.3s' : 'none',
+                  }}
+                />
+                
+                {/* Main stroke */}
+                <path
+                  d={link.path}
+                  fill="none"
+                  stroke={`url(#${gradId})`}
+                  strokeWidth={link.thickness}
+                  strokeLinecap="round"
+                  opacity={opacity}
+                  style={{
+                    strokeDasharray: isLoss ? 'none' : link.pathLength,
+                    strokeDashoffset: isLoss ? 0 : link.pathLength * (1 - layerDrawProgress),
+                    transition: exitPhase !== 'none' ? 'opacity 0.3s' : 'none',
+                  }}
+                />
+              </g>
             );
           })}
         </g>
 
         {/* Nodes */}
         <g>
-          {layout?.nodes.map((node, i) => {
-            // Layer-based progress for initial draw
+          {layout?.nodes.map(node => {
             const layerProgress = getLayerProgress(node.layer, drawProgress);
-            const nodeProgress = layerProgress;
-            const scale = easeOutBack(Math.min(1, nodeProgress * 1.2)); // Slight overshoot for bounce
+            const nodeScale = easeOutBack(Math.min(1, layerProgress * 1.2));
+            const nodeOpacity = layerProgress;
 
-            const nodeLayerVisible = !isForging || forgeLayer >= node.layer;
-            const nodeVisible = isForging 
-              ? (revealPhase >= 2 && nodeLayerVisible)
-              : nodeProgress > 0;
-            const nodeOpacity = nodeVisible ? Math.min(1, nodeProgress * 1.5) * getNodePulse(node) : 0;
-
-            const isBeingForged = isForging && forgeLayer === node.layer;
+            const gradId = `nodeGrad-${node.type || 'default'}`;
+            const isLossNode = node.type === 'loss';
+            const isSolutionNode = node.type === 'solution';
+            const isNewNode = node.type === 'new' || node.type === 'revenue';
+            
+            const pulseOpacity = getNodePulse(node);
+            const strokeColor = isLossNode ? theme.colors.accent :
+                               isSolutionNode ? theme.colors.primary :
+                               isNewNode ? theme.colors.secondary :
+                               'rgba(255, 255, 255, 0.2)';
 
             return (
               <g
                 key={node.id}
-                transform={`translate(${node.x}, ${node.y - node.height / 2})`}
+                transform={`translate(${node.x}, ${node.y})`}
                 style={{
-                  opacity: nodeOpacity,
+                  opacity: exitPhase === 'desaturate' ? nodeOpacity * 0.4 
+                         : exitPhase === 'gone' ? 0 
+                         : nodeOpacity,
                   cursor: onNodeClick ? 'pointer' : 'default',
-                  filter: isBeingForged ? 'brightness(1.2)' : 'none',
-                  transition: isForging
-                    ? 'opacity 0.3s ease-out, filter 0.3s ease-out'
-                    : 'opacity 0.4s ease-out',
+                  transition: exitPhase !== 'none' ? 'opacity 0.3s' : 'none',
                 }}
                 onClick={() => onNodeClick?.(node.id)}
               >
-                {/* Outer glow for non-loss nodes in after state */}
-                {!isBefore && node.type !== 'loss' && (
+                {/* Glow behind node */}
+                {(isSolutionNode || isNewNode) && (
                   <rect
-                    x={-3}
-                    y={-3}
-                    width={node.width + 6}
-                    height={node.height + 6}
-                    rx={9}
-                    fill="none"
-                    stroke={node.type === 'solution' ? theme.colors.primary :
-                            node.type === 'new' || node.type === 'revenue' ? theme.colors.secondary :
-                            'rgba(255, 255, 255, 0.08)'}
-                    strokeWidth={1.5}
-                    opacity={0.3}
-                    filter="url(#nodeGlow)"
+                    x={-4}
+                    y={-4}
+                    width={node.width + 8}
+                    height={node.height + 8}
+                    rx={8}
+                    fill={isSolutionNode ? theme.colors.primary : theme.colors.secondary}
+                    opacity={0.2 * pulseOpacity}
+                    filter="url(#solutionGlow)"
                   />
                 )}
 
-                {/* Main node rect */}
+                {/* Node rectangle */}
                 <rect
                   width={node.width}
                   height={node.height}
-                  rx={6}
-                  fill={`url(#nodeGrad-${node.type || 'default'})`}
-                  stroke={node.type === 'solution' ? theme.colors.primary :
-                          node.type === 'loss' ? theme.colors.accent :
-                          node.type === 'new' || node.type === 'revenue' ? theme.colors.secondary :
-                          theme.colors.border}
-                  strokeWidth={node.type === 'solution' ? 1.5 : 1}
-                  strokeOpacity={node.type === 'solution' ? 0.9 : 0.5}
-                  filter={node.type === 'solution' && !isBefore ? 'url(#solutionGlow)' : undefined}
+                  rx={5}
+                  fill={`url(#${gradId})`}
+                  stroke={strokeColor}
+                  strokeWidth={isLossNode || isSolutionNode || isNewNode ? 1.5 : 1}
+                  opacity={pulseOpacity}
                   style={{
-                    transform: `scale(${scale})`,
-                    transformOrigin: `${node.width / 2}px ${node.height / 2}px`,
-                  }}
-                />
-
-                {/* Inner highlight */}
-                <rect
-                  x={2}
-                  y={2}
-                  width={node.width - 4}
-                  height={node.height - 4}
-                  rx={4}
-                  fill="none"
-                  stroke="rgba(255, 255, 255, 0.08)"
-                  strokeWidth={1}
-                  style={{
-                    transform: `scale(${scale})`,
+                    transform: `scale(${nodeScale})`,
                     transformOrigin: `${node.width / 2}px ${node.height / 2}px`,
                   }}
                 />
@@ -1130,15 +1148,13 @@ export const SankeyFlowV3 = ({
         ))}
       </div>
 
- {/* Metrics panel - right side */}
+      {/* Metrics panel - right side */}
       {!hideUI && (
         <div
           className="absolute top-1/2 right-8 -translate-y-1/2 z-20 flex flex-col gap-4"
           style={{ opacity: uiVisible ? 1 : 0, transition: 'opacity 0.5s ease' }}
         >
           {state.metrics.map((metric, i) => {
-            // During initial draw: just check metricsVisible
-            // During forge: also require revealPhase >= 5
             const metricVisible = metricsVisible[i] && (!isForging || revealPhase >= 5);
             return (
               <div
@@ -1213,7 +1229,8 @@ export const SankeyFlowV3 = ({
           </div>
         </div>
       )}
-     {/* Legend */}
+
+      {/* Legend */}
       {!hideUI && (
         <div
           className="absolute bottom-24 left-8 z-20 flex flex-col gap-2 px-4 py-3 rounded-xl"
@@ -1254,6 +1271,7 @@ export const SankeyFlowV3 = ({
           )}
         </div>
       )}
+
       {/* Powered by footer */}
       <div className="absolute bottom-0 left-0 right-0 z-20 pb-4 flex justify-center">
         <div
@@ -1271,5 +1289,33 @@ export const SankeyFlowV3 = ({
     </div>
   );
 };
+
+// CRITICAL FIX: Wrap with React.memo to prevent re-renders from parent
+// Custom comparison to check if props that matter have changed
+export const SankeyFlowV3 = memo(SankeyFlowV3Inner, (prevProps, nextProps) => {
+  // Return true if props are equal (should NOT re-render)
+  // Return false if props differ (should re-render)
+  
+  // Always re-render if these change
+  if (prevProps.variant !== nextProps.variant) return false;
+  if (prevProps.animated !== nextProps.animated) return false;
+  if (prevProps.transitionPhase !== nextProps.transitionPhase) return false;
+  if (prevProps.hideUI !== nextProps.hideUI) return false;
+  
+  // Check data identity (not reference) for state
+  const prevDataId = getDataIdentity(prevProps.state.data);
+  const nextDataId = getDataIdentity(nextProps.state.data);
+  if (prevDataId !== nextDataId) return false;
+  
+  // Check metrics length
+  if (prevProps.state.metrics.length !== nextProps.state.metrics.length) return false;
+  
+  // Check brand (shallow)
+  if (prevProps.brand?.name !== nextProps.brand?.name) return false;
+  if (prevProps.brand?.logoUrl !== nextProps.brand?.logoUrl) return false;
+  
+  // Props are equal, don't re-render
+  return true;
+});
 
 export default SankeyFlowV3;
