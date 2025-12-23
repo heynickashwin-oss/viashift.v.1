@@ -1,4 +1,4 @@
-import { SankeyData, SankeyMetric, AnchoredMetric } from '../../components/sankeyflowv3';
+import { SankeyData, SankeyMetric, AnchoredMetric, ValueFormat } from '../../components/sankeyflowv3';
 import { TransformationTemplateData, SightlineContent } from './b2bSalesEnablement';
 
 // ============================================
