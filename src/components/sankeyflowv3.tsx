@@ -409,6 +409,9 @@ export const SankeyFlowV3 = ({
   useEffect(() => {
     if (!layout) return;
 
+    // DEBUG: trace animation start
+    console.log('Draw effect triggered:', { animated, variant, nodeCount: layout.nodes.length });
+
     // Cancel any existing animation
     if (drawAnimationRef.current) {
       cancelAnimationFrame(drawAnimationRef.current);
@@ -421,6 +424,7 @@ export const SankeyFlowV3 = ({
     setAnchoredVisible(false);
 
     if (!animated) {
+      console.log('Animation SKIPPED - animated is false');
       setDrawProgress(1);
       setUiVisible(true);
       setMetricsVisible(state.metrics.map(() => true));
