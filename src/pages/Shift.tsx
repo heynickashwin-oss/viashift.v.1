@@ -289,14 +289,15 @@ const story = useMemo((): TransformationStory => {
       {/* Transformation Phase */}
       {viewPhase === 'transformation' && (
         <TransformationExperience
-          story={story}
-          initialBrand={buildBrand()}
-          onShare={handleShare}
-          onConfigure={() => setShowConfigPanel(true)}
-          readOnly={false}
-          previewMode={previewMode}
-          onPreviewModeChange={setPreviewMode}
-        />
+  story={story}
+  initialBrand={buildBrand()}
+  onShare={handleShare}
+  onConfigure={() => setShowConfigPanel(true)}
+  readOnly={false}
+  previewMode={previewMode}
+  onPreviewModeChange={setPreviewMode}
+  showLabels={config.showLabels}
+/>
       )}
 
       {/* Modals & Panels */}
