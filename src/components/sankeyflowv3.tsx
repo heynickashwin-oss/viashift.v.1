@@ -1026,7 +1026,7 @@ const SankeyFlowV3Inner = ({
                       dy="0.35em"
                       textAnchor="middle"
                       fill={link.type === 'loss' ? theme.colors.accent : theme.colors.secondary}
-                      fontSize={11}
+                      fontSize={13}
                       fontWeight={600}
                       fontFamily="Inter, system-ui, sans-serif"
                     >
@@ -1126,7 +1126,7 @@ const SankeyFlowV3Inner = ({
                           node.type === 'solution' || node.type === 'new' || node.type === 'revenue' 
                             ? theme.colors.secondary 
                             : theme.colors.textDim}
-                    fontSize={10}
+                    fontSize={12}
                     fontWeight={500}
                     fontFamily="Inter, system-ui, sans-serif"
                     opacity={0.8}
