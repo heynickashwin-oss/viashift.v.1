@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { TransformationExperience, TransformationStory } from '../components/TransformationExperienceV4';
+import { TransformationExperience, TransformationStory } from '../components/TransformationExperience';
 import { Sightline } from '../components/Sightline';
 import { ShareModal } from '../components/ShareModal';
 import { ChampionSharePrompt } from '../components/ChampionSharePrompt';
