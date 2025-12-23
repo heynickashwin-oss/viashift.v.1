@@ -1,5 +1,9 @@
 /**
- * SankeyFlowV3 - v3.5
+ * SankeyFlowV3 - v3.6
+ *
+ * CHANGES from v3.5:
+ * - Fixed metrics visibility bug: metrics now show on initial load
+ *   (removed revealPhase >= 5 requirement for non-forge animations)
  *
  * CHANGES from v3.4:
  * - Layer-staggered draw animation (flows draw sequentially by layer)
@@ -1127,7 +1131,9 @@ export const SankeyFlowV3 = ({
           style={{ opacity: uiVisible ? 1 : 0, transition: 'opacity 0.5s ease' }}
         >
           {state.metrics.map((metric, i) => {
-            const metricVisible = revealPhase >= 5 && metricsVisible[i];
+            // During initial draw: just check metricsVisible
+            // During forge: also require revealPhase >= 5
+            const metricVisible = metricsVisible[i] && (!isForging || revealPhase >= 5);
             return (
               <div
                 key={metric.id}
