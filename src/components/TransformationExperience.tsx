@@ -29,6 +29,7 @@ export interface TransformationExperienceProps {
   showCTA?: boolean;
   previewMode?: 'seller' | 'champion';
   onPreviewModeChange?: (mode: 'seller' | 'champion') => void;
+  showLabels?: boolean; // ADD THIS
 }
 
 export const TransformationExperience = ({
@@ -41,6 +42,7 @@ export const TransformationExperience = ({
   showCTA = false,
   previewMode = 'seller',
   onPreviewModeChange,
+  showLabels = true, // ADD THIS
 }: TransformationExperienceProps) => {
   const [variant, setVariant] = useState<'before' | 'after'>('before');
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -170,15 +172,16 @@ export const TransformationExperience = ({
               : 'brightness(1) blur(0)',
           }}
         >
-          <SankeyFlowV3
-            state={story.before}
-            stageLabels={story.stageLabels}
-            variant="before"
-            brand={brand}
-            animated={variant === 'before'}
-            transitionPhase={variant === 'before' ? transitionPhase : 'idle'}
-            hideUI={variant !== 'before'}
-          />
+       <SankeyFlowV3
+  state={story.before}
+  stageLabels={story.stageLabels}
+  variant="before"
+  brand={brand}
+  animated={variant === 'before'}
+  transitionPhase={variant === 'before' ? transitionPhase : 'idle'}
+  hideUI={variant !== 'before'}
+  showLabels={showLabels}
+/>
         </div>
         
         {/* After state layer */}
@@ -194,15 +197,16 @@ export const TransformationExperience = ({
               : 'brightness(1) blur(0)',
           }}
         >
-          <SankeyFlowV3
-            state={story.after}
-            stageLabels={story.stageLabels}
-            variant="after"
-            brand={brand}
-            animated={variant === 'after'}
-            transitionPhase={variant === 'after' ? transitionPhase : 'idle'}
-            hideUI={variant !== 'after'}
-          />
+<SankeyFlowV3
+  state={story.after}
+  stageLabels={story.stageLabels}
+  variant="after"
+  brand={brand}
+  animated={variant === 'after'}
+  transitionPhase={variant === 'after' ? transitionPhase : 'idle'}
+  hideUI={variant !== 'after'}
+  showLabels={showLabels}
+/>
         </div>
       </div>
 
