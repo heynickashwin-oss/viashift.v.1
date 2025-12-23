@@ -470,7 +470,7 @@ export const SankeyFlowV3 = ({
         drawAnimationRef.current = null;
       }
     };
-  }, [layout, animated, state.metrics]);
+}, [layout, animated, state.metrics.length]);
 
   // Forge transition with slower timing
   useEffect(() => {
