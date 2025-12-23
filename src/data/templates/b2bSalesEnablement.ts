@@ -1,4 +1,4 @@
-import { SankeyData, SankeyMetric, AnchoredMetric } from '../../components/sankeyflowv3';
+import { SankeyData, SankeyMetric, AnchoredMetric, ValueFormat } from '../../components/sankeyflowv3';
 
 export interface SightlineContent {
   line1: string;
@@ -11,6 +11,7 @@ export interface TransformationTemplateData {
   name: string;
   description: string;
   stageLabels: string[];
+  valueFormat: ValueFormat; 
   sightlines: {
     finance: SightlineContent;
     ops: SightlineContent;
@@ -118,6 +119,7 @@ export const b2bSalesEnablementTemplate: TransformationTemplateData = {
   name: 'B2B Sales Enablement',
   description: 'See how deals die in silence vs. engaged pipeline visibility',
   stageLabels: ['Effort', 'Delivery', 'Distribution', 'Outcome'],
+  valueFormat: 'percent', 
 
   sightlines: {
     finance: {
