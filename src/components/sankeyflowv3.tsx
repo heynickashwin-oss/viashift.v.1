@@ -212,6 +212,8 @@ export const SankeyFlowV3 = ({
   transitionPhase = 'idle',
   hideUI = false,
 }: SankeyFlowProps) => {
+  console.log('SankeyFlowV3 v3.6 loaded, metrics:', state.metrics, 'nodes:', state.data.nodes.length);
+  
   const theme = useMemo(() => resolveTheme(brand), [brand]);
 
   const containerRef = useRef<HTMLDivElement>(null);
