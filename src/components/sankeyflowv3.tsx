@@ -1,5 +1,12 @@
 /**
- * SankeyFlowV3 - v3.7
+ * SankeyFlowV3 - v3.8
+ *
+ * CHANGES from v3.7:
+ * - Added displayValue to SankeyNode for showing values on nodes
+ * - Added displayLabel to SankeyLink for showing values on flows
+ * - Added showLabels prop to toggle value visibility
+ * - Labels appear below node names and at flow midpoints
+ * - Only loss/new/revenue flows show labels (reduces clutter)
  *
  * CHANGES from v3.6:
  * - FIXED: Infinite re-render loop
@@ -27,6 +34,8 @@ import { BrandConfig, DEFAULT_BRAND, resolveTheme } from './branding/brandUtils'
 // TYPES
 // ============================================
 
+export type ValueFormat = 'percent' | 'currency' | 'number';
+
 export interface SankeyNode {
   id: string;
   label: string;
@@ -34,6 +43,7 @@ export interface SankeyNode {
   value: number;
   y?: number;
   type?: 'default' | 'source' | 'solution' | 'loss' | 'new' | 'revenue' | 'destination';
+  displayValue?: string; // e.g., "$550K", "55%"
 }
 
 export interface SankeyLink {
@@ -42,6 +52,7 @@ export interface SankeyLink {
   to: string;
   value: number;
   type?: 'default' | 'loss' | 'new' | 'revenue';
+  displayLabel?: string; // e.g., "-$200K", "+20%"
 }
 
 export interface SankeyData {
@@ -81,6 +92,7 @@ export interface SankeyFlowProps {
   onNodeClick?: (nodeId: string) => void;
   transitionPhase?: 'idle' | 'anticipation' | 'shifting' | 'revealing';
   hideUI?: boolean;
+  showLabels?: boolean; // Toggle value labels on nodes/flows
 }
 
 // ============================================
@@ -105,6 +117,8 @@ interface LayoutLink {
   thickness: number;
   path: string;
   pathLength: number;
+  displayLabel?: string;
+  midpoint: { x: number; y: number };
 }
 
 interface Particle {
@@ -244,6 +258,7 @@ const SankeyFlowV3Inner = ({
   onNodeClick,
   transitionPhase = 'idle',
   hideUI = false,
+  showLabels = true,
 }: SankeyFlowProps) => {
   const theme = useMemo(() => resolveTheme(brand), [brand]);
 
@@ -341,6 +356,16 @@ const SankeyFlowV3Inner = ({
       const y1 = target.y;
       const dx = x1 - x0;
 
+      // Calculate bezier midpoint at t=0.5 for label positioning
+      const t = 0.5;
+      const cp1x = x0 + dx * 0.45;
+      const cp2x = x0 + dx * 0.55;
+      const mt = 1 - t;
+      const midpoint = {
+        x: mt*mt*mt*x0 + 3*mt*mt*t*cp1x + 3*mt*t*t*cp2x + t*t*t*x1,
+        y: mt*mt*mt*y0 + 3*mt*mt*t*y0 + 3*mt*t*t*y1 + t*t*t*y1,
+      };
+
       return {
         id: link.id || `link-${i}`,
         from: link.from,
@@ -352,6 +377,8 @@ const SankeyFlowV3Inner = ({
         thickness: Math.max(4, Math.min(28, link.value * 0.25)),
         path: `M${x0},${y0} C${x0 + dx * 0.45},${y0} ${x0 + dx * 0.55},${y1} ${x1},${y1}`,
         pathLength: Math.sqrt(dx * dx + (y1 - y0) * (y1 - y0)) * 1.3,
+        displayLabel: link.displayLabel,
+        midpoint,
       };
     }).filter(Boolean) as LayoutLink[];
 
@@ -973,6 +1000,40 @@ const SankeyFlowV3Inner = ({
                     transition: exitPhase !== 'none' ? 'opacity 0.3s' : 'none',
                   }}
                 />
+                
+                {/* Flow label at midpoint */}
+                {showLabels && link.displayLabel && (link.type === 'loss' || link.type === 'new' || link.type === 'revenue') && layerDrawProgress > 0.5 && (
+                  <g
+                    transform={`translate(${link.midpoint.x}, ${link.midpoint.y})`}
+                    style={{
+                      opacity: Math.min(1, (layerDrawProgress - 0.5) * 2),
+                      transition: 'opacity 0.3s ease-out',
+                    }}
+                  >
+                    <rect
+                      x={-32}
+                      y={-12}
+                      width={64}
+                      height={24}
+                      rx={12}
+                      fill="rgba(0, 0, 0, 0.85)"
+                      stroke={link.type === 'loss' ? theme.colors.accent + '66' : theme.colors.secondary + '66'}
+                      strokeWidth={1}
+                    />
+                    <text
+                      x={0}
+                      y={0}
+                      dy="0.35em"
+                      textAnchor="middle"
+                      fill={link.type === 'loss' ? theme.colors.accent : theme.colors.secondary}
+                      fontSize={11}
+                      fontWeight={600}
+                      fontFamily="Inter, system-ui, sans-serif"
+                    >
+                      {link.displayLabel}
+                    </text>
+                  </g>
+                )}
               </g>
             );
           })}
@@ -1055,8 +1116,27 @@ const SankeyFlowV3Inner = ({
                   {node.label}
                 </text>
 
-                {/* NEW badge */}
-                {node.type === 'new' && (
+                {/* Node displayValue - shown below label */}
+                {showLabels && node.displayValue && (
+                  <text
+                    x={node.layer < 2 ? node.width + 16 : -16}
+                    y={node.height / 2 + 14}
+                    textAnchor={node.layer < 2 ? 'start' : 'end'}
+                    fill={node.type === 'loss' ? theme.colors.accent :
+                          node.type === 'solution' || node.type === 'new' || node.type === 'revenue' 
+                            ? theme.colors.secondary 
+                            : theme.colors.textDim}
+                    fontSize={10}
+                    fontWeight={500}
+                    fontFamily="Inter, system-ui, sans-serif"
+                    opacity={0.8}
+                  >
+                    {node.displayValue}
+                  </text>
+                )}
+
+                {/* NEW badge - only show if no displayValue */}
+                {node.type === 'new' && !node.displayValue && (
                   <text
                     x={node.layer < 2 ? node.width + 16 : -16}
                     y={node.height / 2 + 14}
