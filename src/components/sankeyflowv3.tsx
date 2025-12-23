@@ -22,7 +22,7 @@
  *   - Removed console.log spam
  */
 
-import { useEffect, useRef, useState, useMemo, memo } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
 import { BrandConfig, DEFAULT_BRAND, resolveTheme } from './branding/brandUtils';
 
 // ============================================
