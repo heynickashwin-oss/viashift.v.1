@@ -1,12 +1,12 @@
 /**
- * SankeyFlowV3 - v3.4
+ * SankeyFlowV3 - v3.5
  *
- * CHANGES:
- * - Slower forge timing (1200ms per layer)
- * - Loss particles fall and fade
- * - Reduced glow on shifted state
- * - Value-scaled node heights
- * - Pulsing node health indicators
+ * CHANGES from v3.4:
+ * - Layer-staggered draw animation (flows draw sequentially by layer)
+ * - Proper animation cleanup on unmount/re-render
+ * - Increased draw duration to 3s for better comprehension
+ * - Loss flows fade in with layer (don't draw along path)
+ * - Fixed node appearance to sync with layer progress
  */
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
@@ -234,6 +234,7 @@ export const SankeyFlowV3 = ({
     brightness: number;
   }>>([]);
   const animationRef = useRef<number | null>(null);
+  const drawAnimationRef = useRef<number | null>(null);
   const isRunningRef = useRef(false);
 
   // Refs for animation loop
@@ -244,12 +245,32 @@ export const SankeyFlowV3 = ({
   const exitPhaseRef = useRef<'none' | 'freeze' | 'desaturate' | 'gone'>('none');
   const isBeforeRef = useRef(true);
 
+  // Memoized max layer for layer-staggered animation
+  const maxLayer = useMemo(() => {
+    if (!layout) return 3;
+    return Math.max(...layout.nodes.map(n => n.layer), 0);
+  }, [layout]);
+
+  // Calculate progress for a specific layer based on overall draw progress
+  const getLayerProgress = useCallback((layer: number, overallProgress: number): number => {
+    const layerCount = maxLayer + 1;
+    const layerStart = layer / layerCount;
+    const layerEnd = (layer + 1) / layerCount;
+    
+    if (overallProgress <= layerStart) return 0;
+    if (overallProgress >= layerEnd) return 1;
+    
+    // Ease the per-layer progress for smoother feel
+    const rawProgress = (overallProgress - layerStart) / (layerEnd - layerStart);
+    return easeOutCubic(rawProgress);
+  }, [maxLayer]);
+
   const LAYOUT = {
     padding: { top: 100, right: 60, bottom: 120, left: 60 },
     nodeWidth: 18,
     nodeMinHeight: 35,
     nodeMaxHeight: 90,
-    drawDuration: 1400,
+    drawDuration: 3000,
     staggerDelay: 60,
     particleSpeed: 0.0015,
     forgeDuration: 1200, // Slower forge timing
@@ -382,6 +403,12 @@ export const SankeyFlowV3 = ({
   useEffect(() => {
     if (!layout) return;
 
+    // Cancel any existing animation
+    if (drawAnimationRef.current) {
+      cancelAnimationFrame(drawAnimationRef.current);
+      drawAnimationRef.current = null;
+    }
+
     setDrawProgress(0);
     setUiVisible(false);
     setMetricsVisible([]);
@@ -404,10 +431,12 @@ export const SankeyFlowV3 = ({
       setDrawProgress(easeOutCubic(progress));
 
       if (progress < 1) {
-        requestAnimationFrame(animateDraw);
+        drawAnimationRef.current = requestAnimationFrame(animateDraw);
       } else {
+        drawAnimationRef.current = null;
         setUiVisible(true);
 
+        // Stagger metrics after animation completes
         state.metrics.forEach((_, i) => {
           setTimeout(() => {
             setMetricsVisible(prev => {
@@ -422,7 +451,15 @@ export const SankeyFlowV3 = ({
       }
     };
 
-    requestAnimationFrame(animateDraw);
+    drawAnimationRef.current = requestAnimationFrame(animateDraw);
+
+    // Cleanup function
+    return () => {
+      if (drawAnimationRef.current) {
+        cancelAnimationFrame(drawAnimationRef.current);
+        drawAnimationRef.current = null;
+      }
+    };
   }, [layout, animated, state.metrics]);
 
   // Forge transition with slower timing
@@ -856,14 +893,21 @@ export const SankeyFlowV3 = ({
             const targetLayer = link.target.layer;
             const linkLayer = Math.max(sourceLayer, targetLayer);
 
+            // For forge transition (after state)
             const linkForgeProgress = forgeLayer >= linkLayer ? 1 :
                                      forgeLayer === linkLayer - 1 ? (forgeProgress % 0.25) * 4 : 0;
 
-            const connectionVisible = revealPhase >= 3 || (isForging && linkForgeProgress > 0);
-            const currentDrawProgress = isForging ? linkForgeProgress : drawProgress;
+            // For initial draw - use layer-staggered progress
+            const layerDrawProgress = getLayerProgress(linkLayer, drawProgress);
+            
+            const connectionVisible = revealPhase >= 3 || (isForging && linkForgeProgress > 0) || layerDrawProgress > 0;
+            const currentLinkProgress = isForging ? linkForgeProgress : layerDrawProgress;
 
-            // Reduced stroke width for after state (was 1.3, now 1.1)
             const strokeMultiplier = isBefore ? 1 : 1.1;
+            
+            // Loss links: fade in with layer, don't draw along path
+            const isLossLink = link.type === 'loss';
+            const lossOpacity = isLossLink ? layerDrawProgress : 1;
             
             return (
               <path
@@ -874,15 +918,15 @@ export const SankeyFlowV3 = ({
                 strokeWidth={link.thickness * strokeMultiplier}
                 strokeLinecap="round"
                 strokeOpacity={connectionVisible
-                  ? (link.type === 'loss'
-                      ? (isBefore ? 0.35 : 0.25)  // Dimmer loss flows
-                      : (isBefore ? 0.4 : 0.6))   // Reduced from 0.75
+                  ? (isLossLink
+                      ? (isBefore ? 0.35 : 0.25) * lossOpacity
+                      : (isBefore ? 0.4 : 0.6))
                   : 0}
-                strokeDasharray={link.type === 'loss' ? '8 4' : link.pathLength}
-                strokeDashoffset={link.type === 'loss' ? 0 : link.pathLength * (1 - currentDrawProgress)}
-                filter={!isBefore && link.type !== 'loss' ? 'url(#glow)' : undefined}
+                strokeDasharray={isLossLink ? '8 4' : link.pathLength}
+                strokeDashoffset={isLossLink ? 0 : link.pathLength * (1 - currentLinkProgress)}
+                filter={!isBefore && !isLossLink ? 'url(#glow)' : undefined}
                 style={{
-                  transition: isForging ? 'none' : 'stroke-opacity 0.8s ease-out',
+                  transition: isForging ? 'none' : 'stroke-opacity 0.3s ease-out',
                 }}
               />
             );
@@ -892,15 +936,16 @@ export const SankeyFlowV3 = ({
         {/* Nodes */}
         <g>
           {layout?.nodes.map((node, i) => {
-            const delay = i * LAYOUT.staggerDelay;
-            const nodeProgress = Math.max(0, Math.min(1,
-              (drawProgress * LAYOUT.drawDuration - delay) / 350
-            ));
-            const scale = easeOutBack(nodeProgress);
+            // Layer-based progress for initial draw
+            const layerProgress = getLayerProgress(node.layer, drawProgress);
+            const nodeProgress = layerProgress;
+            const scale = easeOutBack(Math.min(1, nodeProgress * 1.2)); // Slight overshoot for bounce
 
             const nodeLayerVisible = !isForging || forgeLayer >= node.layer;
-            const nodeVisible = (revealPhase >= 2 && nodeLayerVisible);
-            const nodeOpacity = nodeVisible ? nodeProgress * getNodePulse(node) : 0;
+            const nodeVisible = isForging 
+              ? (revealPhase >= 2 && nodeLayerVisible)
+              : nodeProgress > 0;
+            const nodeOpacity = nodeVisible ? Math.min(1, nodeProgress * 1.5) * getNodePulse(node) : 0;
 
             const isBeingForged = isForging && forgeLayer === node.layer;
 
@@ -914,7 +959,7 @@ export const SankeyFlowV3 = ({
                   filter: isBeingForged ? 'brightness(1.2)' : 'none',
                   transition: isForging
                     ? 'opacity 0.3s ease-out, filter 0.3s ease-out'
-                    : `opacity 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) ${i * 80}ms`,
+                    : 'opacity 0.4s ease-out',
                 }}
                 onClick={() => onNodeClick?.(node.id)}
               >
