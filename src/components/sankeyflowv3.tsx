@@ -1116,24 +1116,39 @@ const SankeyFlowV3Inner = ({
                   {node.label}
                 </text>
 
-                {/* Node displayValue - shown below label */}
-                {showLabels && node.displayValue && (
-                  <text
-                    x={node.layer < 2 ? node.width + 16 : -16}
-                    y={node.height / 2 + 14}
-                    textAnchor={node.layer < 2 ? 'start' : 'end'}
-                    fill={node.type === 'loss' ? theme.colors.accent :
-                          node.type === 'solution' || node.type === 'new' || node.type === 'revenue' 
-                            ? theme.colors.secondary 
-                            : theme.colors.textDim}
-                    fontSize={12}
-                    fontWeight={500}
-                    fontFamily="Inter, system-ui, sans-serif"
-                    opacity={0.8}
-                  >
-                    {node.displayValue}
-                  </text>
-                )}
+               {/* Node displayValue - pill box below label */}
+{showLabels && node.displayValue && (
+  <g transform={`translate(${node.layer < 2 ? node.width + 16 : -16}, ${node.height / 2 + 18})`}>
+    <rect
+      x={node.layer < 2 ? 0 : -56}
+      y={-10}
+      width={56}
+      height={20}
+      rx={10}
+      fill="rgba(0, 0, 0, 0.85)"
+      stroke={node.type === 'loss' ? theme.colors.accent + '66' : 
+              node.type === 'solution' || node.type === 'new' || node.type === 'revenue' 
+                ? theme.colors.secondary + '66' 
+                : 'rgba(255, 255, 255, 0.2)'}
+      strokeWidth={1}
+    />
+    <text
+      x={node.layer < 2 ? 28 : -28}
+      y={0}
+      dy="0.35em"
+      textAnchor="middle"
+      fill={node.type === 'loss' ? theme.colors.accent :
+            node.type === 'solution' || node.type === 'new' || node.type === 'revenue' 
+              ? theme.colors.secondary 
+              : 'rgba(255, 255, 255, 0.8)'}
+      fontSize={11}
+      fontWeight={600}
+      fontFamily="Inter, system-ui, sans-serif"
+    >
+      {node.displayValue}
+    </text>
+  </g>
+)}
 
                 {/* NEW badge - only show if no displayValue */}
                 {node.type === 'new' && !node.displayValue && (
