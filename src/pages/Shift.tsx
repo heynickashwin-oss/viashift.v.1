@@ -189,7 +189,7 @@ const [config, setConfig] = useState({
 const story = useMemo((): TransformationStory => {
 const templateId = shift?.template_id || 'cfo-value-case';
   const template = templates[templateId] || templates['b2b-sales-enablement'];
-  
+  console.log('Template debug:', { templateId, template: template?.id, hasValueFormat: !!template?.valueFormat });
   // Generate display values based on template format
   const beforeData = prepareFlowData(
     template.currentState.data,
