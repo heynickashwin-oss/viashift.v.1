@@ -163,7 +163,7 @@ export const TransformationExperience = ({
         <div 
           className="absolute inset-0"
           style={{
-            opacity: variant === 'before' ? 1 : 0.08,
+            opacity: variant === 'before' ? 1 : 0.20,
             zIndex: variant === 'before' ? 10 : 0,
             transition: 'opacity 0.8s ease-out',
             pointerEvents: variant === 'before' ? 'auto' : 'none',
@@ -188,7 +188,7 @@ export const TransformationExperience = ({
         <div 
           className="absolute inset-0"
           style={{
-            opacity: variant === 'after' ? 1 : 0.08,
+            opacity: variant === 'after' ? 1 : 0.20,
             zIndex: variant === 'after' ? 10 : 0,
             transition: 'opacity 0.8s ease-out',
             pointerEvents: variant === 'after' ? 'auto' : 'none',
