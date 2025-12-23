@@ -8,6 +8,7 @@ import { ChampionSharePrompt } from '../components/ChampionSharePrompt';
 import { ConfigPanel } from '../components/branding/BrandingPanel';
 import { BrandConfig } from '../components/branding/brandUtils';
 import { templates, TemplateId } from '../data/templates';
+import { prepareFlowData, ValueOverrides } from '../utils/valueUtils';
 console.log('Loaded templates:', templates);
 interface ShiftData {
   id: string;
@@ -45,17 +46,19 @@ export const Shift = () => {
   const [sharePromptDismissedThisSession, setSharePromptDismissedThisSession] = useState(false);
   const [transformationViewCount, setTransformationViewCount] = useState(0);
   
-  const [config, setConfig] = useState({
-    companyName: '',
-    companyLogo: undefined as string | undefined,
-    primaryColor: '#00D4E5',
-    secondaryColor: '#00BFA6',
-    vendorName: undefined as string | undefined,
-    vendorLogo: undefined as string | undefined,
-    sightlineLine1: 'What if [company] could recover',
-    sightlineMetric: '$1.6M',
-    sightlineLine2: 'from deals dying in silence?',
-  });
+const [config, setConfig] = useState({
+  companyName: '',
+  companyLogo: undefined as string | undefined,
+  primaryColor: '#00D4E5',
+  secondaryColor: '#00BFA6',
+  vendorName: undefined as string | undefined,
+  vendorLogo: undefined as string | undefined,
+  sightlineLine1: 'What if [company] could recover',
+  sightlineMetric: '$1.6M',
+  sightlineLine2: 'from deals dying in silence?',
+  showLabels: true, 
+  valueOverrides: null as ValueOverrides | null, 
+});
 
   useEffect(() => {
     const fetchShift = async () => {
@@ -186,26 +189,40 @@ export const Shift = () => {
 const story = useMemo((): TransformationStory => {
   const templateId = shift?.template_id || 'b2b-sales-enablement';
   const template = templates[templateId] || templates['b2b-sales-enablement'];
-    return {
-      id: shift?.id || 'shift',
-      title: config.companyName || 'Transformation',
-      subtitle: template.description,
-      stageLabels: template.stageLabels,
-      before: {
-        data: template.currentState.data,
-        metrics: template.currentState.metrics,
-        stageLabel: template.currentState.stageLabel,
-        anchoredMetric: template.currentState.anchoredMetric,
-      },
-      after: {
-        data: template.shiftedState.data,
-        metrics: template.shiftedState.metrics,
-        stageLabel: template.shiftedState.stageLabel,
-        anchoredMetric: template.shiftedState.anchoredMetric,
-        insight: template.shiftedState.insight.replace('[company]', config.companyName || 'Your company'),
-      },
-    };
-  }, [shift?.id, shift?.template_id, config.companyName]);
+  
+  // Generate display values based on template format
+  const beforeData = prepareFlowData(
+    template.currentState.data,
+    template.valueFormat,
+    config.valueOverrides
+  );
+  
+  const afterData = prepareFlowData(
+    template.shiftedState.data,
+    template.valueFormat,
+    config.valueOverrides
+  );
+  
+  return {
+    id: shift?.id || 'shift',
+    title: config.companyName || 'Transformation',
+    subtitle: template.description,
+    stageLabels: template.stageLabels,
+    before: {
+      data: beforeData,
+      metrics: template.currentState.metrics,
+      stageLabel: template.currentState.stageLabel,
+      anchoredMetric: template.currentState.anchoredMetric,
+    },
+    after: {
+      data: afterData,
+      metrics: template.shiftedState.metrics,
+      stageLabel: template.shiftedState.stageLabel,
+      anchoredMetric: template.shiftedState.anchoredMetric,
+      insight: template.shiftedState.insight.replace('[company]', config.companyName || 'Your company'),
+    },
+  };
+}, [shift?.id, shift?.template_id, config.companyName, config.valueOverrides]);
 
   // Use config state for live updates (not shift which requires reload)
   const buildBrand = (): BrandConfig => {
