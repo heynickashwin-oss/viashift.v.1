@@ -29,7 +29,9 @@ export interface TransformationExperienceProps {
   showCTA?: boolean;
   previewMode?: 'seller' | 'champion';
   onPreviewModeChange?: (mode: 'seller' | 'champion') => void;
-  showLabels?: boolean; // ADD THIS
+  showLabels?: boolean;
+  onNodeValueChange?: (nodeId: string, newValue: string) => void;
+  onLinkLabelChange?: (linkId: string, newLabel: string) => void;
 }
 
 export const TransformationExperience = ({
@@ -42,7 +44,9 @@ export const TransformationExperience = ({
   showCTA = false,
   previewMode = 'seller',
   onPreviewModeChange,
-  showLabels = true, // ADD THIS
+  showLabels = true,
+  onNodeValueChange,
+  onLinkLabelChange,
 }: TransformationExperienceProps) => {
   const [variant, setVariant] = useState<'before' | 'after'>('before');
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -182,6 +186,8 @@ export const TransformationExperience = ({
   hideUI={variant !== 'before'}
   showLabels={showLabels}
   editable={true}
+  onNodeValueChange={onNodeValueChange}
+  onLinkLabelChange={onLinkLabelChange}
 />
         </div>
         
@@ -208,6 +214,8 @@ export const TransformationExperience = ({
   hideUI={variant !== 'after'}
   showLabels={showLabels}
   editable={true}
+  onNodeValueChange={onNodeValueChange}
+  onLinkLabelChange={onLinkLabelChange}
 />
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { TransformationExperience, TransformationStory } from '../components/TransformationExperience';
@@ -8,7 +8,7 @@ import { ChampionSharePrompt } from '../components/ChampionSharePrompt';
 import { ConfigPanel } from '../components/branding/BrandingPanel';
 import { BrandConfig } from '../components/branding/brandUtils';
 import { templates, TemplateId } from '../data/templates';
-import { prepareFlowData, ValueOverrides } from '../utils/valueUtils';
+import { prepareFlowData, ValueOverrides, getLinkKey } from '../utils/valueUtils';
 console.log('Loaded templates:', templates);
 interface ShiftData {
   id: string;
@@ -186,6 +186,32 @@ const [config, setConfig] = useState({
     setSharePromptDismissedThisSession(true);
   };
 
+  const handleNodeValueChange = useCallback((nodeId: string, newValue: string) => {
+    setConfig(prev => ({
+      ...prev,
+      valueOverrides: {
+        nodes: {
+          ...(prev.valueOverrides?.nodes || {}),
+          [nodeId]: { displayValue: newValue },
+        },
+        links: prev.valueOverrides?.links || {},
+      },
+    }));
+  }, []);
+
+  const handleLinkLabelChange = useCallback((linkId: string, newLabel: string) => {
+    setConfig(prev => ({
+      ...prev,
+      valueOverrides: {
+        nodes: prev.valueOverrides?.nodes || {},
+        links: {
+          ...(prev.valueOverrides?.links || {}),
+          [linkId]: { displayLabel: newLabel },
+        },
+      },
+    }));
+  }, []);
+
 const story = useMemo((): TransformationStory => {
 const templateId = 'cfo-value-case'; // TEMP: force CFO for testing
   const template = templates[templateId] || templates['b2b-sales-enablement'];
@@ -297,6 +323,8 @@ const templateId = 'cfo-value-case'; // TEMP: force CFO for testing
   previewMode={previewMode}
   onPreviewModeChange={setPreviewMode}
   showLabels={config.showLabels}
+  onNodeValueChange={handleNodeValueChange}
+  onLinkLabelChange={handleLinkLabelChange}
 />
       )}
 
