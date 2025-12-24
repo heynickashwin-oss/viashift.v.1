@@ -68,12 +68,12 @@ export interface NarrativeConfig {
 }
 
 const DEFAULT_CONFIG: NarrativeConfig = {
-  layerDrawDuration: 800,
-  layerStagger: 400,
-  bleedDuration: 2000,
-  bleedPulseCycles: 3,
-  metricRevealDelay: 600,
-  readyDuration: 1500,
+  layerDrawDuration: 2000,   // Increased from 800 - each layer takes 2s to draw
+  layerStagger: 1500,        // Increased from 400 - wait 1.5s between layers
+  bleedDuration: 3000,       // Increased from 2000 - more time to absorb pain
+  bleedPulseCycles: 4,       // Increased from 3 - more pulses
+  metricRevealDelay: 800,    // Increased from 600
+  readyDuration: 2000,       // Increased from 1500
 };
 
 export interface UseNarrativeControllerProps {
