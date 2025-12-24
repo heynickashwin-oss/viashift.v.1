@@ -9,7 +9,7 @@ import { ConfigPanel } from '../components/branding/BrandingPanel';
 import { BrandConfig } from '../components/branding/brandUtils';
 import { templates, TemplateId } from '../data/templates';
 import { prepareFlowData, ValueOverrides, getLinkKey } from '../utils/valueUtils';
-console.log('Loaded templates:', templates);
+
 interface ShiftData {
   id: string;
   company_input: string;
@@ -215,7 +215,6 @@ const [config, setConfig] = useState({
 const story = useMemo((): TransformationStory => {
 const templateId = shift?.template_id || 'b2b-sales-enablement';
   const template = templates[templateId] || templates['b2b-sales-enablement'];
-  console.log('Template debug:', { templateId, template: template?.id, hasValueFormat: !!template?.valueFormat });
   // Generate display values based on template format
   const beforeData = prepareFlowData(
     template.currentState.data,
