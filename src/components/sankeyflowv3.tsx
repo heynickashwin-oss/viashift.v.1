@@ -682,11 +682,6 @@ const SankeyFlowV3Inner = ({
               50% { opacity: 1.0; }
             }
 
-            @keyframes shimmer {
-              0% { stroke-dashoffset: 1000; }
-              100% { stroke-dashoffset: 0; }
-            }
-
             @keyframes lossFlowPulse {
               0%, 100% { opacity: 0.5; }
               50% { opacity: 0.65; }
@@ -720,10 +715,6 @@ const SankeyFlowV3Inner = ({
             .loss-flow {
               animation: lossFlowPulse 5.5s ease-in-out infinite;
             }
-
-            .shimmer-effect {
-              animation: shimmer 5s linear infinite;
-            }
           `}
         </style>
         <defs>
@@ -738,13 +729,6 @@ const SankeyFlowV3Inner = ({
           <linearGradient id="grad-loss" x1="0%" x2="100%">
             <stop offset="0%" stopColor={theme.colors.accent + 'AA'} />
             <stop offset="100%" stopColor={theme.colors.loss + '88'} />
-          </linearGradient>
-          <linearGradient id="grad-shimmer" x1="0%" x2="100%">
-            <stop offset="0%" stopColor="transparent" />
-            <stop offset="30%" stopColor={theme.colors.primary + '44'} />
-            <stop offset="50%" stopColor={theme.colors.primary + '88'} />
-            <stop offset="70%" stopColor={theme.colors.primary + '44'} />
-            <stop offset="100%" stopColor="transparent" />
           </linearGradient>
           <linearGradient id="nodeGrad-default" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stopColor="rgba(30, 30, 35, 0.9)" />
@@ -882,23 +866,6 @@ const SankeyFlowV3Inner = ({
                   }}
                 />
 
-                {/* Shimmer effect - only for non-loss flows */}
-                {!isLoss && layerDrawProgress > 0.9 && (
-                  <path
-                    d={link.path}
-                    fill="none"
-                    stroke="url(#grad-shimmer)"
-                    strokeWidth={link.thickness}
-                    strokeLinecap="round"
-                    opacity={0.15}
-                    className="shimmer-effect"
-                    style={{
-                      strokeDasharray: link.pathLength * 0.3,
-                      strokeDashoffset: link.pathLength,
-                    }}
-                  />
-                )}
-                
                 {/* Flow label at midpoint */}
                 {showLabels && link.displayLabel && (link.type === 'loss' || link.type === 'new' || link.type === 'revenue') && layerDrawProgress > 0.5 && (
                   editingLinkId === link.id ? (
