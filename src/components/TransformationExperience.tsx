@@ -187,21 +187,20 @@ export const TransformationExperience = ({
               : 'brightness(1) blur(0)',
           }}
         >
-          <SankeyFlowV3
-            state={story.before}
-            stageLabels={story.stageLabels}
-            variant="before"
-            brand={brand}
-            animated={variant === 'before'}
-            transitionPhase={variant === 'before' ? transitionPhase : 'idle'}
-            hideUI={variant !== 'before'}
-            showLabels={showLabels}
-            editable={true}
-            onNodeValueChange={onNodeValueChange}
-            onLinkLabelChange={onLinkLabelChange}
-            onNodeClick={onNodeClick}
-          />
-        </div>
+         <SankeyFlowV3
+  state={story.before}
+  stageLabels={story.stageLabels}
+  variant="before"
+  brand={brand}
+  animated={variant === 'before'}
+  transitionPhase={variant === 'before' ? transitionPhase : 'idle'}
+  hideUI={variant !== 'before'}
+  showLabels={showLabels}
+  editable={true}
+  onNodeValueChange={onNodeValueChange}
+  onLinkLabelChange={onLinkLabelChange}
+  onNodeClick={onNodeClick}
+/>
         
         {/* After state layer */}
         <div 
@@ -217,19 +216,20 @@ export const TransformationExperience = ({
           }}
         >
           <SankeyFlowV3
-            state={story.after}
-            stageLabels={story.stageLabels}
-            variant="after"
-            brand={brand}
-            animated={variant === 'after'}
-            transitionPhase={variant === 'after' ? transitionPhase : 'idle'}
-            hideUI={variant !== 'after'}
-            showLabels={showLabels}
-            editable={true}
-            onNodeValueChange={onNodeValueChange}
-            onLinkLabelChange={onLinkLabelChange}
-            onNodeClick={onNodeClick}
-          />
+  state={story.after}
+  stageLabels={story.stageLabels}
+  variant="after"
+  brand={brand}
+  animated={variant === 'after'}
+  transitionPhase={variant === 'after' ? transitionPhase : 'idle'}
+  hideUI={variant !== 'after'}
+  showLabels={showLabels}
+  editable={true}
+  onNodeValueChange={onNodeValueChange}
+  onLinkLabelChange={onLinkLabelChange}
+  onNodeClick={onNodeClick}
+  narrative={story.narrative}
+/>
         </div>
       </div>
 
