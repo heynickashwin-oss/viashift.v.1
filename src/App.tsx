@@ -9,9 +9,9 @@ import { ViewShift } from './pages/ViewShift';
 import FeedbackDropbox from './components/FeedbackDropbox';
 
 function RootRedirect() {
-  const { user, isLoading } = useAuth();
+  const { user, loading } = useAuth();
 
-  if (isLoading) {
+if (loading) {
     return (
       <div style={{
         minHeight: '100vh',
