@@ -9,6 +9,7 @@ import { ConfigPanel } from '../components/branding/BrandingPanel';
 import { BrandConfig } from '../components/branding/brandUtils';
 import { templates, TemplateId } from '../data/templates';
 import { prepareFlowData, ValueOverrides, getLinkKey } from '../utils/valueUtils';
+import { NodeInteractionDialog } from '../components/NodeInteractionDialog';
 
 interface ShiftData {
   id: string;
@@ -45,21 +46,26 @@ export const Shift = () => {
   const [showSharePrompt, setShowSharePrompt] = useState(false);
   const [sharePromptDismissedThisSession, setSharePromptDismissedThisSession] = useState(false);
   const [transformationViewCount, setTransformationViewCount] = useState(0);
+  const [selectedNode, setSelectedNode] = useState<{
+    id: string;
+    label: string;
+    value: string;
+    type: string;
+  } | null>(null);
   
-const [config, setConfig] = useState({
-  companyName: '',
-  companyLogo: undefined as string | undefined,
-  primaryColor: '#00D4E5',
-  secondaryColor: '#00BFA6',
-  vendorName: undefined as string | undefined,
-  vendorLogo: undefined as string | undefined,
-  sightlineLine1: 'What if [company] could recover',
-  sightlineMetric: '$1.6M',
-  sightlineLine2: 'from deals dying in silence?',
-  showLabels: true, 
-  valueOverrides: null as ValueOverrides | null, 
-});
-
+  const [config, setConfig] = useState({
+    companyName: '',
+    companyLogo: undefined as string | undefined,
+    primaryColor: '#00D4E5',
+    secondaryColor: '#00BFA6',
+    vendorName: undefined as string | undefined,
+    vendorLogo: undefined as string | undefined,
+    sightlineLine1: 'What if [company] could recover',
+    sightlineMetric: '$1.6M',
+    sightlineLine2: 'from deals dying in silence?',
+    showLabels: true, 
+    valueOverrides: null as ValueOverrides | null, 
+  });
   useEffect(() => {
     const fetchShift = async () => {
       if (!id) return;
@@ -166,7 +172,7 @@ const [config, setConfig] = useState({
       })
       .eq('id', id);
 
-    // Update local shift state to match config immediately (no reload needed)
+// Update local shift state to match config immediately (no reload needed)
     setShift(prev => prev ? {
       ...prev,
       company_input: config.companyName,
@@ -185,6 +191,36 @@ const [config, setConfig] = useState({
     setShowSharePrompt(false);
     setSharePromptDismissedThisSession(true);
   };
+
+  const handleNodeValueChange = useCallback((nodeId: string, newValue: string) => {
+    setConfig(prev => ({
+      ...prev,
+      valueOverrides: {
+        nodes: {
+          ...(prev.valueOverrides?.nodes || {}),
+          [nodeId]: { displayValue: newValue },
+        },
+        links: prev.valueOverrides?.links || {},
+      },
+    }));
+  }, []);
+
+  const handleLinkLabelChange = useCallback((linkId: string, newLabel: string) => {
+    setConfig(prev => ({
+      ...prev,
+      valueOverrides: {
+        nodes: prev.valueOverrides?.nodes || {},
+        links: {
+          ...(prev.valueOverrides?.links || {}),
+          [linkId]: { displayLabel: newLabel },
+        },
+      },
+    }));
+  }, []);
+
+  const handleNodeClick = useCallback((nodeId: string, nodeInfo: { label: string; value: string; type: string }) => {
+    setSelectedNode({ id: nodeId, ...nodeInfo });
+  }, []);
 
   const handleNodeValueChange = useCallback((nodeId: string, newValue: string) => {
     setConfig(prev => ({
@@ -327,7 +363,7 @@ const templateId = shift?.template_id || 'b2b-sales-enablement';
 />
       )}
 
-      {/* Modals & Panels */}
+     {/* Modals & Panels */}
       {shift && (
         <>
           <ShareModal
@@ -352,6 +388,21 @@ const templateId = shift?.template_id || 'b2b-sales-enablement';
               onDismiss={handleDismissSharePrompt}
             />
           )}
+          <NodeInteractionDialog
+            isOpen={!!selectedNode}
+            onClose={() => setSelectedNode(null)}
+            shiftId={shift.id}
+            elementId={selectedNode?.id || ''}
+            elementType="node"
+            elementLabel={selectedNode?.label || ''}
+            currentValue={selectedNode?.value || ''}
+            viewerType={previewMode === 'seller' ? 'seller' : 'champion'}
+            onValueChange={(newValue) => {
+              if (selectedNode) {
+                handleNodeValueChange(selectedNode.id, newValue);
+              }
+            }}
+          />
         </>
       )}
     </div>
