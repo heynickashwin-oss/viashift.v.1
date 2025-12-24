@@ -263,8 +263,6 @@ const SankeyFlowV3Inner = ({
   metricCount: state.metrics.length,
   hasAnchoredMetric: !!state.anchoredMetric,
   narrative,
-
-
   });
 
   const containerRef = useRef<HTMLDivElement>(null);
