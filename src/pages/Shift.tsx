@@ -336,7 +336,6 @@ const templateId = shift?.template_id || 'b2b-sales-enablement';
    onLinkLabelChange={handleLinkLabelChange}
   onNodeClick={handleNodeClick}
 />
-/>
       )}
 
      {/* Modals & Panels */}
