@@ -264,9 +264,7 @@ const SankeyFlowV3Inner = ({
   hasAnchoredMetric: !!state.anchoredMetric,
   narrative,
 
-});
-      // Animation complete
-    },
+
   });
 
   const containerRef = useRef<HTMLDivElement>(null);
