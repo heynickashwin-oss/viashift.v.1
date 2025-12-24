@@ -300,30 +300,7 @@ export function useNarrativeController({
         setPhase(newPhase);
         timeline.log(`Narrative Phase`, newPhase.toUpperCase(), overallProgress);
       }
-```
 
----
-
-Now when you run the app, open the browser console. You'll see:
-```
-[0.00s] Timeline: START
-[0.00s] Animation: BEGIN (0.0%)
-[0.15s] Narrative Phase: SETUP-0 (1.2%)
-[0.82s] Layer 0: START (5.1%)
-[1.60s] Stage Labels: APPEAR (10.0%)
-[1.60s] Narrative Header: APPEAR (10.0%)
-[2.40s] Layer 1: START (15.0%)
-...
-[16.00s] Animation: COMPLETE (100.0%)
-
-═══════════════════════════════════════════════════════════════
-                    TIMELINE SUMMARY                            
-═══════════════════════════════════════════════════════════════
-
-Layer 0              ░░░░░█████████████████████████████████████ 0.82s
-Stage Labels         ░░░░░░░░██████████████████████████████████ 1.60s
-Layer 1              ░░░░░░░░░░░░████████████████████████████████ 2.40s
-...
       // Calculate layer draw progress
       const layerDrawProgress = Array(layerCount).fill(0).map((_, layer) => {
         const layerStartTime = layer * layerStagger;
