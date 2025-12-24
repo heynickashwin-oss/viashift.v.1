@@ -28,19 +28,20 @@ export const CompanyInput = () => {
     setIsLoading(true);
 
     try {
-    const templateId = (searchParams.get('template') || 'b2b-sales-enablement') as TemplateId;
-const template = templates[templateId] || templates['b2b-sales-enablement'];
+      const templateId = (searchParams.get('template') || 'b2b-sales-enablement') as TemplateId;
+      const template = templates[templateId] || templates['b2b-sales-enablement'];
+      const defaultSightline = template.viewerConfig.default.sightline;
 
       const { data, error } = await supabase
         .from('shifts')
-      .insert({
-  company_input: company.trim(),
-  user_id: user.id,
-  template_id: templateId,
-  sightline_line1: template.sightlines.all.line1,
-  sightline_metric: template.sightlines.all.metric,
-  sightline_line2: template.sightlines.all.line2,
-})
+        .insert({
+          company_input: company.trim(),
+          user_id: user.id,
+          template_id: templateId,
+          sightline_line1: defaultSightline.line1,
+          sightline_metric: defaultSightline.metric,
+          sightline_line2: defaultSightline.line2,
+        })
         .select()
         .single();
 
@@ -104,77 +105,77 @@ const template = templates[templateId] || templates['b2b-sales-enablement'];
             Shift the perspective
           </p>
 
-        <form onSubmit={handleSubmit} className="w-full">
-          <label
-            className="block text-sm font-medium mb-3"
-            style={{
-              color: '#FFFFFF',
-              fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-            }}
-          >
-            Enter a company
-          </label>
-
-          <div className="relative mb-4">
-            <input
-              type="text"
-              value={company}
-              onChange={(e) => setCompany(e.target.value)}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              onMouseEnter={() => setIsHovered(true)}
-              onMouseLeave={() => setIsHovered(false)}
-              placeholder="Company name or website URL..."
-              className="w-full px-6 py-5 text-lg rounded-lg outline-none transition-all"
+          <form onSubmit={handleSubmit} className="w-full">
+            <label
+              className="block text-sm font-medium mb-3"
               style={{
-                background: '#12161C',
                 color: '#FFFFFF',
-                border: (isFocused || isHovered) ? '1px solid #00D4E5' : '1px solid transparent',
-                boxShadow: isFocused ? '0 0 20px rgba(0, 212, 229, 0.15)' : 'none',
                 fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
               }}
-            />
-          </div>
+            >
+              Enter a company
+            </label>
 
-          <button
-            type="submit"
-            disabled={isLoading || !company.trim()}
-            className="w-full px-6 py-5 text-base font-semibold rounded-lg transition-all flex items-center justify-center gap-2"
-            style={{
-              background: (isLoading || !company.trim()) ? '#6B7A8C' : '#00D4E5',
-              color: '#0A0E14',
-              fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-              cursor: (isLoading || !company.trim()) ? 'not-allowed' : 'pointer',
-              opacity: (isLoading || !company.trim()) ? 0.6 : 1,
-            }}
-            onMouseEnter={(e) => {
-              if (!isLoading && company.trim()) {
-                e.currentTarget.style.filter = 'brightness(1.1)';
-                e.currentTarget.style.boxShadow = '0 0 24px rgba(0, 212, 229, 0.4)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.filter = 'brightness(1)';
-              e.currentTarget.style.boxShadow = 'none';
-            }}
-          >
-            {isLoading ? 'Creating...' : 'Generate Shift'}
-            {!isLoading && (
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            )}
-          </button>
-        </form>
+            <div className="relative mb-4">
+              <input
+                type="text"
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+                placeholder="Company name or website URL..."
+                className="w-full px-6 py-5 text-lg rounded-lg outline-none transition-all"
+                style={{
+                  background: '#12161C',
+                  color: '#FFFFFF',
+                  border: (isFocused || isHovered) ? '1px solid #00D4E5' : '1px solid transparent',
+                  boxShadow: isFocused ? '0 0 20px rgba(0, 212, 229, 0.15)' : 'none',
+                  fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+                }}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading || !company.trim()}
+              className="w-full px-6 py-5 text-base font-semibold rounded-lg transition-all flex items-center justify-center gap-2"
+              style={{
+                background: (isLoading || !company.trim()) ? '#6B7A8C' : '#00D4E5',
+                color: '#0A0E14',
+                fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+                cursor: (isLoading || !company.trim()) ? 'not-allowed' : 'pointer',
+                opacity: (isLoading || !company.trim()) ? 0.6 : 1,
+              }}
+              onMouseEnter={(e) => {
+                if (!isLoading && company.trim()) {
+                  e.currentTarget.style.filter = 'brightness(1.1)';
+                  e.currentTarget.style.boxShadow = '0 0 24px rgba(0, 212, 229, 0.4)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.filter = 'brightness(1)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              {isLoading ? 'Creating...' : 'Generate Shift'}
+              {!isLoading && (
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              )}
+            </button>
+          </form>
         </div>
 
         <div
