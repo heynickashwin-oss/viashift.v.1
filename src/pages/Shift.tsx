@@ -7,7 +7,7 @@ import { ShareModal } from '../components/ShareModal';
 import { ChampionSharePrompt } from '../components/ChampionSharePrompt';
 import { ConfigPanel } from '../components/branding/BrandingPanel';
 import { BrandConfig } from '../components/branding/brandUtils';
-import { templates, TemplateId } from '../data/templates';
+import { templates, TemplateId, ViewerType } from '../data/templates';
 import { prepareFlowData, ValueOverrides, getLinkKey } from '../utils/valueUtils';
 import { NodeInteractionDialog } from '../components/NodeInteractionDialog';
 
@@ -32,6 +32,14 @@ interface ShiftData {
 
 type ViewPhase = 'sightline' | 'transformation';
 
+// Map preview mode to viewer type
+const getViewerType = (previewMode: 'seller' | 'champion', stakeholder?: string): ViewerType => {
+  if (stakeholder === 'finance') return 'cfo';
+  if (stakeholder === 'ops') return 'ops';
+  if (stakeholder === 'sales') return 'sales';
+  return 'default';
+};
+
 export const Shift = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -52,6 +60,10 @@ export const Shift = () => {
     value: string;
     type: string;
   } | null>(null);
+
+  // Get stakeholder from URL params
+  const stakeholder = searchParams.get('stakeholder') || undefined;
+  const viewerType = getViewerType(previewMode, stakeholder);
   
   const [config, setConfig] = useState({
     companyName: '',
@@ -66,6 +78,7 @@ export const Shift = () => {
     showLabels: true, 
     valueOverrides: null as ValueOverrides | null, 
   });
+
   useEffect(() => {
     const fetchShift = async () => {
       if (!id) return;
@@ -84,7 +97,12 @@ export const Shift = () => {
         } else {
           setShift(data);
           
-          // Update config from database
+          // Get template and viewer config for sightline defaults
+          const templateId = data.template_id || 'b2b-sales-enablement';
+          const template = templates[templateId as TemplateId] || templates['b2b-sales-enablement'];
+          const viewerConfig = template.viewerConfig[viewerType] || template.viewerConfig.default;
+          
+          // Update config from database (with template fallbacks)
           setConfig({
             companyName: data.company_input || '',
             companyLogo: data.logo_url,
@@ -92,9 +110,11 @@ export const Shift = () => {
             secondaryColor: data.secondary_color || '#00BFA6',
             vendorName: data.vendor_name,
             vendorLogo: data.vendor_logo_url,
-            sightlineLine1: data.sightline_line1 || 'What if [company] could recover',
-            sightlineMetric: data.sightline_metric || '$1.6M',
-            sightlineLine2: data.sightline_line2 || 'from deals dying in silence?',
+            sightlineLine1: data.sightline_line1 || viewerConfig.sightline.line1,
+            sightlineMetric: data.sightline_metric || viewerConfig.sightline.metric,
+            sightlineLine2: data.sightline_line2 || viewerConfig.sightline.line2,
+            showLabels: true,
+            valueOverrides: null,
           });
 
           // Skip sightline if disabled
@@ -116,7 +136,7 @@ export const Shift = () => {
     };
 
     fetchShift();
-  }, [id, searchParams]);
+  }, [id, searchParams, viewerType]);
 
   // Track when we enter transformation phase and reset share prompt eligibility
   useEffect(() => {
@@ -172,7 +192,7 @@ export const Shift = () => {
       })
       .eq('id', id);
 
-// Update local shift state to match config immediately (no reload needed)
+    // Update local shift state to match config immediately (no reload needed)
     setShift(prev => prev ? {
       ...prev,
       company_input: config.companyName,
@@ -222,42 +242,45 @@ export const Shift = () => {
     }));
   }, []);
 
-const story = useMemo((): TransformationStory => {
-const templateId = shift?.template_id || 'b2b-sales-enablement';
-  const template = templates[templateId] || templates['b2b-sales-enablement'];
-  // Generate display values based on template format
-  const beforeData = prepareFlowData(
-    template.currentState.data,
-    template.valueFormat,
-    config.valueOverrides
-  );
-  
-  const afterData = prepareFlowData(
-    template.shiftedState.data,
-    template.valueFormat,
-    config.valueOverrides
-  );
-  
-  return {
-    id: shift?.id || 'shift',
-    title: config.companyName || 'Transformation',
-    subtitle: template.description,
-    stageLabels: template.stageLabels,
-    before: {
-      data: beforeData,
-      metrics: template.currentState.metrics,
-      stageLabel: template.currentState.stageLabel,
-      anchoredMetric: template.currentState.anchoredMetric,
-    },
-    after: {
-      data: afterData,
-      metrics: template.shiftedState.metrics,
-      stageLabel: template.shiftedState.stageLabel,
-      anchoredMetric: template.shiftedState.anchoredMetric,
-      insight: template.shiftedState.insight.replace('[company]', config.companyName || 'Your company'),
-    },
-  };
-}, [shift?.id, shift?.template_id, config.companyName, config.valueOverrides]);
+  const story = useMemo((): TransformationStory => {
+    const templateId = shift?.template_id || 'b2b-sales-enablement';
+    const template = templates[templateId as TemplateId] || templates['b2b-sales-enablement'];
+    const viewerConfig = template.viewerConfig[viewerType] || template.viewerConfig.default;
+    
+    // Generate display values based on template format
+    const beforeData = prepareFlowData(
+      template.currentState.data,
+      template.valueFormat,
+      config.valueOverrides
+    );
+    
+    const afterData = prepareFlowData(
+      template.shiftedState.data,
+      template.valueFormat,
+      config.valueOverrides
+    );
+    
+    return {
+      id: shift?.id || 'shift',
+      title: config.companyName || 'Transformation',
+      subtitle: template.description,
+      stageLabels: viewerConfig.stageLabels,
+      narrative: viewerConfig.narrative,
+      before: {
+        data: beforeData,
+        metrics: template.currentState.metrics,
+        stageLabel: template.currentState.stageLabel,
+        anchoredMetric: template.currentState.anchoredMetric,
+      },
+      after: {
+        data: afterData,
+        metrics: template.shiftedState.metrics,
+        stageLabel: template.shiftedState.stageLabel,
+        anchoredMetric: template.shiftedState.anchoredMetric,
+        insight: template.shiftedState.insight.replace('[company]', config.companyName || 'Your company'),
+      },
+    };
+  }, [shift?.id, shift?.template_id, config.companyName, config.valueOverrides, viewerType]);
 
   // Use config state for live updates (not shift which requires reload)
   const buildBrand = (): BrandConfig => {
@@ -324,21 +347,21 @@ const templateId = shift?.template_id || 'b2b-sales-enablement';
       {/* Transformation Phase */}
       {viewPhase === 'transformation' && (
         <TransformationExperience
-  story={story}
-  initialBrand={buildBrand()}
-  onShare={handleShare}
-  onConfigure={() => setShowConfigPanel(true)}
-  readOnly={false}
-  previewMode={previewMode}
-  onPreviewModeChange={setPreviewMode}
-  showLabels={config.showLabels}
-  onNodeValueChange={handleNodeValueChange}
-   onLinkLabelChange={handleLinkLabelChange}
-  onNodeClick={handleNodeClick}
-/>
+          story={story}
+          initialBrand={buildBrand()}
+          onShare={handleShare}
+          onConfigure={() => setShowConfigPanel(true)}
+          readOnly={false}
+          previewMode={previewMode}
+          onPreviewModeChange={setPreviewMode}
+          showLabels={config.showLabels}
+          onNodeValueChange={handleNodeValueChange}
+          onLinkLabelChange={handleLinkLabelChange}
+          onNodeClick={handleNodeClick}
+        />
       )}
 
-     {/* Modals & Panels */}
+      {/* Modals & Panels */}
       {shift && (
         <>
           <ShareModal
