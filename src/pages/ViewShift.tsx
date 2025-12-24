@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { TransformationExperience, TransformationStory } from '../components/TransformationExperience';
 import { Sightline } from '../components/Sightline';
 import { ChampionSharePrompt } from '../components/ChampionSharePrompt';
 import { BrandConfig } from '../components/branding/brandUtils';
-import { templates } from '../data/templates';
+import { templates, TemplateId, ViewerType } from '../data/templates';
 
 interface ShiftData {
   id: string;
@@ -26,6 +26,17 @@ interface ShiftData {
 type StakeholderType = 'finance' | 'ops' | 'sales' | 'all';
 type ViewPhase = 'sightline' | 'transformation';
 
+// Map URL stakeholder param to viewer type
+const mapStakeholderToViewerType = (stakeholder: StakeholderType): ViewerType => {
+  switch (stakeholder) {
+    case 'finance': return 'cfo';
+    case 'ops': return 'ops';
+    case 'sales': return 'sales';
+    case 'all':
+    default: return 'default';
+  }
+};
+
 export const ViewShift = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
@@ -37,6 +48,7 @@ export const ViewShift = () => {
   const [sharePromptDismissed, setSharePromptDismissed] = useState(false);
 
   const stakeholderType = (searchParams.get('stakeholder') as StakeholderType) || 'all';
+  const viewerType = mapStakeholderToViewerType(stakeholderType);
 
   useEffect(() => {
     const fetchAndTrackShift = async () => {
@@ -97,25 +109,27 @@ export const ViewShift = () => {
 
   const getSightlineContent = () => {
     const templateId = shift?.template_id || 'b2b-sales-enablement';
-    const template = templates[templateId] || templates['b2b-sales-enablement'];
-    const sightlineData = template.sightlines[stakeholderType] || template.sightlines.all;
+    const template = templates[templateId as TemplateId] || templates['b2b-sales-enablement'];
+    const viewerConfig = template.viewerConfig[viewerType] || template.viewerConfig.default;
 
     return {
-      line1: shift?.sightline_line1 || sightlineData.line1,
-      metric: shift?.sightline_metric || sightlineData.metric,
-      line2: shift?.sightline_line2 || sightlineData.line2,
+      line1: shift?.sightline_line1 || viewerConfig.sightline.line1,
+      metric: shift?.sightline_metric || viewerConfig.sightline.metric,
+      line2: shift?.sightline_line2 || viewerConfig.sightline.line2,
     };
   };
 
-  const buildStory = (): TransformationStory => {
+  const story = useMemo((): TransformationStory => {
     const templateId = shift?.template_id || 'b2b-sales-enablement';
-    const template = templates[templateId] || templates['b2b-sales-enablement'];
+    const template = templates[templateId as TemplateId] || templates['b2b-sales-enablement'];
+    const viewerConfig = template.viewerConfig[viewerType] || template.viewerConfig.default;
 
     return {
       id: shift?.id || 'shift',
       title: shift?.company_input || 'Transformation',
       subtitle: template.description,
-      stageLabels: template.stageLabels,
+      stageLabels: viewerConfig.stageLabels,
+      narrative: viewerConfig.narrative,
       before: {
         data: template.currentState.data,
         metrics: template.currentState.metrics,
@@ -130,7 +144,7 @@ export const ViewShift = () => {
         insight: template.shiftedState.insight.replace('[company]', shift?.company_input || 'Your company'),
       },
     };
-  };
+  }, [shift, viewerType]);
 
   const buildBrand = (): BrandConfig => {
     return {
@@ -188,7 +202,7 @@ export const ViewShift = () => {
 
       {viewPhase === 'transformation' && (
         <TransformationExperience
-          story={buildStory()}
+          story={story}
           initialBrand={buildBrand()}
           readOnly={true}
           showCTA={true}
