@@ -1,18 +1,5 @@
 /**
- * useNarrativeController - v1.1
- * 
- * Orchestrates the phased reveal of the Sankey visualization story.
- * Now integrates with template NarrativeScript for viewer-specific content.
- * 
- * PHASES:
- * 1. SETUP    - Flows draw layer by layer (sequential reveal)
- * 2. BLEED    - Loss flows pulse, loss labels appear with pain metrics
- * 3. READY    - Insight text appears, transform button powers up
- * 4. COMPLETE - All UI visible, particles flowing normally
- * 
- * For "after" state:
- * 1. SHIFT    - New flows drawing, solution nodes highlighted
- * 2. RESULT   - Final state, all metrics visible
+ * useNarrativeController - v1.2 (FIXED)
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
@@ -20,103 +7,80 @@ import { NarrativeScript, NodeCallout } from '../data/templates/b2bSalesEnableme
 import { timeline } from '../utils/debugTimeline';
 
 export type NarrativePhase = 
-  | 'idle'           // Not started
-  | 'setup-0'        // Drawing layer 0
-  | 'setup-1'        // Drawing layer 1  
-  | 'setup-2'        // Drawing layer 2
-  | 'setup-3'        // Drawing layer 3
-  | 'bleed'          // Loss flows pulsing, pain metrics appearing
-  | 'ready'          // Insight visible, button powering up
-  | 'complete'       // All revealed, normal animation
-  // After-state phases
-  | 'shift'          // Drawing new/solution flows
-  | 'result';        // Final transformed state
+  | 'idle'
+  | 'setup-0'
+  | 'setup-1'  
+  | 'setup-2'
+  | 'setup-3'
+  | 'bleed'
+  | 'ready'
+  | 'complete'
+  | 'shift'
+  | 'result';
 
 export interface NarrativeState {
   phase: NarrativePhase;
-  
-  // Granular visibility controls
-  visibleLayers: number[];           // Which flow layers are drawn
-  lossHighlightActive: boolean;      // Loss nodes/flows pulsing
-  lossPulseIntensity: number;        // 0-1 pulse animation value
-  
-  // Metric visibility
-  anchoredMetricVisible: boolean;    // The metric anchored to a node
-  summaryMetricsVisible: boolean[];  // The side panel metrics
-  insightVisible: boolean;           // The insight text in action zone
-  
-  // Progress values for animations
-  layerDrawProgress: number[];       // 0-1 draw progress per layer
-  overallProgress: number;           // 0-1 overall narrative progress
-  
-  // For the transform button
+  visibleLayers: number[];
+  lossHighlightActive: boolean;
+  lossPulseIntensity: number;
+  anchoredMetricVisible: boolean;
+  summaryMetricsVisible: boolean[];
+  insightVisible: boolean;
+  layerDrawProgress: number[];
+  overallProgress: number;
   buttonReady: boolean;
-  
-  // NEW: Narrative content from template
-  header: string;                    // Current phase header text
-  activeCallouts: NodeCallout[];     // Callouts to display near nodes
-  narrativePhaseId: 'setup' | 'bleed' | 'shift' | 'result'; // Mapped phase for template lookup
+  header: string;
+  activeCallouts: NodeCallout[];
+  narrativePhaseId: 'setup' | 'bleed' | 'shift' | 'result';
 }
 
 export interface NarrativeConfig {
-  // Timing (all in ms)
-  layerDrawDuration: number;      // How long to draw each layer
-  layerStagger: number;           // Delay between starting each layer
-  bleedDuration: number;          // How long the bleed phase lasts
-  bleedPulseCycles: number;       // How many pulse cycles during bleed
-  metricRevealDelay: number;      // Delay before metrics appear in bleed
-  readyDuration: number;          // How long before complete
+  layerDrawDuration: number;
+  layerStagger: number;
+  bleedDuration: number;
+  bleedPulseCycles: number;
+  metricRevealDelay: number;
+  readyDuration: number;
 }
 
 const DEFAULT_CONFIG: NarrativeConfig = {
-  layerDrawDuration: 2000,   // Increased from 800 - each layer takes 2s to draw
-  layerStagger: 1500,        // Increased from 400 - wait 1.5s between layers
-  bleedDuration: 3000,       // Increased from 2000 - more time to absorb pain
-  bleedPulseCycles: 4,       // Increased from 3 - more pulses
-  metricRevealDelay: 800,    // Increased from 600
-  readyDuration: 2000,       // Increased from 1500
+  layerDrawDuration: 2000,
+  layerStagger: 1500,
+  bleedDuration: 3000,
+  bleedPulseCycles: 4,
+  metricRevealDelay: 800,
+  readyDuration: 2000,
 };
 
 export interface UseNarrativeControllerProps {
   variant: 'before' | 'after';
-  isActive: boolean;                 // Should narrative be running
-  layerCount: number;                // Number of layers (usually 4: 0-3)
-  metricCount: number;               // Number of summary metrics
-  hasAnchoredMetric: boolean;        // Whether there's a node-anchored metric
+  isActive: boolean;
+  layerCount: number;
+  metricCount: number;
+  hasAnchoredMetric: boolean;
   config?: Partial<NarrativeConfig>;
   onPhaseChange?: (phase: NarrativePhase) => void;
   onComplete?: () => void;
-  
-  // NEW: Template narrative content
   narrative?: NarrativeScript;
 }
 
-/**
- * Maps internal phases to template narrative phase IDs
- */
 function mapPhaseToNarrativeId(phase: NarrativePhase, variant: 'before' | 'after'): 'setup' | 'bleed' | 'shift' | 'result' {
   if (variant === 'before') {
     if (phase.startsWith('setup')) return 'setup';
     if (phase === 'bleed' || phase === 'ready') return 'bleed';
-    return 'bleed'; // complete stays on bleed content
+    return 'bleed';
   } else {
     if (phase === 'shift' || phase.startsWith('setup')) return 'shift';
     return 'result';
   }
 }
 
-/**
- * Gets active callouts based on phase progress
- */
 function getActiveCallouts(
   callouts: NodeCallout[] | undefined, 
   phaseProgress: number
 ): NodeCallout[] {
   if (!callouts?.length) return [];
-  
-  // Stagger callout appearance across the phase
   const calloutInterval = 1 / (callouts.length + 1);
-  
   return callouts.filter((_, index) => {
     const calloutThreshold = (index + 1) * calloutInterval;
     return phaseProgress >= calloutThreshold;
@@ -134,7 +98,11 @@ export function useNarrativeController({
   onComplete,
   narrative,
 }: UseNarrativeControllerProps) {
-  const config = { ...DEFAULT_CONFIG, ...configOverrides };
+  // Memoize config to prevent recreation
+  const config = useMemo(
+    () => ({ ...DEFAULT_CONFIG, ...configOverrides }),
+    [configOverrides]
+  );
   
   const [state, setState] = useState<NarrativeState>({
     phase: 'idle',
@@ -147,41 +115,52 @@ export function useNarrativeController({
     layerDrawProgress: Array(layerCount).fill(0),
     overallProgress: 0,
     buttonReady: false,
-    // NEW defaults
     header: '',
     activeCallouts: [],
     narrativePhaseId: 'setup',
   });
   
-const animationRef = useRef<number | null>(null);
-const phaseStartTimeRef = useRef<number>(0);
-const currentPhaseRef = useRef<NarrativePhase>('idle');
-const afterInitializedRef = useRef(false);  // ← ADD THIS LINE
-
-// Memoize narrative content lookup
-const getNarrativeContent = useCallback((phase: NarrativePhase, progress: number) => {
-    if (!narrative) {
+  const animationRef = useRef<number | null>(null);
+  const phaseStartTimeRef = useRef<number>(0);
+  const currentPhaseRef = useRef<NarrativePhase>('idle');
+  const afterInitializedRef = useRef(false);
+  const hasStartedRef = useRef(false);
+  
+  // Store callbacks in refs to avoid dependency issues
+  const onPhaseChangeRef = useRef(onPhaseChange);
+  const onCompleteRef = useRef(onComplete);
+  const narrativeRef = useRef(narrative);
+  
+  // Keep refs updated
+  useEffect(() => {
+    onPhaseChangeRef.current = onPhaseChange;
+    onCompleteRef.current = onComplete;
+    narrativeRef.current = narrative;
+  });
+  
+  // Stable narrative content getter using ref
+  const getNarrativeContent = useCallback((phase: NarrativePhase, progress: number) => {
+    const narrativeData = narrativeRef.current;
+    if (!narrativeData) {
       return { header: '', activeCallouts: [] };
     }
-    
     const narrativePhaseId = mapPhaseToNarrativeId(phase, variant);
-    const phaseContent = narrative[narrativePhaseId];
-    
+    const phaseContent = narrativeData[narrativePhaseId];
     return {
       header: phaseContent?.header || '',
       activeCallouts: getActiveCallouts(phaseContent?.nodeCallouts, progress),
     };
-  }, [narrative, variant]);
+  }, [variant]);
   
-  // Update phase and notify
+  // Stable setPhase using ref for callback
   const setPhase = useCallback((phase: NarrativePhase) => {
     currentPhaseRef.current = phase;
     phaseStartTimeRef.current = performance.now();
     setState(prev => ({ ...prev, phase }));
-    onPhaseChange?.(phase);
-  }, [onPhaseChange]);
+    onPhaseChangeRef.current?.(phase);
+  }, []);
   
-  // Reset to initial state
+  // Stable reset
   const reset = useCallback(() => {
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
@@ -207,9 +186,10 @@ const getNarrativeContent = useCallback((phase: NarrativePhase, progress: number
     });
     
     currentPhaseRef.current = 'idle';
+    hasStartedRef.current = false;
   }, [metricCount, layerCount, getNarrativeContent]);
   
-  // Skip to complete (for non-animated scenarios)
+  // Skip to complete
   const skipToComplete = useCallback(() => {
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
@@ -236,18 +216,28 @@ const getNarrativeContent = useCallback((phase: NarrativePhase, progress: number
     });
     
     currentPhaseRef.current = 'complete';
-    onComplete?.();
-  }, [layerCount, metricCount, hasAnchoredMetric, onComplete, variant, getNarrativeContent]);
+    onCompleteRef.current?.();
+  }, [layerCount, metricCount, hasAnchoredMetric, variant, getNarrativeContent]);
   
   // Main animation loop for "before" variant
   useEffect(() => {
-    // Only run narrative for "before" variant when active
-    // "after" variant uses the existing forge system
     if (!isActive || variant !== 'before') {
+      hasStartedRef.current = false;
       return;
     }
     
-    reset();
+    // Prevent re-running if already started
+    if (hasStartedRef.current) return;
+    hasStartedRef.current = true;
+    
+    // Cancel any existing animation
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+      animationRef.current = null;
+    }
+    
+    // Reset state inline instead of calling reset()
+    currentPhaseRef.current = 'idle';
     
     const {
       layerDrawDuration,
@@ -258,7 +248,6 @@ const getNarrativeContent = useCallback((phase: NarrativePhase, progress: number
       readyDuration,
     } = config;
     
-    // Calculate total timeline
     const setupDuration = layerDrawDuration + (layerCount - 1) * layerStagger;
     const totalDuration = setupDuration + bleedDuration + readyDuration;
     
@@ -270,10 +259,8 @@ const getNarrativeContent = useCallback((phase: NarrativePhase, progress: number
       const elapsed = currentTime - startTime;
       const overallProgress = Math.min(elapsed / totalDuration, 1);
       
-      // Determine current phase based on elapsed time
       let newPhase: NarrativePhase = currentPhaseRef.current;
       
-      // SETUP PHASES (layer by layer)
       for (let layer = 0; layer < layerCount; layer++) {
         const layerStartTime = layer * layerStagger;
         if (elapsed >= layerStartTime && elapsed < setupDuration) {
@@ -281,28 +268,23 @@ const getNarrativeContent = useCallback((phase: NarrativePhase, progress: number
         }
       }
       
-      // BLEED PHASE
       if (elapsed >= setupDuration && elapsed < setupDuration + bleedDuration) {
         newPhase = 'bleed';
       }
       
-      // READY PHASE
       if (elapsed >= setupDuration + bleedDuration && elapsed < totalDuration) {
         newPhase = 'ready';
       }
       
-      // COMPLETE
       if (elapsed >= totalDuration) {
         newPhase = 'complete';
       }
       
-     // Update phase if changed
       if (newPhase !== currentPhaseRef.current) {
         setPhase(newPhase);
         timeline.log(`Narrative Phase`, newPhase.toUpperCase(), overallProgress);
       }
 
-      // Calculate layer draw progress
       const layerDrawProgress = Array(layerCount).fill(0).map((_, layer) => {
         const layerStartTime = layer * layerStagger;
         const layerElapsed = elapsed - layerStartTime;
@@ -310,27 +292,22 @@ const getNarrativeContent = useCallback((phase: NarrativePhase, progress: number
         return Math.min(layerElapsed / layerDrawDuration, 1);
       });
       
-      // Calculate visible layers (any with progress > 0)
       const visibleLayers = layerDrawProgress
         .map((progress, layer) => progress > 0 ? layer : -1)
         .filter(layer => layer >= 0);
       
-      // Bleed phase calculations
       const inBleed = elapsed >= setupDuration && elapsed < setupDuration + bleedDuration;
       const bleedElapsed = Math.max(0, elapsed - setupDuration);
       const bleedProgress = Math.min(bleedElapsed / bleedDuration, 1);
       
-      // Pulse intensity (sin wave during bleed)
       const pulseFrequency = (bleedPulseCycles * Math.PI * 2) / bleedDuration;
       const lossPulseIntensity = inBleed 
         ? Math.sin(bleedElapsed * pulseFrequency) * 0.5 + 0.5
         : 0;
       
-      // Anchored metric appears during bleed after delay
       const anchoredMetricVisible = hasAnchoredMetric && 
         (bleedElapsed > metricRevealDelay || newPhase === 'ready' || newPhase === 'complete');
       
-      // Summary metrics appear during ready phase, staggered
       const inReady = elapsed >= setupDuration + bleedDuration;
       const readyElapsed = Math.max(0, elapsed - setupDuration - bleedDuration);
       const summaryMetricsVisible = Array(metricCount).fill(false).map((_, i) => {
@@ -338,11 +315,9 @@ const getNarrativeContent = useCallback((phase: NarrativePhase, progress: number
         return inReady && readyElapsed > metricDelay;
       });
       
-      // Insight and button ready
       const insightVisible = inReady && readyElapsed > 300;
       const buttonReady = newPhase === 'complete' || (newPhase === 'ready' && readyElapsed > 800);
       
-      // Calculate phase-specific progress for callout staggering
       let phaseProgress = 0;
       if (newPhase.startsWith('setup')) {
         phaseProgress = elapsed / setupDuration;
@@ -352,11 +327,9 @@ const getNarrativeContent = useCallback((phase: NarrativePhase, progress: number
         phaseProgress = 1;
       }
       
-      // Get narrative content for current phase
       const narrativeContent = getNarrativeContent(newPhase, phaseProgress);
       const narrativePhaseId = mapPhaseToNarrativeId(newPhase, variant);
       
-      // Update state
       setState({
         phase: newPhase,
         visibleLayers,
@@ -373,11 +346,10 @@ const getNarrativeContent = useCallback((phase: NarrativePhase, progress: number
         narrativePhaseId,
       });
       
-      // Continue or complete
       if (newPhase !== 'complete') {
         animationRef.current = requestAnimationFrame(animate);
       } else {
-        onComplete?.();
+        onCompleteRef.current?.();
       }
     };
     
@@ -388,31 +360,29 @@ const getNarrativeContent = useCallback((phase: NarrativePhase, progress: number
         cancelAnimationFrame(animationRef.current);
         animationRef.current = null;
       }
+      hasStartedRef.current = false;
     };
-// eslint-disable-next-line react-hooks/exhaustive-deps
-}, [isActive, variant]);
+  }, [isActive, variant, layerCount, metricCount, hasAnchoredMetric, config, setPhase, getNarrativeContent]);
   
-  // For "after" variant, derive narrative content from forge progress
-useEffect(() => {
-  if (variant !== 'after' || !isActive) {
-    afterInitializedRef.current = false;
-    return;
-  }
-  
-  // Only initialize once per activation
-  if (afterInitializedRef.current) return;
-  afterInitializedRef.current = true;
-  
-  const narrativeContent = getNarrativeContent('shift', 0.5);
-  
-  setState(prev => ({
-    ...prev,
-    header: narrativeContent.header,
-    activeCallouts: narrativeContent.activeCallouts,
-    narrativePhaseId: 'shift',
-  }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [variant, isActive]);
+  // For "after" variant
+  useEffect(() => {
+    if (variant !== 'after' || !isActive) {
+      afterInitializedRef.current = false;
+      return;
+    }
+    
+    if (afterInitializedRef.current) return;
+    afterInitializedRef.current = true;
+    
+    const narrativeContent = getNarrativeContent('shift', 0.5);
+    
+    setState(prev => ({
+      ...prev,
+      header: narrativeContent.header,
+      activeCallouts: narrativeContent.activeCallouts,
+      narrativePhaseId: 'shift',
+    }));
+  }, [variant, isActive, getNarrativeContent]);
   
   return {
     ...state,
@@ -422,7 +392,6 @@ useEffect(() => {
     isBleedPhase: state.phase === 'bleed',
     isReadyPhase: state.phase === 'ready',
     isComplete: state.phase === 'complete',
-    // NEW: Convenience getters
     isShiftPhase: state.phase === 'shift',
     isResultPhase: state.phase === 'result',
   };
