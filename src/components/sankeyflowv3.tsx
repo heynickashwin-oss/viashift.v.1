@@ -675,6 +675,57 @@ const SankeyFlowV3Inner = ({
 
       {/* SVG for links and nodes */}
       <svg width={dimensions.width} height={dimensions.height} className="absolute inset-0">
+        <style>
+          {`
+            @keyframes glowPulse {
+              0%, 100% { opacity: 0.8; }
+              50% { opacity: 1.0; }
+            }
+
+            @keyframes shimmer {
+              0% { stroke-dashoffset: 1000; }
+              100% { stroke-dashoffset: 0; }
+            }
+
+            @keyframes lossFlowPulse {
+              0%, 100% { opacity: 0.5; }
+              50% { opacity: 0.65; }
+            }
+
+            .node-hover:hover {
+              filter: brightness(1.15);
+              transform: scale(1.02);
+            }
+
+            .flow-hover:hover {
+              filter: brightness(1.2);
+            }
+
+            .node-transition {
+              transition: transform 0.2s ease, filter 0.2s ease;
+            }
+
+            .flow-transition {
+              transition: filter 0.2s ease;
+            }
+
+            .solution-glow {
+              animation: glowPulse 3s ease-in-out infinite;
+            }
+
+            .new-glow {
+              animation: glowPulse 3s ease-in-out infinite;
+            }
+
+            .loss-flow {
+              animation: lossFlowPulse 5.5s ease-in-out infinite;
+            }
+
+            .shimmer-effect {
+              animation: shimmer 5s linear infinite;
+            }
+          `}
+        </style>
         <defs>
           <linearGradient id="grad-primary" x1="0%" x2="100%">
             <stop offset="0%" stopColor={theme.colors.primary} />
@@ -687,6 +738,13 @@ const SankeyFlowV3Inner = ({
           <linearGradient id="grad-loss" x1="0%" x2="100%">
             <stop offset="0%" stopColor={theme.colors.accent + 'AA'} />
             <stop offset="100%" stopColor={theme.colors.loss + '88'} />
+          </linearGradient>
+          <linearGradient id="grad-shimmer" x1="0%" x2="100%">
+            <stop offset="0%" stopColor="transparent" />
+            <stop offset="30%" stopColor={theme.colors.primary + '44'} />
+            <stop offset="50%" stopColor={theme.colors.primary + '88'} />
+            <stop offset="70%" stopColor={theme.colors.primary + '44'} />
+            <stop offset="100%" stopColor="transparent" />
           </linearGradient>
           <linearGradient id="nodeGrad-default" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stopColor="rgba(30, 30, 35, 0.9)" />
@@ -816,12 +874,30 @@ const SankeyFlowV3Inner = ({
                   strokeLinecap="round"
                   opacity={opacity}
                   markerEnd={layerDrawProgress > 0.8 ? `url(#${arrowId})` : undefined}
+                  className={`flow-transition flow-hover ${isLoss ? 'loss-flow' : ''}`}
                   style={{
                     strokeDasharray: isLoss ? 'none' : link.pathLength,
                     strokeDashoffset: isLoss ? 0 : link.pathLength * (1 - layerDrawProgress),
                     transition: exitPhase !== 'none' ? 'opacity 0.3s' : 'none',
                   }}
                 />
+
+                {/* Shimmer effect - only for non-loss flows */}
+                {!isLoss && layerDrawProgress > 0.9 && (
+                  <path
+                    d={link.path}
+                    fill="none"
+                    stroke="url(#grad-shimmer)"
+                    strokeWidth={link.thickness}
+                    strokeLinecap="round"
+                    opacity={0.15}
+                    className="shimmer-effect"
+                    style={{
+                      strokeDasharray: link.pathLength * 0.3,
+                      strokeDashoffset: link.pathLength,
+                    }}
+                  />
+                )}
                 
                 {/* Flow label at midpoint */}
                 {showLabels && link.displayLabel && (link.type === 'loss' || link.type === 'new' || link.type === 'revenue') && layerDrawProgress > 0.5 && (
@@ -931,9 +1007,10 @@ const SankeyFlowV3Inner = ({
               <g
                 key={node.id}
                 transform={`translate(${node.x}, ${node.y})`}
+                className="node-transition node-hover"
                 style={{
-                  opacity: exitPhase === 'desaturate' ? nodeOpacity * 0.4 
-                         : exitPhase === 'gone' ? 0 
+                  opacity: exitPhase === 'desaturate' ? nodeOpacity * 0.4
+                         : exitPhase === 'gone' ? 0
                          : nodeOpacity,
                   cursor: onNodeClick ? 'pointer' : 'default',
                   transition: exitPhase !== 'none' ? 'opacity 0.3s' : 'none',
@@ -951,6 +1028,7 @@ const SankeyFlowV3Inner = ({
                     fill={isSolutionNode ? theme.colors.primary : theme.colors.secondary}
                     opacity={0.2 * pulseOpacity}
                     filter="url(#solutionGlow)"
+                    className={isSolutionNode ? 'solution-glow' : 'new-glow'}
                   />
                 )}
 
