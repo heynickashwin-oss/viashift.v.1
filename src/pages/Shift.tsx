@@ -192,32 +192,6 @@ export const Shift = () => {
     setSharePromptDismissedThisSession(true);
   };
 
-  const handleNodeValueChange = useCallback((nodeId: string, newValue: string) => {
-    setConfig(prev => ({
-      ...prev,
-      valueOverrides: {
-        nodes: {
-          ...(prev.valueOverrides?.nodes || {}),
-          [nodeId]: { displayValue: newValue },
-        },
-        links: prev.valueOverrides?.links || {},
-      },
-    }));
-  }, []);
-
-  const handleLinkLabelChange = useCallback((linkId: string, newLabel: string) => {
-    setConfig(prev => ({
-      ...prev,
-      valueOverrides: {
-        nodes: prev.valueOverrides?.nodes || {},
-        links: {
-          ...(prev.valueOverrides?.links || {}),
-          [linkId]: { displayLabel: newLabel },
-        },
-      },
-    }));
-  }, []);
-
   const handleNodeClick = useCallback((nodeId: string, nodeInfo: { label: string; value: string; type: string }) => {
     setSelectedNode({ id: nodeId, ...nodeInfo });
   }, []);
@@ -359,7 +333,9 @@ const templateId = shift?.template_id || 'b2b-sales-enablement';
   onPreviewModeChange={setPreviewMode}
   showLabels={config.showLabels}
   onNodeValueChange={handleNodeValueChange}
-  onLinkLabelChange={handleLinkLabelChange}
+   onLinkLabelChange={handleLinkLabelChange}
+  onNodeClick={handleNodeClick}
+/>
 />
       )}
 
