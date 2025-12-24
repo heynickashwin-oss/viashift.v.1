@@ -257,13 +257,14 @@ const SankeyFlowV3Inner = ({
 
   // Narrative controller for phased storytelling
   const narrativeState = useNarrativeController({
-    variant,
-    isActive: animated && !hideUI,
-    layerCount: 4,
-    metricCount: state.metrics.length,
-    hasAnchoredMetric: !!state.anchoredMetric,
-    narrative,
-    {
+  variant,
+  isActive: animated && !hideUI,
+  layerCount: 4,
+  metricCount: state.metrics.length,
+  hasAnchoredMetric: !!state.anchoredMetric,
+  narrative,
+
+});
       // Animation complete
     },
   });
