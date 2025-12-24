@@ -221,11 +221,10 @@ const LAYOUT = {
   nodeWidth: 18,
   nodeMinHeight: 35,
   nodeMaxHeight: 90,
-  drawDuration: 8000,      // Slowed from 3000 to 8000ms for storytelling
-  staggerDelay: 150,       // Increased from 60 to 150ms for more visible layer stagger
-  forgeDuration: 1500,     // Slightly slower forge reveal
+  drawDuration: 16000,     // Doubled from 8000 for better storytelling
+  staggerDelay: 200,       // Slightly more stagger
+  forgeDuration: 2000,     // Slower forge for after state
 };
-
 const layerXPercent: Record<number, number> = {
   0: 0.05,
   1: 0.28,
@@ -497,60 +496,72 @@ const SankeyFlowV3Inner = ({
 
   // CRITICAL FIX: Track animation by data identity, not layout reference
   // This prevents resize from restarting animation
+useEffect(() => {
+    if (!layout) return;
 
-  useEffect(() => {
-  if (!layout) return;
-
-  // Cancel any existing animation
-  if (drawAnimationRef.current) {
-    cancelAnimationFrame(drawAnimationRef.current);
-    drawAnimationRef.current = null;
-  }
-
-  setDrawProgress(0);
-  setUiVisible(false);
-  setMetricsVisible([]);
-  setAnchoredVisible(false);
-
-  if (!animated) {
-    setDrawProgress(1);
-    setUiVisible(true);
-    setMetricsVisible(state.metrics.map(() => true));
-    setAnchoredVisible(true);
-    return;
-  }
+    // Cancel any existing animation
+    if (drawAnimationRef.current) {
+      cancelAnimationFrame(drawAnimationRef.current);
+      drawAnimationRef.current = null;
+    }
 
     setDrawProgress(0);
     setUiVisible(false);
     setMetricsVisible([]);
     setAnchoredVisible(false);
 
+    if (!animated) {
+      setDrawProgress(1);
+      setUiVisible(true);
+      setMetricsVisible(state.metrics.map(() => true));
+      setAnchoredVisible(true);
+      return;
+    }
+
     const duration = LAYOUT.drawDuration;
     const startTime = performance.now();
+    
+    // Track which UI elements have been triggered
+    let uiTriggered = false;
+    const metricsTriggered: boolean[] = state.metrics.map(() => false);
+    let anchoredTriggered = false;
 
     const animateDraw = (currentTime: number) => {
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
       setDrawProgress(easeOutCubic(progress));
 
+      // Stagger UI elements DURING draw, not after
+      
+      // Show stage labels and header early (10% progress)
+      if (progress > 0.1 && !uiTriggered) {
+        uiTriggered = true;
+        setUiVisible(true);
+      }
+      
+      // Show metrics as layers complete (spread across 30%-90% of draw)
+      state.metrics.forEach((_, i) => {
+        const metricThreshold = 0.3 + (i * 0.2); // 30%, 50%, 70%
+        if (progress > metricThreshold && !metricsTriggered[i]) {
+          metricsTriggered[i] = true;
+          setMetricsVisible(prev => {
+            const next = [...prev];
+            next[i] = true;
+            return next;
+          });
+        }
+      });
+      
+      // Show anchored metric at 60% progress
+      if (progress > 0.6 && !anchoredTriggered) {
+        anchoredTriggered = true;
+        setAnchoredVisible(true);
+      }
+
       if (progress < 1) {
         drawAnimationRef.current = requestAnimationFrame(animateDraw);
       } else {
         drawAnimationRef.current = null;
-        setUiVisible(true);
-
-        // Stagger metrics after animation completes
-        state.metrics.forEach((_, i) => {
-          setTimeout(() => {
-            setMetricsVisible(prev => {
-              const next = [...prev];
-              next[i] = true;
-              return next;
-            });
-          }, 200 + i * 150);
-        });
-
-        setTimeout(() => setAnchoredVisible(true), 600);
       }
     };
 
@@ -853,10 +864,11 @@ const SankeyFlowV3Inner = ({
             const layerDrawProgress = getLayerProgress(linkLayer, drawProgress);
             const isLoss = link.type === 'loss';
 
-            // Loss flows fade in, other flows draw
-            const opacity = isLoss
-              ? layerDrawProgress * 0.6
-              : (exitPhase === 'desaturate' ? 0.3 : 0.7);
+            // ALL flows draw in sequence now (loss flows included)
+            const baseOpacity = isLoss ? 0.6 : 0.7;
+            const opacity = exitPhase === 'desaturate' 
+              ? baseOpacity * 0.4 
+              : baseOpacity * layerDrawProgress;
 
             return (
               <g key={link.id}>
@@ -870,8 +882,8 @@ const SankeyFlowV3Inner = ({
                   opacity={opacity * 0.15}
                   filter="url(#glow)"
                   style={{
-                    strokeDasharray: isLoss ? 'none' : link.pathLength,
-                    strokeDashoffset: isLoss ? 0 : link.pathLength * (1 - layerDrawProgress),
+                    strokeDasharray: link.pathLength,
+                    strokeDashoffset: link.pathLength * (1 - layerDrawProgress),
                     transition: exitPhase !== 'none' ? 'opacity 0.3s' : 'none',
                   }}
                 />
@@ -887,8 +899,8 @@ const SankeyFlowV3Inner = ({
                   markerEnd={layerDrawProgress > 0.8 ? `url(#${arrowId})` : undefined}
                   className={`flow-transition flow-hover ${isLoss ? 'loss-flow' : ''}`}
                   style={{
-                    strokeDasharray: isLoss ? 'none' : link.pathLength,
-                    strokeDashoffset: isLoss ? 0 : link.pathLength * (1 - layerDrawProgress),
+                    strokeDasharray: link.pathLength,
+                    strokeDashoffset: link.pathLength * (1 - layerDrawProgress),
                     transition: exitPhase !== 'none' ? 'opacity 0.3s' : 'none',
                   }}
                 />
