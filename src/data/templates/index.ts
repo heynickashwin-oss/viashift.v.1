@@ -1,20 +1,26 @@
 export { b2bSalesEnablementTemplate } from './b2bSalesEnablement';
-export { cfoValueCaseTemplate } from './cfoValueCase';
+export { salesBudgetEfficiencyTemplate } from './salesBudgetEfficiency';
 
 // Re-export types
-export type { TransformationTemplateData, SightlineContent } from './b2bSalesEnablement';
+export type { 
+  TransformationTemplateData, 
+  SightlineContent, 
+  ViewerConfig, 
+  ViewerType,
+  NarrativeScript,
+  NarrativePhase,
+  NodeCallout,
+} from './b2bSalesEnablement';
 
 // Template registry for easy lookup
 import { b2bSalesEnablementTemplate } from './b2bSalesEnablement';
-import { cfoValueCaseTemplate } from './cfoValueCase';
+import { salesBudgetEfficiencyTemplate } from './salesBudgetEfficiency';
 
 export const templateRegistry = {
   'b2b-sales-enablement': b2bSalesEnablementTemplate,
-  'cfo-value-case': cfoValueCaseTemplate,
+  'sales-budget-efficiency': salesBudgetEfficiencyTemplate,
 } as const;
 
 export const templates = templateRegistry;
-
 export type TemplateId = keyof typeof templateRegistry;
-
 export const templateList = Object.values(templateRegistry);
