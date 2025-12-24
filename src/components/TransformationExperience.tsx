@@ -1,7 +1,8 @@
 /**
- * TransformationExperience - v3.4
+ * TransformationExperience - v3.5
  * 
  * Dual-layer visualization with ghost comparison
+ * Now with narrative support for phased storytelling
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
@@ -9,6 +10,7 @@ import { Share2, Eye } from 'lucide-react';
 import { SankeyFlowV3, FlowState } from './sankeyflowv3';
 import { BrandConfig, DEFAULT_BRAND, resolveTheme } from './branding/brandUtils';
 import { UserMenu } from './ui/UserMenu';
+import { NarrativeScript } from '../data/templates/b2bSalesEnablement';
 
 export interface TransformationStory {
   id: string;
@@ -17,6 +19,7 @@ export interface TransformationStory {
   before: FlowState;
   after: FlowState;
   stageLabels?: string[];
+  narrative?: NarrativeScript;
 }
 
 export interface TransformationExperienceProps {
@@ -104,23 +107,23 @@ export const TransformationExperience = ({
     }, TIMING.TOTAL);
   }, [isButtonReady, isTransitioning, TIMING]);
 
-useEffect(() => {
-  const handleKeyDown = (e: KeyboardEvent) => {
-    // Ignore if user is typing in an input or textarea
-    const target = e.target as HTMLElement;
-    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
-      return;
-    }
-    
-    if (e.code === 'Space' && !readOnly) {
-      e.preventDefault();
-      handleTransform();
-    }
-  };
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input or textarea
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        return;
+      }
+      
+      if (e.code === 'Space' && !readOnly) {
+        e.preventDefault();
+        handleTransform();
+      }
+    };
 
-  window.addEventListener('keydown', handleKeyDown);
-  return () => window.removeEventListener('keydown', handleKeyDown);
-}, [handleTransform, readOnly]);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleTransform, readOnly]);
 
   useEffect(() => {
     if (showCTA) {
@@ -184,7 +187,7 @@ useEffect(() => {
               : 'brightness(1) blur(0)',
           }}
         >
-       <SankeyFlowV3
+          <SankeyFlowV3
             state={story.before}
             stageLabels={story.stageLabels}
             variant="before"
@@ -213,20 +216,20 @@ useEffect(() => {
               : 'brightness(1) blur(0)',
           }}
         >
-<SankeyFlowV3
-  state={story.after}
-  stageLabels={story.stageLabels}
-  variant="after"
-  brand={brand}
-  animated={variant === 'after'}
-  transitionPhase={variant === 'after' ? transitionPhase : 'idle'}
-  hideUI={variant !== 'after'}
-  showLabels={showLabels}
-  editable={true}
-  onNodeValueChange={onNodeValueChange}
-  onLinkLabelChange={onLinkLabelChange}
-  onNodeClick={onNodeClick}
-/>
+          <SankeyFlowV3
+            state={story.after}
+            stageLabels={story.stageLabels}
+            variant="after"
+            brand={brand}
+            animated={variant === 'after'}
+            transitionPhase={variant === 'after' ? transitionPhase : 'idle'}
+            hideUI={variant !== 'after'}
+            showLabels={showLabels}
+            editable={true}
+            onNodeValueChange={onNodeValueChange}
+            onLinkLabelChange={onLinkLabelChange}
+            onNodeClick={onNodeClick}
+          />
         </div>
       </div>
 
@@ -313,7 +316,7 @@ useEffect(() => {
               <p className="text-sm" style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
                 <span style={{ color: '#FFD93D' }}>💡</span>
                 {' '}
-                <span>What could your process unlock?</span>
+                <span>{story.narrative?.setup.header || 'What could your process unlock?'}</span>
               </p>
             ) : (
               <p className="text-sm" style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
@@ -423,9 +426,8 @@ useEffect(() => {
         </div>
       </div>
 
-    {showCTA && showCTAButton && (
-        
-          <a href="/"
+      {showCTA && showCTAButton && (
+        <a href="/"
           className="fixed bottom-8 left-8 z-40 flex items-center gap-2.5 px-6 py-3.5 rounded-full text-sm font-semibold transition-all hover:scale-105"
           style={{
             background: 'linear-gradient(135deg, #00D4E5, #00BFA6)',
