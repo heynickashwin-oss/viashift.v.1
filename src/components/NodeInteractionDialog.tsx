@@ -130,6 +130,11 @@ export function NodeInteractionDialog({
   const [userReaction, setUserReaction] = useState<'thumbs_up' | 'thumbs_down' | null>(null);
   
   const canEdit = viewerType === 'seller' || viewerType === 'champion';
+
+  // Update editValue when a different node is selected
+  useEffect(() => {
+    setEditValue(currentValue);
+  }, [currentValue]);
   
   // ============================================
   // Load interactions on open
@@ -463,13 +468,21 @@ export function NodeInteractionDialog({
                       color: '#F5F5F5',
                       outline: 'none',
                     }}
-                    onKeyDown={e => e.key === 'Enter' && handleComment()}
+                    onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleComment();
+                    }
+                  }}
                   />
                   <button
                     onClick={handleComment}
                     disabled={!comment.trim() || submitting}
                     className="px-3 py-2 rounded-lg transition-all disabled:opacity-50"
-                    style={{ background: '#2A3441', color: '#F5F5F5' }}
+                    style={{ 
+                      background: comment.trim() ? '#00D4E5' : '#2A3441', 
+                      color: comment.trim() ? '#0A0E14' : '#F5F5F5' 
+                    }}
                   >
                     <Send size={16} />
                   </button>
