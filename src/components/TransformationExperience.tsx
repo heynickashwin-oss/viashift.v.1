@@ -104,17 +104,23 @@ export const TransformationExperience = ({
     }, TIMING.TOTAL);
   }, [isButtonReady, isTransitioning, TIMING]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && !readOnly) {
-        e.preventDefault();
-        handleTransform();
-      }
-    };
+useEffect(() => {
+  const handleKeyDown = (e: KeyboardEvent) => {
+    // Ignore if user is typing in an input or textarea
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+      return;
+    }
+    
+    if (e.code === 'Space' && !readOnly) {
+      e.preventDefault();
+      handleTransform();
+    }
+  };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleTransform, readOnly]);
+  window.addEventListener('keydown', handleKeyDown);
+  return () => window.removeEventListener('keydown', handleKeyDown);
+}, [handleTransform, readOnly]);
 
   useEffect(() => {
     if (showCTA) {
