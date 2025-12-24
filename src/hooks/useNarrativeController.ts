@@ -153,12 +153,13 @@ export function useNarrativeController({
     narrativePhaseId: 'setup',
   });
   
-  const animationRef = useRef<number | null>(null);
-  const phaseStartTimeRef = useRef<number>(0);
-  const currentPhaseRef = useRef<NarrativePhase>('idle');
-  
-  // Memoize narrative content lookup
-  const getNarrativeContent = useCallback((phase: NarrativePhase, progress: number) => {
+const animationRef = useRef<number | null>(null);
+const phaseStartTimeRef = useRef<number>(0);
+const currentPhaseRef = useRef<NarrativePhase>('idle');
+const afterInitializedRef = useRef(false);  // ← ADD THIS LINE
+
+// Memoize narrative content lookup
+const getNarrativeContent = useCallback((phase: NarrativePhase, progress: number) => {
     if (!narrative) {
       return { header: '', activeCallouts: [] };
     }
@@ -391,20 +392,26 @@ export function useNarrativeController({
   }, [isActive, variant, layerCount, metricCount, hasAnchoredMetric, config, setPhase, reset, onComplete, getNarrativeContent]);
   
   // For "after" variant, derive narrative content from forge progress
-  useEffect(() => {
-    if (variant !== 'after' || !isActive) return;
-    
-    // After variant uses forge system, but we still need to provide narrative content
-    const narrativeContent = getNarrativeContent('shift', 0.5);
-    const narrativePhaseId = 'shift';
-    
-    setState(prev => ({
-      ...prev,
-      header: narrativeContent.header,
-      activeCallouts: narrativeContent.activeCallouts,
-      narrativePhaseId,
-    }));
-  }, [variant, isActive, getNarrativeContent]);
+useEffect(() => {
+  if (variant !== 'after' || !isActive) {
+    afterInitializedRef.current = false;
+    return;
+  }
+  
+  // Only initialize once per activation
+  if (afterInitializedRef.current) return;
+  afterInitializedRef.current = true;
+  
+  const narrativeContent = getNarrativeContent('shift', 0.5);
+  
+  setState(prev => ({
+    ...prev,
+    header: narrativeContent.header,
+    activeCallouts: narrativeContent.activeCallouts,
+    narrativePhaseId: 'shift',
+  }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [variant, isActive]);
   
   return {
     ...state,
