@@ -27,6 +27,7 @@ import { BrandConfig, DEFAULT_BRAND, resolveTheme } from './branding/brandUtils'
 import { useNarrativeController } from '../hooks/useNarrativeController';
 import { NodeCallouts, NodePosition } from './NodeCallout';
 import { NarrativeScript } from '../data/templates/b2bSalesEnablement';
+import { timeline, DEBUG_TIMELINE } from '../utils/debugTimeline';
 
 // ============================================
 // TYPES
@@ -521,27 +522,45 @@ useEffect(() => {
     const duration = LAYOUT.drawDuration;
     const startTime = performance.now();
     
+    // Start timeline logging
+    timeline.start();
+    timeline.log('Animation', 'BEGIN', 0);
+    
     // Track which UI elements have been triggered
     let uiTriggered = false;
     const metricsTriggered: boolean[] = state.metrics.map(() => false);
     let anchoredTriggered = false;
+    const layersLogged: boolean[] = [false, false, false, false];
 
     const animateDraw = (currentTime: number) => {
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
       setDrawProgress(easeOutCubic(progress));
 
-      // Stagger UI elements DURING draw, not after
-      
-      // Show stage labels and header early (10% progress)
+      // Log layer progress
+      for (let layer = 0; layer <= maxLayer; layer++) {
+        const layerProg = getLayerProgress(layer, easeOutCubic(progress));
+        if (layerProg > 0.01 && !layersLogged[layer]) {
+          layersLogged[layer] = true;
+          timeline.log(`Layer ${layer}`, 'START', progress);
+        }
+        if (layerProg > 0.99 && layersLogged[layer]) {
+          timeline.log(`Layer ${layer}`, 'COMPLETE', progress);
+          layersLogged[layer] = false; // Prevent duplicate logs
+        }
+      }
+
+      // Stagger UI elements DURING draw
       if (progress > 0.1 && !uiTriggered) {
         uiTriggered = true;
         setUiVisible(true);
+        timeline.log('Stage Labels', 'APPEAR', progress);
+        timeline.log('Narrative Header', 'APPEAR', progress);
       }
       
-      // Show metrics as layers complete (spread across 30%-90% of draw)
-      state.metrics.forEach((_, i) => {
-        const metricThreshold = 0.3 + (i * 0.2); // 30%, 50%, 70%
+      // Show metrics as layers complete
+      state.metrics.forEach((metric, i) => {
+        const metricThreshold = 0.3 + (i * 0.2);
         if (progress > metricThreshold && !metricsTriggered[i]) {
           metricsTriggered[i] = true;
           setMetricsVisible(prev => {
@@ -549,6 +568,7 @@ useEffect(() => {
             next[i] = true;
             return next;
           });
+          timeline.log(`Metric ${i} (${metric.label})`, 'APPEAR', progress);
         }
       });
       
@@ -556,12 +576,15 @@ useEffect(() => {
       if (progress > 0.6 && !anchoredTriggered) {
         anchoredTriggered = true;
         setAnchoredVisible(true);
+        timeline.log('Anchored Metric', 'APPEAR', progress);
       }
 
       if (progress < 1) {
         drawAnimationRef.current = requestAnimationFrame(animateDraw);
       } else {
         drawAnimationRef.current = null;
+        timeline.log('Animation', 'COMPLETE', 1);
+        timeline.stop();
       }
     };
 
@@ -573,7 +596,7 @@ useEffect(() => {
         drawAnimationRef.current = null;
       }
     };
-  }, [layout, animated, state.metrics.length]);
+  }, [layout, animated, state.metrics.length, maxLayer, getLayerProgress]);
 
   // Forge transition with slower timing
   useEffect(() => {
