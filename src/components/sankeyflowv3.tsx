@@ -398,10 +398,15 @@ const SankeyFlowV3Inner = ({
   }, [layout]);
 
   // Calculate progress for a specific layer based on overall draw progress
+  // Layers overlap slightly for smoother visual flow
   const getLayerProgress = useCallback((layer: number, overallProgress: number): number => {
     const layerCount = maxLayer + 1;
-    const layerStart = layer / layerCount;
-    const layerEnd = (layer + 1) / layerCount;
+    
+    // Each layer takes 40% of total time, overlapping by 15%
+    const layerDuration = 0.4;
+    const layerOverlap = 0.15;
+    const layerStart = layer * (layerDuration - layerOverlap);
+    const layerEnd = layerStart + layerDuration;
 
     if (overallProgress <= layerStart) return 0;
     if (overallProgress >= layerEnd) return 1;
