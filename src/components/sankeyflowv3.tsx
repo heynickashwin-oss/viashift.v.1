@@ -689,8 +689,7 @@ const SankeyFlowV3Inner = ({
 
             .node-hover:hover {
               filter: brightness(1.15);
-              transform: scale(1.02);
-            }
+}
 
             .flow-hover:hover {
               filter: brightness(1.2);
