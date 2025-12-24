@@ -263,7 +263,6 @@ const SankeyFlowV3Inner = ({
     metricCount: state.metrics.length,
     hasAnchoredMetric: !!state.anchoredMetric,
     narrative,
-    onComplete: () => {
       // Animation complete
     },
   });
