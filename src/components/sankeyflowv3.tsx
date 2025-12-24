@@ -84,7 +84,7 @@ export interface SankeyFlowProps {
   brand?: BrandConfig;
   animated?: boolean;
   className?: string;
-  onNodeClick?: (nodeId: string) => void;
+  onNodeClick?: (nodeId: string, nodeInfo: { label: string; value: string; type: string }) => void;
   transitionPhase?: 'idle' | 'anticipation' | 'shifting' | 'revealing';
   hideUI?: boolean;
   showLabels?: boolean; // Toggle value labels on nodes/flows
@@ -982,7 +982,11 @@ const SankeyFlowV3Inner = ({
                   cursor: onNodeClick ? 'pointer' : 'default',
                   transition: exitPhase !== 'none' ? 'opacity 0.3s' : 'none',
                 }}
-                onClick={() => onNodeClick?.(node.id)}
+                onClick={() => onNodeClick?.(node.id, { 
+                label: node.label, 
+                value: node.displayValue || '', 
+                type: node.type || 'default' 
+})}
               >
                 {/* Glow behind node */}
                 {(isSolutionNode || isNewNode) && (
