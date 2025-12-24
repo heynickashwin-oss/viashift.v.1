@@ -24,6 +24,9 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
 import { BrandConfig, DEFAULT_BRAND, resolveTheme } from './branding/brandUtils';
+import { useNarrativeController } from '../hooks/useNarrativeController';
+import { NodeCallouts, NodePosition } from './NodeCallout';
+import { NarrativeScript } from '../data/templates/b2bSalesEnablement';
 
 // ============================================
 // TYPES
@@ -87,10 +90,11 @@ export interface SankeyFlowProps {
   onNodeClick?: (nodeId: string, nodeInfo: { label: string; value: string; type: string }) => void;
   transitionPhase?: 'idle' | 'anticipation' | 'shifting' | 'revealing';
   hideUI?: boolean;
-  showLabels?: boolean; // Toggle value labels on nodes/flows
+  showLabels?: boolean;
   editable?: boolean;
   onNodeValueChange?: (nodeId: string, newValue: string) => void;
   onLinkLabelChange?: (linkId: string, newLabel: string) => void;
+  narrative?: NarrativeScript; // ADD THIS
 }
 
 // ============================================
@@ -247,11 +251,24 @@ const SankeyFlowV3Inner = ({
   editable = false,
   onNodeValueChange,
   onLinkLabelChange,
+  narrative, // ADD THIS
 }: SankeyFlowProps) => {
   const theme = useMemo(() => resolveTheme(brand), [brand]);
 
-  const containerRef = useRef<HTMLDivElement>(null);
+  // Narrative controller for phased storytelling
+  const narrativeState = useNarrativeController({
+    variant,
+    isActive: animated && !hideUI,
+    layerCount: 4,
+    metricCount: state.metrics.length,
+    hasAnchoredMetric: !!state.anchoredMetric,
+    narrative,
+    onComplete: () => {
+      // Animation complete
+    },
+  });
 
+  const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 1200, height: 800 });
   const [drawProgress, setDrawProgress] = useState(0);
   const [uiVisible, setUiVisible] = useState(false);
@@ -262,7 +279,6 @@ const SankeyFlowV3Inner = ({
   const [forgeLayer, setForgeLayer] = useState(-1);
   const [isForging, setIsForging] = useState(false);
   const [exitPhase, setExitPhase] = useState<'none' | 'freeze' | 'desaturate' | 'gone'>('none');
-
   // Edit state
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
@@ -287,23 +303,18 @@ const SankeyFlowV3Inner = ({
   // This ensures layout only changes when data or dimensions actually change
   const layout = useMemo(() => {
     if (!state.data.nodes.length || dimensions.width < 100) return null;
-
     const { padding, nodeWidth, nodeMinHeight, nodeMaxHeight } = LAYOUT;
     const nodes: LayoutNode[] = [];
     const nodeMap = new Map<string, LayoutNode>();
-
     const maxLayer = Math.max(...state.data.nodes.map(n => n.layer), 0);
     const usableWidth = dimensions.width - padding.left - padding.right;
-
     const nodesByLayer = new Map<number, SankeyNode[]>();
     state.data.nodes.forEach(n => {
       const arr = nodesByLayer.get(n.layer) || [];
       arr.push(n);
       nodesByLayer.set(n.layer, arr);
     });
-
     const maxValue = Math.max(...state.data.nodes.map(n => n.value), 1);
-
     state.data.nodes.forEach(node => {
       const layerNodes = nodesByLayer.get(node.layer) || [];
       const idx = layerNodes.indexOf(node);
@@ -312,9 +323,7 @@ const SankeyFlowV3Inner = ({
       
       const heightRatio = node.value / maxValue;
       const height = Math.max(nodeMinHeight, Math.min(nodeMaxHeight, heightRatio * nodeMaxHeight * 1.2));
-
       const xPercent = layerXPercent[node.layer] ?? (node.layer / Math.max(maxLayer, 1));
-
       const layoutNode: LayoutNode = {
         ...node,
         x: padding.left + xPercent * usableWidth,
@@ -322,17 +331,13 @@ const SankeyFlowV3Inner = ({
         width: nodeWidth,
         height,
       };
-
       nodes.push(layoutNode);
       nodeMap.set(node.id, layoutNode);
     });
-
     const links: LayoutLink[] = state.data.links.map((link, i) => {
       const source = nodeMap.get(link.from);
       const target = nodeMap.get(link.to);
-
       if (!source || !target) return null;
-
       const x0 = source.x + source.width;
       const y0 = source.y;
       const x1 = target.x;
@@ -368,6 +373,24 @@ const SankeyFlowV3Inner = ({
     return { nodes, links };
   }, [state.data, dimensions]);
 
+  // Build nodePositions map for callout positioning
+  const nodePositions = useMemo((): Map<string, NodePosition> => {
+    const positions = new Map<string, NodePosition>();
+    if (!layout) return positions;
+    
+    layout.nodes.forEach(node => {
+      positions.set(node.id, {
+        x: node.x,
+        y: node.y,
+        width: node.width,
+        height: node.height,
+        layer: node.layer,
+      });
+    });
+    
+    return positions;
+  }, [layout]);
+  
   // Memoized max layer for layer-staggered animation
   const maxLayer = useMemo(() => {
     if (!layout) return 3;
@@ -1190,7 +1213,7 @@ const SankeyFlowV3Inner = ({
         </div>
       </div>
 
-      {/* Stage labels */}
+    {/* Stage labels */}
       <div
         className="absolute top-24 left-0 right-0 z-15 flex justify-center px-16"
         style={{
@@ -1208,6 +1231,39 @@ const SankeyFlowV3Inner = ({
         ))}
       </div>
 
+      {/* Narrative header - shows phase-specific messaging */}
+      {narrativeState.header && !hideUI && (
+        <div
+          className="absolute top-36 left-1/2 -translate-x-1/2 z-20"
+          style={{
+            opacity: uiVisible ? 1 : 0,
+            transform: `translateX(-50%) translateY(${uiVisible ? 0 : -10}px)`,
+            transition: 'all 0.5s ease 0.3s',
+          }}
+        >
+          <div
+            className="px-6 py-2 rounded-full backdrop-blur-md text-sm font-medium"
+            style={{
+              background: 'rgba(0, 0, 0, 0.6)',
+              border: `1px solid ${isBefore ? 'rgba(255, 255, 255, 0.1)' : theme.colors.primary + '33'}`,
+              color: isBefore ? 'rgba(255, 255, 255, 0.8)' : theme.colors.primary,
+            }}
+          >
+            {narrativeState.header}
+          </div>
+        </div>
+      )}
+
+      {/* Node callouts - positioned labels near specific nodes */}
+      {!hideUI && (
+        <NodeCallouts
+          callouts={narrativeState.activeCallouts}
+          nodePositions={nodePositions}
+          visible={uiVisible && narrativeState.activeCallouts.length > 0}
+          accentColor={theme.colors.accent}
+          primaryColor={theme.colors.primary}
+        />
+      )}
       {/* Metrics panel - right side */}
       {!hideUI && (
         <div
