@@ -1,10 +1,21 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Eye, Users, DollarSign, Clock, Target } from 'lucide-react';
+import { Plus, Eye, Users, DollarSign, Clock, Target, ThumbsUp, ThumbsDown, MessageSquare, Activity } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import logo from '../assets/logo.svg';
 import { UserMenu } from '../components/ui/UserMenu';
+
+interface ShiftEngagement {
+  views: number;
+  clicks: number;
+  thumbsUp: number;
+  thumbsDown: number;
+  comments: number;
+  edits: number;
+  suggestions: number;
+  lastActivity?: string;
+}
 
 interface Shift {
   id: string;
@@ -13,6 +24,7 @@ interface Shift {
   view_count: number;
   shared_at?: string;
   logo_url?: string;
+  engagement?: ShiftEngagement;
 }
 
 type StakeholderType = 'all' | 'finance' | 'ops' | 'sales';
@@ -35,6 +47,15 @@ const LoadingSkeleton = () => (
   </div>
 );
 
+// Check if activity is recent (within last 24 hours)
+const isRecentActivity = (dateString?: string): boolean => {
+  if (!dateString) return false;
+  const activityDate = new Date(dateString);
+  const now = new Date();
+  const hoursDiff = (now.getTime() - activityDate.getTime()) / (1000 * 60 * 60);
+  return hoursDiff < 24;
+};
+
 const ShiftCard = ({ shift, onSelect }: { shift: Shift; onSelect: (stakeholder: StakeholderType) => void }) => {
   const [showStakeholders, setShowStakeholders] = useState(false);
   const navigate = useNavigate();
@@ -45,7 +66,6 @@ const ShiftCard = ({ shift, onSelect }: { shift: Shift; onSelect: (stakeholder: 
   };
 
   const handleCardClick = () => {
-    // Navigate to default (general) sightline
     navigate(`/shift/${shift.id}`);
   };
 
@@ -54,14 +74,35 @@ const ShiftCard = ({ shift, onSelect }: { shift: Shift; onSelect: (stakeholder: 
     onSelect(stakeholder);
   };
 
+  const engagement = shift.engagement;
+  const hasEngagement = engagement && (engagement.clicks > 0 || engagement.thumbsUp > 0 || engagement.thumbsDown > 0 || engagement.comments > 0);
+  const hasRecentActivity = isRecentActivity(engagement?.lastActivity);
+  const totalReactions = (engagement?.thumbsUp || 0) + (engagement?.thumbsDown || 0);
+  const totalActivity = (engagement?.clicks || 0);
+
   return (
     <div
       className="relative rounded-xl p-6 cursor-pointer transition-all"
-      style={{ background: '#12161C', border: '1px solid #1E2530' }}
+      style={{ 
+        background: '#12161C', 
+        border: hasRecentActivity ? '1px solid #00D4E5' : '1px solid #1E2530',
+        boxShadow: hasRecentActivity ? '0 0 20px rgba(0, 212, 229, 0.15)' : 'none',
+      }}
       onClick={handleCardClick}
       onMouseEnter={() => setShowStakeholders(true)}
       onMouseLeave={() => setShowStakeholders(false)}
     >
+      {/* Recent activity indicator */}
+      {hasRecentActivity && (
+        <div 
+          className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
+          style={{ background: 'rgba(0, 212, 229, 0.15)', color: '#00D4E5' }}
+        >
+          <Activity size={12} />
+          Active
+        </div>
+      )}
+
       {/* Logo / Avatar */}
       <div
         className="mb-4 rounded-lg flex items-center justify-center overflow-hidden"
@@ -101,12 +142,49 @@ const ShiftCard = ({ shift, onSelect }: { shift: Shift; onSelect: (stakeholder: 
       <h3 className="text-lg font-semibold mb-2" style={{ color: '#F5F5F5' }}>
         {shift.company_input}
       </h3>
-      <div className="flex items-center justify-between text-sm" style={{ color: '#6B7A8C' }}>
-        <span>{formatDate(shift.created_at)}</span>
+      
+      {/* Date row */}
+      <div className="text-sm mb-3" style={{ color: '#6B7A8C' }}>
+        {formatDate(shift.created_at)}
+      </div>
+
+      {/* Engagement metrics */}
+      <div 
+        className="flex items-center gap-3 pt-3 text-xs"
+        style={{ borderTop: '1px solid #1E2530', color: '#6B7A8C' }}
+      >
         <div className="flex items-center gap-1">
           <Eye size={14} />
-          <span>{shift.view_count || 0}</span>
+          <span>{totalActivity}</span>
         </div>
+        
+        {totalReactions > 0 && (
+          <div className="flex items-center gap-2">
+            {(engagement?.thumbsUp || 0) > 0 && (
+              <div className="flex items-center gap-1" style={{ color: '#4ADE80' }}>
+                <ThumbsUp size={14} />
+                <span>{engagement?.thumbsUp}</span>
+              </div>
+            )}
+            {(engagement?.thumbsDown || 0) > 0 && (
+              <div className="flex items-center gap-1" style={{ color: '#EF4444' }}>
+                <ThumbsDown size={14} />
+                <span>{engagement?.thumbsDown}</span>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {(engagement?.comments || 0) > 0 && (
+          <div className="flex items-center gap-1">
+            <MessageSquare size={14} />
+            <span>{engagement?.comments}</span>
+          </div>
+        )}
+        
+        {!hasEngagement && (
+          <span style={{ color: '#4A5568' }}>No activity yet</span>
+        )}
       </div>
 
       {/* Stakeholder picker overlay */}
@@ -176,14 +254,68 @@ export const Dashboard = () => {
     if (!user?.id) return;
 
     try {
-      const { data, error } = await supabase
+      // Load shifts
+      const { data: shiftsData, error: shiftsError } = await supabase
         .from('shifts')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setShifts(data || []);
+      if (shiftsError) throw shiftsError;
+
+      // Load engagement data for all shifts
+      const shiftIds = (shiftsData || []).map(s => s.id);
+      
+      let engagementMap: Record<string, ShiftEngagement> = {};
+      
+      if (shiftIds.length > 0) {
+        const { data: interactions, error: interactionsError } = await supabase
+          .from('node_interactions')
+          .select('shift_id, interaction_type, created_at')
+          .in('shift_id', shiftIds);
+
+        if (!interactionsError && interactions) {
+          // Aggregate interactions by shift
+          interactions.forEach(interaction => {
+            if (!engagementMap[interaction.shift_id]) {
+              engagementMap[interaction.shift_id] = {
+                views: 0,
+                clicks: 0,
+                thumbsUp: 0,
+                thumbsDown: 0,
+                comments: 0,
+                edits: 0,
+                suggestions: 0,
+              };
+            }
+            
+            const eng = engagementMap[interaction.shift_id];
+            
+            switch (interaction.interaction_type) {
+              case 'view': eng.views++; break;
+              case 'click': eng.clicks++; break;
+              case 'thumbs_up': eng.thumbsUp++; break;
+              case 'thumbs_down': eng.thumbsDown++; break;
+              case 'comment': eng.comments++; break;
+              case 'edit': eng.edits++; break;
+              case 'suggestion': eng.suggestions++; break;
+            }
+            
+            // Track most recent activity
+            if (!eng.lastActivity || new Date(interaction.created_at) > new Date(eng.lastActivity)) {
+              eng.lastActivity = interaction.created_at;
+            }
+          });
+        }
+      }
+
+      // Merge engagement into shifts
+      const shiftsWithEngagement = (shiftsData || []).map(shift => ({
+        ...shift,
+        engagement: engagementMap[shift.id] || undefined,
+      }));
+
+      setShifts(shiftsWithEngagement);
 
       // Check usage limits
       const { data: profile } = await supabase
@@ -201,7 +333,7 @@ export const Dashboard = () => {
         .single();
 
       const limit = tierLimits?.shifts_per_month || 3;
-      const used = data?.length || 0;
+      const used = shiftsData?.length || 0;
       setLimits({ tier, limit, used });
     } catch (error) {
       console.error('Error loading shifts:', error);
@@ -211,7 +343,6 @@ export const Dashboard = () => {
   };
 
   const handleShiftSelect = (shiftId: string, stakeholder: StakeholderType) => {
-    // Navigate to shift with stakeholder parameter
     navigate(`/shift/${shiftId}?stakeholder=${stakeholder}`);
   };
 
@@ -227,45 +358,12 @@ export const Dashboard = () => {
         <header className="border-b" style={{ borderColor: '#1E2530' }}>
           <div className="max-w-7xl mx-auto px-6 py-6 flex justify-between items-center">
             <div className="flex items-center gap-3">
-             <img src={logo} alt="viashift" style={{ height: '32px', width: 'auto' }} />
+              <img src={logo} alt="viashift" style={{ height: '32px', width: 'auto' }} />
               <span className="text-xl font-bold tracking-tight" style={{ color: '#F5F5F5' }}>
                 viashift
               </span>
             </div>
             <div className="flex items-center gap-4">
-              {limits && limits.limit !== -1 && limits.used >= limits.limit ? (
-                <div className="flex items-center gap-3">
-                  <span className="text-sm" style={{ color: '#6B7A8C' }}>
-                    {limits.used}/{limits.limit} Shifts
-                  </span>
-                  <button
-                    className="px-5 py-2.5 rounded-lg flex items-center gap-2"
-                    style={{ background: '#1E2530', color: '#6B7A8C', fontWeight: 600, cursor: 'not-allowed' }}
-                    disabled
-                  >
-                    <Plus size={20} />
-                    Upgrade to Create More
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-3">
-                  {limits && limits.limit !== -1 && (
-                    <span className="text-sm" style={{ color: '#6B7A8C' }}>
-                      {limits.used}/{limits.limit} Shifts
-                    </span>
-                  )}
-                  <button
-                    onClick={() => navigate('/create')}
-                    className="px-5 py-2.5 rounded-lg flex items-center gap-2 transition-all"
-                    style={{ background: '#00D4E5', color: '#0A0E14', fontWeight: 600 }}
-                    onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.1)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.filter = 'brightness(1)'; }}
-                  >
-                    <Plus size={20} />
-                    Create New Shift
-                  </button>
-                </div>
-              )}
               <UserMenu />
             </div>
           </div>
