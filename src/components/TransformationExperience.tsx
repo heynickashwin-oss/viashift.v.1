@@ -187,20 +187,23 @@ export const TransformationExperience = ({
               : 'brightness(1) blur(0)',
           }}
         >
-         <SankeyFlowV3
-  state={story.before}
-  stageLabels={story.stageLabels}
-  variant="before"
-  brand={brand}
-  animated={variant === 'before'}
-  transitionPhase={variant === 'before' ? transitionPhase : 'idle'}
-  hideUI={variant !== 'before'}
-  showLabels={showLabels}
-  editable={true}
-  onNodeValueChange={onNodeValueChange}
-  onLinkLabelChange={onLinkLabelChange}
-  onNodeClick={onNodeClick}
-/>
+        <SankeyFlowV3
+            state={story.before}
+            stageLabels={story.stageLabels}
+            variant="before"
+            brand={brand}
+            animated={variant === 'before'}
+            transitionPhase={variant === 'before' ? transitionPhase : 'idle'}
+            hideUI={variant !== 'before'}
+            showLabels={showLabels}
+            editable={true}
+            onNodeValueChange={onNodeValueChange}
+            onLinkLabelChange={onLinkLabelChange}
+            onNodeClick={onNodeClick}
+            narrative={story.narrative}
+          />
+        </div>
+        
         
         {/* After state layer */}
         <div 
