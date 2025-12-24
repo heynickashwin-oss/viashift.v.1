@@ -304,8 +304,8 @@ export function NodeInteractionDialog({
             <h3 className="text-lg font-semibold" style={{ color: '#F5F5F5' }}>
               {elementLabel}
             </h3>
-            <p className="text-sm" style={{ color: '#6B7A8C' }}>
-              Current: <span style={{ color: '#00D4E5' }}>{currentValue}</span>
+           <p className="text-sm" style={{ color: '#6B7A8C' }}>
+              {elementType === 'node' ? 'Node' : 'Flow'}
             </p>
           </div>
           <button 
@@ -351,36 +351,43 @@ export function NodeInteractionDialog({
           {activeTab === 'react' ? (
             <div className="space-y-5">
               {/* Edit (seller/champion only) */}
-              {canEdit && (
-                <div>
-                  <label className="block text-xs font-medium mb-2" style={{ color: '#6B7A8C' }}>
-                    <Edit3 size={12} className="inline mr-1" />
-                    Edit Value
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={editValue}
-                      onChange={e => setEditValue(e.target.value)}
-                      className="flex-1 px-3 py-2 rounded-lg text-sm"
-                      style={{ 
-                        background: '#1E2530',
-                        border: '1px solid #2A3441',
-                        color: '#F5F5F5',
-                        outline: 'none',
-                      }}
-                    />
-                    <button
-                      onClick={handleEdit}
-                      disabled={editValue === currentValue || submitting}
-                      className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50"
-                      style={{ background: '#00D4E5', color: '#0A0E14' }}
-                    >
-                      Save
-                    </button>
-                  </div>
-                </div>
-              )}
+             {/* Edit (seller/champion only) */}
+{canEdit && (
+  <div>
+    <div className="flex items-center justify-between mb-2">
+      <label className="text-xs font-medium" style={{ color: '#6B7A8C' }}>
+        <Edit3 size={12} className="inline mr-1" />
+        Edit Value
+      </label>
+      <span className="text-xs" style={{ color: '#6B7A8C' }}>
+        Current: <span style={{ color: '#00D4E5' }}>{currentValue}</span>
+      </span>
+    </div>
+    <div className="flex gap-2">
+      <input
+        type="text"
+        value={editValue}
+        onChange={e => setEditValue(e.target.value)}
+        placeholder={currentValue}
+        className="flex-1 px-3 py-2 rounded-lg text-sm"
+        style={{ 
+          background: '#1E2530',
+          border: '1px solid #2A3441',
+          color: '#F5F5F5',
+          outline: 'none',
+        }}
+      />
+      <button
+        onClick={handleEdit}
+        disabled={editValue === currentValue || submitting}
+        className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50"
+        style={{ background: '#00D4E5', color: '#0A0E14' }}
+      >
+        Save
+      </button>
+    </div>
+  </div>
+)}
               
               {/* Quick reactions */}
               <div>
