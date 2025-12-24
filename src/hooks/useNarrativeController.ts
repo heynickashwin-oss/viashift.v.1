@@ -389,7 +389,8 @@ const getNarrativeContent = useCallback((phase: NarrativePhase, progress: number
         animationRef.current = null;
       }
     };
-  }, [isActive, variant, layerCount, metricCount, hasAnchoredMetric, config, setPhase, reset, onComplete, getNarrativeContent]);
+// eslint-disable-next-line react-hooks/exhaustive-deps
+}, [isActive, variant]);
   
   // For "after" variant, derive narrative content from forge progress
 useEffect(() => {
