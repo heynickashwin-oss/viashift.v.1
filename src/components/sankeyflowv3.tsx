@@ -221,9 +221,9 @@ const LAYOUT = {
   nodeWidth: 18,
   nodeMinHeight: 35,
   nodeMaxHeight: 90,
-  drawDuration: 3000,
-  staggerDelay: 60,
-  forgeDuration: 1200,
+  drawDuration: 8000,      // Slowed from 3000 to 8000ms for storytelling
+  staggerDelay: 150,       // Increased from 60 to 150ms for more visible layer stagger
+  forgeDuration: 1500,     // Slightly slower forge reveal
 };
 
 const layerXPercent: Record<number, number> = {
