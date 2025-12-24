@@ -1,5 +1,18 @@
 /**
- * useNarrativeController - v1.2 (FIXED)
+ * useNarrativeController - v1.1
+ * 
+ * Orchestrates the phased reveal of the Sankey visualization story.
+ * Now integrates with template NarrativeScript for viewer-specific content.
+ * 
+ * PHASES:
+ * 1. SETUP    - Flows draw layer by layer (sequential reveal)
+ * 2. BLEED    - Loss flows pulse, loss labels appear with pain metrics
+ * 3. READY    - Insight text appears, transform button powers up
+ * 4. COMPLETE - All UI visible, particles flowing normally
+ * 
+ * For "after" state:
+ * 1. SHIFT    - New flows drawing, solution nodes highlighted
+ * 2. RESULT   - Final state, all metrics visible
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
@@ -7,40 +20,52 @@ import { NarrativeScript, NodeCallout } from '../data/templates/b2bSalesEnableme
 import { timeline } from '../utils/debugTimeline';
 
 export type NarrativePhase = 
-  | 'idle'
-  | 'setup-0'
-  | 'setup-1'  
-  | 'setup-2'
-  | 'setup-3'
-  | 'bleed'
-  | 'ready'
-  | 'complete'
-  | 'shift'
-  | 'result';
+  | 'idle'           // Not started
+  | 'setup-0'        // Drawing layer 0
+  | 'setup-1'        // Drawing layer 1  
+  | 'setup-2'        // Drawing layer 2
+  | 'setup-3'        // Drawing layer 3
+  | 'bleed'          // Loss flows pulsing, pain metrics appearing
+  | 'ready'          // Insight visible, button powering up
+  | 'complete'       // All revealed, normal animation
+  // After-state phases
+  | 'shift'          // Drawing new/solution flows
+  | 'result';        // Final transformed state
 
 export interface NarrativeState {
   phase: NarrativePhase;
-  visibleLayers: number[];
-  lossHighlightActive: boolean;
-  lossPulseIntensity: number;
-  anchoredMetricVisible: boolean;
-  summaryMetricsVisible: boolean[];
-  insightVisible: boolean;
-  layerDrawProgress: number[];
-  overallProgress: number;
+  
+  // Granular visibility controls
+  visibleLayers: number[];           // Which flow layers are drawn
+  lossHighlightActive: boolean;      // Loss nodes/flows pulsing
+  lossPulseIntensity: number;        // 0-1 pulse animation value
+  
+  // Metric visibility
+  anchoredMetricVisible: boolean;    // The metric anchored to a node
+  summaryMetricsVisible: boolean[];  // The side panel metrics
+  insightVisible: boolean;           // The insight text in action zone
+  
+  // Progress values for animations
+  layerDrawProgress: number[];       // 0-1 draw progress per layer
+  overallProgress: number;           // 0-1 overall narrative progress
+  
+  // For the transform button
   buttonReady: boolean;
-  header: string;
-  activeCallouts: NodeCallout[];
-  narrativePhaseId: 'setup' | 'bleed' | 'shift' | 'result';
+  
+  // NEW: Narrative content from template
+  header: string;                    // Current phase header text
+  activeCallouts: NodeCallout[];     // Callouts to display near nodes
+  narrativePhaseId: 'setup' | 'bleed' | 'shift' | 'result'; // Mapped phase for template lookup
 }
 
 export interface NarrativeConfig {
-  layerDrawDuration: number;
-  layerStagger: number;
-  bleedDuration: number;
-  bleedPulseCycles: number;
-  metricRevealDelay: number;
-  readyDuration: number;
+  // Timing (all in ms)
+  layerDrawDuration: number;      // How long to draw each layer
+  layerStagger: number;           // Delay between starting each layer
+  bleedDuration: number;          // How long the bleed phase lasts
+  bleedPulseCycles: number;       // How many pulse cycles during bleed
+  metricRevealDelay: number;      // Delay before metrics appear in bleed
+  readyDuration: number;          // How long before complete
 }
 
 const DEFAULT_CONFIG: NarrativeConfig = {
@@ -98,11 +123,7 @@ export function useNarrativeController({
   onComplete,
   narrative,
 }: UseNarrativeControllerProps) {
-  // Memoize config to prevent recreation
-  const config = useMemo(
-    () => ({ ...DEFAULT_CONFIG, ...configOverrides }),
-    [configOverrides]
-  );
+  const config = { ...DEFAULT_CONFIG, ...configOverrides };
   
   const [state, setState] = useState<NarrativeState>({
     phase: 'idle',
@@ -123,52 +144,32 @@ export function useNarrativeController({
   const animationRef = useRef<number | null>(null);
   const phaseStartTimeRef = useRef<number>(0);
   const currentPhaseRef = useRef<NarrativePhase>('idle');
-  const afterInitializedRef = useRef(false);
-  const hasStartedRef = useRef(false);
   
-  // Store callbacks in refs to avoid dependency issues
-  const onPhaseChangeRef = useRef(onPhaseChange);
-  const onCompleteRef = useRef(onComplete);
-  const narrativeRef = useRef(narrative);
-  
-  // Keep refs updated
-  useEffect(() => {
-    onPhaseChangeRef.current = onPhaseChange;
-    onCompleteRef.current = onComplete;
-    narrativeRef.current = narrative;
-  });
-  
-  // Stable narrative content getter using ref
   const getNarrativeContent = useCallback((phase: NarrativePhase, progress: number) => {
-    const narrativeData = narrativeRef.current;
-    if (!narrativeData) {
+    if (!narrative) {
       return { header: '', activeCallouts: [] };
     }
     const narrativePhaseId = mapPhaseToNarrativeId(phase, variant);
-    const phaseContent = narrativeData[narrativePhaseId];
+    const phaseContent = narrative[narrativePhaseId];
     return {
       header: phaseContent?.header || '',
       activeCallouts: getActiveCallouts(phaseContent?.nodeCallouts, progress),
     };
-  }, [variant]);
+  }, [narrative, variant]);
   
-  // Stable setPhase using ref for callback
   const setPhase = useCallback((phase: NarrativePhase) => {
     currentPhaseRef.current = phase;
     phaseStartTimeRef.current = performance.now();
     setState(prev => ({ ...prev, phase }));
-    onPhaseChangeRef.current?.(phase);
-  }, []);
+    onPhaseChange?.(phase);
+  }, [onPhaseChange]);
   
-  // Stable reset
   const reset = useCallback(() => {
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
       animationRef.current = null;
     }
-    
     const initialContent = getNarrativeContent('idle', 0);
-    
     setState({
       phase: 'idle',
       visibleLayers: [],
@@ -184,21 +185,16 @@ export function useNarrativeController({
       activeCallouts: initialContent.activeCallouts,
       narrativePhaseId: 'setup',
     });
-    
     currentPhaseRef.current = 'idle';
-    hasStartedRef.current = false;
   }, [metricCount, layerCount, getNarrativeContent]);
   
-  // Skip to complete
   const skipToComplete = useCallback(() => {
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
       animationRef.current = null;
     }
-    
     const finalPhaseId = variant === 'before' ? 'bleed' : 'result';
     const finalContent = getNarrativeContent('complete', 1);
-    
     setState({
       phase: 'complete',
       visibleLayers: Array.from({ length: layerCount }, (_, i) => i),
@@ -214,30 +210,17 @@ export function useNarrativeController({
       activeCallouts: finalContent.activeCallouts,
       narrativePhaseId: finalPhaseId,
     });
-    
     currentPhaseRef.current = 'complete';
-    onCompleteRef.current?.();
-  }, [layerCount, metricCount, hasAnchoredMetric, variant, getNarrativeContent]);
+    onComplete?.();
+  }, [layerCount, metricCount, hasAnchoredMetric, onComplete, variant, getNarrativeContent]);
   
   // Main animation loop for "before" variant
   useEffect(() => {
     if (!isActive || variant !== 'before') {
-      hasStartedRef.current = false;
       return;
     }
     
-    // Prevent re-running if already started
-    if (hasStartedRef.current) return;
-    hasStartedRef.current = true;
-    
-    // Cancel any existing animation
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current);
-      animationRef.current = null;
-    }
-    
-    // Reset state inline instead of calling reset()
-    currentPhaseRef.current = 'idle';
+    reset();
     
     const {
       layerDrawDuration,
@@ -349,7 +332,7 @@ export function useNarrativeController({
       if (newPhase !== 'complete') {
         animationRef.current = requestAnimationFrame(animate);
       } else {
-        onCompleteRef.current?.();
+        onComplete?.();
       }
     };
     
@@ -360,27 +343,21 @@ export function useNarrativeController({
         cancelAnimationFrame(animationRef.current);
         animationRef.current = null;
       }
-      hasStartedRef.current = false;
     };
-  }, [isActive, variant, layerCount, metricCount, hasAnchoredMetric, config, setPhase, getNarrativeContent]);
+  }, [isActive, variant, layerCount, metricCount, hasAnchoredMetric, config, setPhase, reset, onComplete, getNarrativeContent]);
   
   // For "after" variant
   useEffect(() => {
-    if (variant !== 'after' || !isActive) {
-      afterInitializedRef.current = false;
-      return;
-    }
-    
-    if (afterInitializedRef.current) return;
-    afterInitializedRef.current = true;
+    if (variant !== 'after' || !isActive) return;
     
     const narrativeContent = getNarrativeContent('shift', 0.5);
+    const narrativePhaseId = 'shift';
     
     setState(prev => ({
       ...prev,
       header: narrativeContent.header,
       activeCallouts: narrativeContent.activeCallouts,
-      narrativePhaseId: 'shift',
+      narrativePhaseId,
     }));
   }, [variant, isActive, getNarrativeContent]);
   
