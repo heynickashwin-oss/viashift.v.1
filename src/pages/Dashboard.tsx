@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Eye, Users, DollarSign, Clock, Target, ThumbsUp, ThumbsDown, MessageSquare, Activity } from 'lucide-react';
+import { Plus, Eye, Users, DollarSign, Clock, Target, ThumbsUp, ThumbsDown, MessageSquare, Activity, User, AlertTriangle, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import logo from '../assets/logo.svg';
 import { UserMenu } from '../components/ui/UserMenu';
+
+// ============================================
+// TYPES
+// ============================================
 
 interface ShiftEngagement {
   views: number;
@@ -15,6 +19,8 @@ interface ShiftEngagement {
   edits: number;
   suggestions: number;
   lastActivity?: string;
+  advocateLastSeen?: string;
+  advocateViews: number;
 }
 
 interface Shift {
@@ -29,12 +35,73 @@ interface Shift {
 
 type StakeholderType = 'all' | 'finance' | 'ops' | 'sales';
 
+// ============================================
+// ACTIVITY STATE SYSTEM
+// ============================================
+
+type ActivityState = 'hot' | 'active' | 'quiet' | 'stale' | 'awaiting';
+
+const getActivityState = (engagement?: ShiftEngagement): ActivityState => {
+  const hasActivity = engagement && (engagement.clicks > 0 || engagement.thumbsUp > 0 || engagement.thumbsDown > 0 || engagement.comments > 0);
+  
+  if (!hasActivity || !engagement?.lastActivity) return 'awaiting';
+  
+  const hoursSince = (Date.now() - new Date(engagement.lastActivity).getTime()) / (1000 * 60 * 60);
+  
+  if (hoursSince < 4) return 'hot';
+  if (hoursSince < 24) return 'active';
+  if (hoursSince < 168) return 'quiet'; // 7 days
+  return 'stale';
+};
+
+const activityConfig: Record<ActivityState, { label: string; color: string; bgColor: string; glow: boolean }> = {
+  hot: { label: 'Hot', color: '#F97316', bgColor: 'rgba(249, 115, 22, 0.15)', glow: true },
+  active: { label: 'Active', color: '#00D4E5', bgColor: 'rgba(0, 212, 229, 0.15)', glow: true },
+  quiet: { label: 'Quiet', color: '#6B7A8C', bgColor: 'rgba(107, 122, 140, 0.15)', glow: false },
+  stale: { label: 'Stale', color: '#4A5568', bgColor: 'rgba(74, 85, 104, 0.15)', glow: false },
+  awaiting: { label: 'No views', color: '#4A5568', bgColor: 'rgba(74, 85, 104, 0.10)', glow: false },
+};
+
+// ============================================
+// ADVOCATE STATUS
+// ============================================
+
+type AdvocateStatus = 'recent' | 'seen' | 'waiting';
+
+const getAdvocateStatus = (engagement?: ShiftEngagement): AdvocateStatus => {
+  if (!engagement?.advocateLastSeen) return 'waiting';
+  
+  const hoursSince = (Date.now() - new Date(engagement.advocateLastSeen).getTime()) / (1000 * 60 * 60);
+  
+  if (hoursSince < 24) return 'recent';
+  return 'seen';
+};
+
+const formatAdvocateTime = (dateString?: string): string => {
+  if (!dateString) return 'Not viewed';
+  
+  const hoursSince = (Date.now() - new Date(dateString).getTime()) / (1000 * 60 * 60);
+  
+  if (hoursSince < 1) return 'Seen just now';
+  if (hoursSince < 24) return `Seen ${Math.floor(hoursSince)}h ago`;
+  if (hoursSince < 168) return `Seen ${Math.floor(hoursSince / 24)}d ago`;
+  return `Seen ${Math.floor(hoursSince / 168)}w ago`;
+};
+
+// ============================================
+// STAKEHOLDER CONFIG
+// ============================================
+
 const stakeholderConfig: Record<StakeholderType, { icon: typeof DollarSign; label: string; color: string }> = {
   all: { icon: Target, label: 'General', color: '#00D4E5' },
   finance: { icon: DollarSign, label: 'Finance', color: '#4ADE80' },
   ops: { icon: Clock, label: 'Operations', color: '#F59E0B' },
   sales: { icon: Users, label: 'Sales', color: '#8B5CF6' },
 };
+
+// ============================================
+// LOADING SKELETON
+// ============================================
 
 const LoadingSkeleton = () => (
   <div
@@ -47,14 +114,9 @@ const LoadingSkeleton = () => (
   </div>
 );
 
-// Check if activity is recent (within last 24 hours)
-const isRecentActivity = (dateString?: string): boolean => {
-  if (!dateString) return false;
-  const activityDate = new Date(dateString);
-  const now = new Date();
-  const hoursDiff = (now.getTime() - activityDate.getTime()) / (1000 * 60 * 60);
-  return hoursDiff < 24;
-};
+// ============================================
+// SHIFT CARD
+// ============================================
 
 const ShiftCard = ({ shift, onSelect }: { shift: Shift; onSelect: (stakeholder: StakeholderType) => void }) => {
   const [showStakeholders, setShowStakeholders] = useState(false);
@@ -75,33 +137,35 @@ const ShiftCard = ({ shift, onSelect }: { shift: Shift; onSelect: (stakeholder: 
   };
 
   const engagement = shift.engagement;
-  const hasEngagement = engagement && (engagement.clicks > 0 || engagement.thumbsUp > 0 || engagement.thumbsDown > 0 || engagement.comments > 0);
-  const hasRecentActivity = isRecentActivity(engagement?.lastActivity);
+  const activityState = getActivityState(engagement);
+  const config = activityConfig[activityState];
+  const hasEngagement = activityState !== 'awaiting';
   const totalReactions = (engagement?.thumbsUp || 0) + (engagement?.thumbsDown || 0);
   const totalActivity = (engagement?.clicks || 0);
+  
+  const advocateStatus = getAdvocateStatus(engagement);
+  const advocateTime = formatAdvocateTime(engagement?.advocateLastSeen);
 
   return (
     <div
       className="relative rounded-xl p-6 cursor-pointer transition-all"
       style={{ 
         background: '#12161C', 
-        border: hasRecentActivity ? '1px solid #00D4E5' : '1px solid #1E2530',
-        boxShadow: hasRecentActivity ? '0 0 20px rgba(0, 212, 229, 0.15)' : 'none',
+        border: config.glow ? `1px solid ${config.color}` : '1px solid #1E2530',
+        boxShadow: config.glow ? `0 0 20px ${config.color}25` : 'none',
       }}
       onClick={handleCardClick}
       onMouseEnter={() => setShowStakeholders(true)}
       onMouseLeave={() => setShowStakeholders(false)}
     >
-      {/* Recent activity indicator */}
-      {hasRecentActivity && (
-        <div 
-          className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
-          style={{ background: 'rgba(0, 212, 229, 0.15)', color: '#00D4E5' }}
-        >
-          <Activity size={12} />
-          Active
-        </div>
-      )}
+      {/* Activity state indicator */}
+      <div 
+        className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
+        style={{ background: config.bgColor, color: config.color }}
+      >
+        {(activityState === 'hot' || activityState === 'active') && <Activity size={12} />}
+        {config.label}
+      </div>
 
       {/* Logo / Avatar */}
       <div
@@ -187,6 +251,25 @@ const ShiftCard = ({ shift, onSelect }: { shift: Shift; onSelect: (stakeholder: 
         )}
       </div>
 
+      {/* Advocate status row */}
+      <div 
+        className="flex items-center justify-between mt-2 pt-2 text-xs"
+        style={{ borderTop: '1px solid #1E2530' }}
+      >
+        <div className="flex items-center gap-1.5">
+          <User size={12} style={{ color: '#6B7A8C' }} />
+          <span style={{ color: '#6B7A8C' }}>Advocate:</span>
+          <span style={{ 
+            color: advocateStatus === 'recent' ? '#4ADE80' : 
+                   advocateStatus === 'seen' ? '#6B7A8C' : '#F59E0B' 
+          }}>
+            {advocateTime}
+          </span>
+        </div>
+        {advocateStatus === 'recent' && <Check size={14} style={{ color: '#4ADE80' }} />}
+        {advocateStatus === 'waiting' && <AlertTriangle size={14} style={{ color: '#F59E0B' }} />}
+      </div>
+
       {/* Stakeholder picker overlay */}
       {showStakeholders && (
         <div
@@ -239,6 +322,10 @@ const ShiftCard = ({ shift, onSelect }: { shift: Shift; onSelect: (stakeholder: 
   );
 };
 
+// ============================================
+// DASHBOARD
+// ============================================
+
 export const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -271,7 +358,7 @@ export const Dashboard = () => {
       if (shiftIds.length > 0) {
         const { data: interactions, error: interactionsError } = await supabase
           .from('node_interactions')
-          .select('shift_id, interaction_type, created_at')
+          .select('shift_id, interaction_type, viewer_type, created_at')
           .in('shift_id', shiftIds);
 
         if (!interactionsError && interactions) {
@@ -286,6 +373,7 @@ export const Dashboard = () => {
                 comments: 0,
                 edits: 0,
                 suggestions: 0,
+                advocateViews: 0,
               };
             }
             
@@ -304,6 +392,14 @@ export const Dashboard = () => {
             // Track most recent activity
             if (!eng.lastActivity || new Date(interaction.created_at) > new Date(eng.lastActivity)) {
               eng.lastActivity = interaction.created_at;
+            }
+            
+            // Track advocate (champion) activity
+            if (interaction.viewer_type === 'champion') {
+              eng.advocateViews++;
+              if (!eng.advocateLastSeen || new Date(interaction.created_at) > new Date(eng.advocateLastSeen)) {
+                eng.advocateLastSeen = interaction.created_at;
+              }
             }
           });
         }
