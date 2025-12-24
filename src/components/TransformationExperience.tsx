@@ -32,6 +32,7 @@ export interface TransformationExperienceProps {
   showLabels?: boolean;
   onNodeValueChange?: (nodeId: string, newValue: string) => void;
   onLinkLabelChange?: (linkId: string, newLabel: string) => void;
+  onNodeClick?: (nodeId: string, nodeInfo: { label: string; value: string; type: string }) => void;
 }
 
 export const TransformationExperience = ({
@@ -47,6 +48,7 @@ export const TransformationExperience = ({
   showLabels = true,
   onNodeValueChange,
   onLinkLabelChange,
+  onNodeClick,
 }: TransformationExperienceProps) => {
   const [variant, setVariant] = useState<'before' | 'after'>('before');
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -177,18 +179,19 @@ export const TransformationExperience = ({
           }}
         >
        <SankeyFlowV3
-  state={story.before}
-  stageLabels={story.stageLabels}
-  variant="before"
-  brand={brand}
-  animated={variant === 'before'}
-  transitionPhase={variant === 'before' ? transitionPhase : 'idle'}
-  hideUI={variant !== 'before'}
-  showLabels={showLabels}
-  editable={true}
-  onNodeValueChange={onNodeValueChange}
-  onLinkLabelChange={onLinkLabelChange}
-/>
+            state={story.before}
+            stageLabels={story.stageLabels}
+            variant="before"
+            brand={brand}
+            animated={variant === 'before'}
+            transitionPhase={variant === 'before' ? transitionPhase : 'idle'}
+            hideUI={variant !== 'before'}
+            showLabels={showLabels}
+            editable={true}
+            onNodeValueChange={onNodeValueChange}
+            onLinkLabelChange={onLinkLabelChange}
+            onNodeClick={onNodeClick}
+          />
         </div>
         
         {/* After state layer */}
@@ -216,6 +219,7 @@ export const TransformationExperience = ({
   editable={true}
   onNodeValueChange={onNodeValueChange}
   onLinkLabelChange={onLinkLabelChange}
+  onNodeClick={onNodeClick}
 />
         </div>
       </div>
