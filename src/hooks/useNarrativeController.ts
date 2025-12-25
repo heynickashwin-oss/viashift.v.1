@@ -408,7 +408,7 @@ const config = useMemo(
       activeCallouts: narrativeContent.activeCallouts,
       narrativePhaseId,
     }));
-  }, [variant, isActive, getNarrativeContent]);
+}, [variant, isActive]);
   
   return {
     ...state,
