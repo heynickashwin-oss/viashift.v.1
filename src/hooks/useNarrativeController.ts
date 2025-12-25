@@ -134,7 +134,11 @@ export function useNarrativeController({
   onComplete,
   narrative,
 }: UseNarrativeControllerProps) {
-  const config = { ...DEFAULT_CONFIG, ...configOverrides };
+
+const config = useMemo(
+  () => ({ ...DEFAULT_CONFIG, ...configOverrides }),
+  [configOverrides]
+);
   
   const [state, setState] = useState<NarrativeState>({
     phase: 'idle',
