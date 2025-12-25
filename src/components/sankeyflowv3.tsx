@@ -484,6 +484,27 @@ const SankeyFlowV3Inner = ({
     return () => window.removeEventListener('resize', updateSize);
   }, []);
 
+// DEBUG: Track which dependency triggers re-runs
+useEffect(() => {
+  console.log('[DEP] layout changed', getDataIdentity(state.data));
+}, [layout]);
+
+useEffect(() => {
+  console.log('[DEP] animated changed', animated);
+}, [animated]);
+
+useEffect(() => {
+  console.log('[DEP] state.metrics.length changed', state.metrics.length);
+}, [state.metrics.length]);
+
+useEffect(() => {
+  console.log('[DEP] maxLayer changed', maxLayer);
+}, [maxLayer]);
+
+useEffect(() => {
+  console.log('[DEP] getLayerProgress changed');
+}, [getLayerProgress]);
+  
   // Sync refs
   useEffect(() => { drawProgressRef.current = drawProgress; }, [drawProgress]);
   useEffect(() => { revealPhaseRef.current = revealPhase; }, [revealPhase]);
