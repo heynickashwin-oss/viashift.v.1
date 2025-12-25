@@ -1,7 +1,7 @@
 export { b2bSalesEnablementTemplate } from './b2bSalesEnablement';
-export { salesBudgetEfficiencyTemplate } from './salesBudgetEfficiency';
+export { processAutomationTemplate } from './processAutomation';
 
-// Re-export types
+// Re-export types from processAutomation (most complete type definitions)
 export type { 
   TransformationTemplateData, 
   SightlineContent, 
@@ -10,15 +10,21 @@ export type {
   NarrativeScript,
   NarrativePhase,
   NodeCallout,
-} from './b2bSalesEnablement';
+  FlowState,
+  SankeyData,
+  SankeyNode,
+  SankeyLink,
+  SankeyMetric,
+  AnchoredMetric,
+} from './processAutomation';
 
 // Template registry for easy lookup
 import { b2bSalesEnablementTemplate } from './b2bSalesEnablement';
-import { salesBudgetEfficiencyTemplate } from './salesBudgetEfficiency';
+import { processAutomationTemplate } from './processAutomation';
 
 export const templateRegistry = {
   'b2b-sales-enablement': b2bSalesEnablementTemplate,
-  'sales-budget-efficiency': salesBudgetEfficiencyTemplate,
+  'process-automation': processAutomationTemplate,
 } as const;
 
 export const templates = templateRegistry;
