@@ -392,7 +392,7 @@ const config = useMemo(
         animationRef.current = null;
       }
     };
-  }, [isActive, variant, layerCount, metricCount, hasAnchoredMetric, config, setPhase, reset, onComplete, getNarrativeContent]);
+}, [isActive, variant, layerCount, metricCount, hasAnchoredMetric]);
   
   // For "after" variant, derive narrative content from forge progress
   useEffect(() => {
