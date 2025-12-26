@@ -178,14 +178,16 @@ const ShiftCard = ({ shift, onSelect, onToggleFavorite }: {
       >
         <button
           onClick={(e) => onToggleFavorite(shift.id, e)}
-          className="p-1.5 rounded-full transition-all hover:scale-110"
+          className="p-1.5 rounded-full transition-all hover:scale-110 hover:bg-white/10"
           style={{ 
             background: shift.is_favorite ? 'rgba(250, 204, 21, 0.15)' : 'transparent',
           }}
+          title={shift.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
         >
           <Star 
             size={16} 
             fill={shift.is_favorite ? '#FACC15' : 'none'}
+            className="transition-colors"
             style={{ color: shift.is_favorite ? '#FACC15' : '#4A5568' }}
           />
         </button>
@@ -781,4 +783,4 @@ export const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default Dashboard;``
