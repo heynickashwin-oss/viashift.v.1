@@ -789,9 +789,13 @@ useEffect(() => {
         }}
       />
 
-      {/* Stakeholder Comparison Cards - Top Band */}
-      {comparisons && comparisons.length > 0 && !hideUI && (
-        <NodeComparisonBand
+{/* Stakeholder Comparison Cards - Top Band */}
+{comparisons && comparisons.length > 0 && !hideUI && (
+  console.log('Rendering NodeComparisonBand, comparisons:', comparisons.length),
+  <NodeComparisonBand
+    ...
+  />
+)}
           comparisons={comparisons}
           nodePositions={nodePositions}
           viewerType={viewerType}
