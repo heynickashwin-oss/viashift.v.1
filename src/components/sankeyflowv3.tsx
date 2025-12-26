@@ -1,9 +1,13 @@
 /**
- * SankeyFlowV3 - v3.9
+ * SankeyFlowV3 - v3.10
+ *
+ * CHANGES from v3.9:
+ * - Removed arrow markers from flow endpoints (visual cleanup)
+ * - Added node highlighting when comparison card is active
+ * - Added stakeholder comparison card integration
  *
  * CHANGES from v3.8:
  * - Removed particle system for cleaner static visualization
- * - Added arrow direction indicators at flow endpoints
  * - Reduced performance overhead
  *
  * CHANGES from v3.7:
@@ -908,41 +912,6 @@ useEffect(() => {
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
-
-          {/* Arrow markers for flow direction */}
-          <marker
-            id="arrow-primary"
-            viewBox="0 0 10 10"
-            refX="9"
-            refY="5"
-            markerWidth="4"
-            markerHeight="4"
-            orient="auto-start-reverse"
-          >
-            <path d="M 0 0 L 10 5 L 0 10 z" fill={theme.colors.primary} />
-          </marker>
-          <marker
-            id="arrow-secondary"
-            viewBox="0 0 10 10"
-            refX="9"
-            refY="5"
-            markerWidth="4"
-            markerHeight="4"
-            orient="auto-start-reverse"
-          >
-            <path d="M 0 0 L 10 5 L 0 10 z" fill={theme.colors.secondary} />
-          </marker>
-          <marker
-            id="arrow-loss"
-            viewBox="0 0 10 10"
-            refX="9"
-            refY="5"
-            markerWidth="4"
-            markerHeight="4"
-            orient="auto-start-reverse"
-          >
-            <path d="M 0 0 L 10 5 L 0 10 z" fill={theme.colors.accent} />
-          </marker>
         </defs>
 
         {/* Links */}
@@ -950,9 +919,6 @@ useEffect(() => {
           {layout?.links.map(link => {
             const gradId = link.type === 'loss' ? 'grad-loss' :
                           (link.type === 'new' || link.type === 'revenue') ? 'grad-secondary' : 'grad-primary';
-
-            const arrowId = link.type === 'loss' ? 'arrow-loss' :
-                           (link.type === 'new' || link.type === 'revenue') ? 'arrow-secondary' : 'arrow-primary';
 
             const linkLayer = Math.max(link.source.layer, link.target.layer);
             const layerDrawProgress = getLayerProgress(linkLayer, drawProgress);
@@ -990,7 +956,6 @@ useEffect(() => {
                   strokeWidth={link.thickness}
                   strokeLinecap="round"
                   opacity={opacity}
-                  markerEnd={layerDrawProgress > 0.8 ? `url(#${arrowId})` : undefined}
                   className={`flow-transition flow-hover ${isLoss ? 'loss-flow' : ''}`}
                   style={{
                     strokeDasharray: link.pathLength,
