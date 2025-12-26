@@ -1,6 +1,12 @@
 export { b2bSalesEnablementTemplate } from './b2bSalesEnablement';
 export { salesBudgetEfficiencyTemplate } from './salesBudgetEfficiency';
 export { processAutomationTemplate } from './processAutomation';
+export { 
+  processAutomationComparisons,
+  currentStateComparisons,
+  shiftedStateComparisons,
+  getComparisonsForState,
+} from './processAutomationComparisons';
 
 // Re-export types from b2bSalesEnablement (canonical source)
 export type { 
