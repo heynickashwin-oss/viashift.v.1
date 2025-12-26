@@ -288,6 +288,9 @@ const SankeyFlowV3Inner = ({
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+  
+  // Comparison card highlight state
+  const [highlightedNodeId, setHighlightedNodeId] = useState<string | null>(null);
 
   // Use ref for pulse to avoid re-renders
   const pulsePhaseRef = useRef(0);
@@ -789,18 +792,19 @@ useEffect(() => {
         }}
       />
 
-{/* Stakeholder Comparison Cards - Top Band */}
-{comparisons && comparisons.length > 0 && !hideUI && (
-  <NodeComparisonBand
-    comparisons={comparisons}
-    nodePositions={nodePositions}
-    viewerType={viewerType}
-    visibleLayers={visibleLayers}
-    containerWidth={dimensions.width}
-    topOffset={80}
-    cycleDelay={5000}
-  />
-)}
+      {/* Stakeholder Comparison Cards - Top Band */}
+      {comparisons && comparisons.length > 0 && !hideUI && (
+        <NodeComparisonBand
+          comparisons={comparisons}
+          nodePositions={nodePositions}
+          viewerType={viewerType}
+          visibleLayers={visibleLayers}
+          containerWidth={dimensions.width}
+          topOffset={80}
+          cycleDelay={5000}
+          onActiveNodeChange={setHighlightedNodeId}
+        />
+      )}
 
       {/* SVG for links and nodes */}
       <svg width={dimensions.width} height={dimensions.height} className="absolute inset-0">
@@ -1117,6 +1121,25 @@ useEffect(() => {
                 type: node.type || 'default' 
 })}
               >
+                {/* Highlight glow for comparison card active node */}
+                {highlightedNodeId === node.id && (
+                  <rect
+                    x={-6}
+                    y={-6}
+                    width={node.width + 12}
+                    height={node.height + 12}
+                    rx={10}
+                    fill="none"
+                    stroke="#00D4E5"
+                    strokeWidth={2}
+                    opacity={0.8}
+                    filter="url(#solutionGlow)"
+                    style={{
+                      animation: 'glowPulse 2s ease-in-out infinite',
+                    }}
+                  />
+                )}
+                
                 {/* Glow behind node */}
                 {(isSolutionNode || isNewNode) && (
                   <rect
