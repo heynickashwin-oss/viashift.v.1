@@ -1,13 +1,15 @@
 /**
- * NodeComparisonBand.tsx
+ * NodeComparisonBand.tsx - v2
+ * 
+ * CHANGES from v1:
+ * - Increased card width from 200 to 320 for readability
+ * - Larger font sizes throughout
+ * - Added dashed border to active cards (matches node highlight)
+ * - Better spacing and padding
+ * - Removed cyan connector line (was confusing with flow colors)
  * 
  * Displays stakeholder comparison cards in a horizontal band at the top,
  * aligned with their respective nodes in the Sankey visualization.
- * 
- * - Cards are horizontally aligned with node x-position
- * - All cards share same y-position (top band)
- * - Multiple cards per layer slot paginate with dots
- * - Viewer-aware prioritization of stakeholder insights
  */
 
 import React, { memo, useMemo, useState, useEffect, useCallback } from 'react';
@@ -70,24 +72,25 @@ export interface NodeComparisonBandProps {
 
 const SENTIMENT_COLORS: Record<InsightSentiment, { bg: string; border: string; text: string }> = {
   pain: { 
-    bg: 'rgba(239, 68, 68, 0.15)', 
-    border: 'rgba(239, 68, 68, 0.4)', 
+    bg: 'rgba(239, 68, 68, 0.12)', 
+    border: 'rgba(239, 68, 68, 0.35)', 
     text: '#f87171' 
   },
   neutral: { 
-    bg: 'rgba(148, 163, 184, 0.15)', 
-    border: 'rgba(148, 163, 184, 0.4)', 
+    bg: 'rgba(148, 163, 184, 0.12)', 
+    border: 'rgba(148, 163, 184, 0.35)', 
     text: '#94a3b8' 
   },
   gain: { 
-    bg: 'rgba(74, 222, 128, 0.15)', 
-    border: 'rgba(74, 222, 128, 0.4)', 
+    bg: 'rgba(74, 222, 128, 0.12)', 
+    border: 'rgba(74, 222, 128, 0.35)', 
     text: '#4ade80' 
   },
 };
 
-const CARD_WIDTH = 200;
-const CARD_MIN_GAP = 16;
+// Increased card width for better readability
+const CARD_WIDTH = 320;
+const CARD_MIN_GAP = 20;
 
 // ============================================
 // COMPACT COMPARISON CARD (for band display)
@@ -98,9 +101,10 @@ interface CompactCardProps {
   viewerType: ViewerType;
   visible: boolean;
   xPosition: number;
+  isActive?: boolean;
 }
 
-const CompactCard = memo(({ comparison, viewerType, visible, xPosition }: CompactCardProps) => {
+const CompactCard = memo(({ comparison, viewerType, visible, xPosition, isActive = true }: CompactCardProps) => {
   const activeRoles = useMemo(() => getActiveRoles(comparison), [comparison]);
   const orderedRoles = useMemo(
     () => getOrderedRolesForViewer(viewerType, activeRoles),
@@ -126,38 +130,41 @@ const CompactCard = memo(({ comparison, viewerType, visible, xPosition }: Compac
         style={{
           width: CARD_WIDTH,
           background: 'rgba(10, 10, 15, 0.95)',
-          border: hasConflict 
-            ? '1px solid rgba(245, 158, 11, 0.4)' 
-            : '1px solid rgba(255, 255, 255, 0.15)',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4)',
+          // Dashed border when active (matches node highlight)
+          border: isActive 
+            ? '2px dashed rgba(255, 255, 255, 0.6)'
+            : hasConflict 
+              ? '1px solid rgba(245, 158, 11, 0.4)' 
+              : '1px solid rgba(255, 255, 255, 0.15)',
+          boxShadow: '0 4px 24px rgba(0, 0, 0, 0.5)',
         }}
       >
         {/* Header */}
         <div 
-          className="px-3 py-2 border-b flex items-center justify-between"
+          className="px-4 py-3 border-b flex items-center justify-between"
           style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}
         >
           <span 
-            className="text-xs font-semibold truncate"
-            style={{ color: 'rgba(255, 255, 255, 0.95)', maxWidth: '140px' }}
+            className="text-sm font-semibold truncate"
+            style={{ color: 'rgba(255, 255, 255, 0.95)', maxWidth: '220px' }}
           >
             {comparison.nodeName}
           </span>
           {hasConflict && (
             <span 
-              className="text-[10px] px-1.5 py-0.5 rounded-full"
+              className="text-xs px-2 py-0.5 rounded-full"
               style={{ 
                 background: 'rgba(245, 158, 11, 0.2)',
                 color: '#F59E0B',
               }}
             >
-              ⚡
+              ⚡ Misaligned
             </span>
           )}
         </div>
         
-        {/* Insights - compact grid */}
-        <div className="p-2 space-y-1.5">
+        {/* Insights - larger readable format */}
+        <div className="p-3 space-y-2">
           {displayRoles.map((role) => {
             const insight = comparison.insights[role];
             if (!insight) return null;
@@ -168,26 +175,39 @@ const CompactCard = memo(({ comparison, viewerType, visible, xPosition }: Compac
             return (
               <div
                 key={role}
-                className="flex items-center gap-2 px-2 py-1.5 rounded"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-md"
                 style={{
                   background: sentimentStyle.bg,
                   border: `1px solid ${sentimentStyle.border}`,
                 }}
               >
-                <span className="text-xs" title={roleMeta.label}>
+                <span className="text-base" title={roleMeta.label}>
                   {insight.icon || roleMeta.icon}
                 </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-2">
+                    <span 
+                      className="text-base font-bold"
+                      style={{ color: sentimentStyle.text }}
+                    >
+                      {insight.value}
+                    </span>
+                    <span 
+                      className="text-sm truncate"
+                      style={{ color: 'rgba(255, 255, 255, 0.6)' }}
+                    >
+                      {insight.label}
+                    </span>
+                  </div>
+                </div>
                 <span 
-                  className="text-xs font-semibold"
-                  style={{ color: sentimentStyle.text }}
+                  className="text-xs px-1.5 py-0.5 rounded"
+                  style={{ 
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    color: 'rgba(255, 255, 255, 0.5)',
+                  }}
                 >
-                  {insight.value}
-                </span>
-                <span 
-                  className="text-[10px] truncate"
-                  style={{ color: 'rgba(255, 255, 255, 0.5)' }}
-                >
-                  {insight.label}
+                  {roleMeta.shortLabel || roleMeta.label.slice(0, 3).toUpperCase()}
                 </span>
               </div>
             );
@@ -197,11 +217,11 @@ const CompactCard = memo(({ comparison, viewerType, visible, xPosition }: Compac
         {/* "More" indicator if we truncated */}
         {orderedRoles.length > 3 && (
           <div 
-            className="px-3 py-1.5 text-center border-t"
+            className="px-4 py-2 text-center border-t"
             style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}
           >
             <span 
-              className="text-[10px]"
+              className="text-xs"
               style={{ color: 'rgba(255, 255, 255, 0.4)' }}
             >
               +{orderedRoles.length - 3} more perspectives
@@ -209,17 +229,6 @@ const CompactCard = memo(({ comparison, viewerType, visible, xPosition }: Compac
           </div>
         )}
       </div>
-      
-      {/* Connector line to node */}
-      <div
-        className="absolute left-1/2 -translate-x-1/2"
-        style={{
-          top: '100%',
-          width: 1,
-          height: 24,
-          background: 'linear-gradient(to bottom, rgba(0, 212, 229, 0.5), transparent)',
-        }}
-      />
     </div>
   );
 });
@@ -277,26 +286,27 @@ const LayerSlot = memo(({ comparisons, xPosition, viewerType, visible, cycleDela
         viewerType={viewerType}
         visible={visible}
         xPosition={xPosition}
+        isActive={visible}
       />
       
       {/* Pagination dots */}
       {comparisons.length > 1 && visible && (
         <div 
-          className="absolute flex items-center justify-center gap-1"
+          className="absolute flex items-center justify-center gap-1.5"
           style={{
             left: xPosition,
             transform: 'translateX(-50%)',
-            top: -16,
+            top: -20,
           }}
         >
           {comparisons.map((_, idx) => (
             <button
               key={idx}
               onClick={() => setActiveIndex(idx)}
-              className="w-1.5 h-1.5 rounded-full transition-all"
+              className="w-2 h-2 rounded-full transition-all"
               style={{
                 background: idx === activeIndex 
-                  ? '#00D4E5' 
+                  ? 'rgba(255, 255, 255, 0.9)' 
                   : 'rgba(255, 255, 255, 0.3)',
               }}
             />
@@ -406,7 +416,8 @@ export const NodeComparisonBand = memo(({
       className="absolute left-0 right-0 z-20 pointer-events-none"
       style={{ top: topOffset }}
     >
-      <div className="relative h-40 pointer-events-auto">
+      {/* Increased height to accommodate larger cards */}
+      <div className="relative h-52 pointer-events-auto">
         {adjustedSlots.map(({ layer, comparisons: slotComparisons, xPosition }) => (
           <LayerSlot
             key={layer}
