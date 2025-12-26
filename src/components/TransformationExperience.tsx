@@ -1,16 +1,18 @@
 /**
- * TransformationExperience - v3.5
+ * TransformationExperience - v3.7
  * 
  * Dual-layer visualization with ghost comparison
  * Now with narrative support for phased storytelling
+ * Added: Stakeholder comparison cards via NodeComparisonBand (in SankeyFlowV3)
  */
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Share2, Eye } from 'lucide-react';
 import { SankeyFlowV3, FlowState } from './sankeyflowv3';
 import { BrandConfig, DEFAULT_BRAND, resolveTheme } from './branding/brandUtils';
 import { UserMenu } from './ui/UserMenu';
 import { NarrativeScript } from '../data/templates/b2bSalesEnablement';
+import type { NodeComparison, ViewerType } from '../types/stakeholderComparison';
 
 export interface TransformationStory {
   id: string;
@@ -36,6 +38,13 @@ export interface TransformationExperienceProps {
   onNodeValueChange?: (nodeId: string, newValue: string) => void;
   onLinkLabelChange?: (linkId: string, newLabel: string) => void;
   onNodeClick?: (nodeId: string, nodeInfo: { label: string; value: string; type: string }) => void;
+  /** Stakeholder comparison data for alignment discovery */
+  comparisons?: {
+    currentState: NodeComparison[];
+    shiftedState: NodeComparison[];
+  };
+  /** Current viewer type for comparison priority ordering */
+  viewerType?: ViewerType;
 }
 
 export const TransformationExperience = ({
@@ -52,6 +61,8 @@ export const TransformationExperience = ({
   onNodeValueChange,
   onLinkLabelChange,
   onNodeClick,
+  comparisons,
+  viewerType = 'default',
 }: TransformationExperienceProps) => {
   const [variant, setVariant] = useState<'before' | 'after'>('before');
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -68,13 +79,19 @@ export const TransformationExperience = ({
   const theme = resolveTheme(brand);
   const isBefore = variant === 'before';
   const insight = story.after.insight;
+  
+  // Get comparisons for current view state (passed to SankeyFlowV3)
+  const activeComparisons = useMemo(() => {
+    if (!comparisons) return [];
+    return isBefore ? comparisons.currentState : comparisons.shiftedState;
+  }, [comparisons, isBefore]);
 
   const TIMING = {
     ANTICIPATION: 600,
     STATE_FLIP: 1000,
     TOTAL: 4000,
   };
-
+  
   const handleTransform = useCallback((e?: React.MouseEvent<HTMLButtonElement>) => {
     if (!isButtonReady || isTransitioning) return;
 
@@ -201,6 +218,8 @@ export const TransformationExperience = ({
             onLinkLabelChange={onLinkLabelChange}
             onNodeClick={onNodeClick}
             narrative={story.narrative}
+            comparisons={comparisons?.currentState}
+            viewerType={viewerType}
           />
         </div>
         
@@ -219,20 +238,22 @@ export const TransformationExperience = ({
           }}
         >
           <SankeyFlowV3
-  state={story.after}
-  stageLabels={story.stageLabels}
-  variant="after"
-  brand={brand}
-  animated={variant === 'after'}
-  transitionPhase={variant === 'after' ? transitionPhase : 'idle'}
-  hideUI={variant !== 'after'}
-  showLabels={showLabels}
-  editable={true}
-  onNodeValueChange={onNodeValueChange}
-  onLinkLabelChange={onLinkLabelChange}
-  onNodeClick={onNodeClick}
-  narrative={story.narrative}
-/>
+            state={story.after}
+            stageLabels={story.stageLabels}
+            variant="after"
+            brand={brand}
+            animated={variant === 'after'}
+            transitionPhase={variant === 'after' ? transitionPhase : 'idle'}
+            hideUI={variant !== 'after'}
+            showLabels={showLabels}
+            editable={true}
+            onNodeValueChange={onNodeValueChange}
+            onLinkLabelChange={onLinkLabelChange}
+            onNodeClick={onNodeClick}
+            narrative={story.narrative}
+            comparisons={comparisons?.shiftedState}
+            viewerType={viewerType}
+          />
         </div>
       </div>
 
