@@ -1,5 +1,12 @@
 /**
- * SankeyFlowV3 - v3.10
+ * SankeyFlowV3 - v3.11
+ *
+ * CHANGES from v3.10:
+ * - Removed duplicate data display:
+ *   - Node displayValue pills (metrics now in comparison cards)
+ *   - Link labels at flow midpoints
+ *   - Metrics panel hidden when comparison cards visible
+ * - Cleaner visualization focuses on flow structure
  *
  * CHANGES from v3.9:
  * - Removed arrow markers from flow endpoints (visual cleanup)
@@ -964,87 +971,7 @@ useEffect(() => {
                   }}
                 />
 
-                {/* Flow label at midpoint */}
-                {showLabels && link.displayLabel && (link.type === 'loss' || link.type === 'new' || link.type === 'revenue') && layerDrawProgress > 0.5 && (
-                  editingLinkId === link.id ? (
-                    <foreignObject
-                      x={link.midpoint.x - 32}
-                      y={link.midpoint.y - 12}
-                      width={64}
-                      height={24}
-                      style={{
-                        opacity: Math.min(1, (layerDrawProgress - 0.5) * 2),
-                      }}
-                    >
-                      <input
-                        type="text"
-                        value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleSaveEdit();
-                          } else if (e.key === 'Escape') {
-                            e.preventDefault();
-                            handleCancelEdit();
-                          }
-                        }}
-                        onBlur={handleSaveEdit}
-                        autoFocus
-                        style={{
-                          width: '64px',
-                          height: '24px',
-                          background: 'rgba(0, 0, 0, 0.85)',
-                          border: `1px solid ${link.type === 'loss' ? theme.colors.accent + '66' : theme.colors.secondary + '66'}`,
-                          borderRadius: '12px',
-                          color: link.type === 'loss' ? theme.colors.accent : theme.colors.secondary,
-                          fontSize: '13px',
-                          fontWeight: 600,
-                          fontFamily: 'Inter, system-ui, sans-serif',
-                          textAlign: 'center',
-                          outline: 'none',
-                          padding: '0',
-                        }}
-                      />
-                    </foreignObject>
-                  ) : (
-                    <g
-                      transform={`translate(${link.midpoint.x}, ${link.midpoint.y})`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleStartEditLink(link.id, link.displayLabel || '');
-                      }}
-                      style={{
-                        opacity: Math.min(1, (layerDrawProgress - 0.5) * 2),
-                        transition: 'opacity 0.3s ease-out',
-                        cursor: editable ? 'pointer' : 'default',
-                      }}
-                    >
-                      <rect
-                        x={-32}
-                        y={-12}
-                        width={64}
-                        height={24}
-                        rx={12}
-                        fill="rgba(0, 0, 0, 0.85)"
-                        stroke={link.type === 'loss' ? theme.colors.accent + '66' : theme.colors.secondary + '66'}
-                        strokeWidth={1}
-                      />
-                      <text
-                        x={0}
-                        y={0}
-                        dy="0.35em"
-                        textAnchor="middle"
-                        fill={link.type === 'loss' ? theme.colors.accent : theme.colors.secondary}
-                        fontSize={13}
-                        fontWeight={600}
-                        fontFamily="Inter, system-ui, sans-serif"
-                      >
-                        {link.displayLabel}
-                      </text>
-                    </g>
-                  )
-                )}
+                {/* Flow labels removed - data now in comparison cards */}
               </g>
             );
           })}
@@ -1152,92 +1079,7 @@ useEffect(() => {
                   {node.label}
                 </text>
 
-               {/* Node displayValue - pill box below label */}
-{showLabels && node.displayValue && (
-  editingNodeId === node.id ? (
-    <foreignObject
-      x={node.layer < 2 ? node.width + 16 : -16 - 56}
-      y={node.height / 2 + 8}
-      width={56}
-      height={20}
-    >
-      <input
-        type="text"
-        value={editValue}
-        onChange={(e) => setEditValue(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            handleSaveEdit();
-          } else if (e.key === 'Escape') {
-            e.preventDefault();
-            handleCancelEdit();
-          }
-        }}
-        onBlur={handleSaveEdit}
-        autoFocus
-        style={{
-          width: '56px',
-          height: '20px',
-          background: 'rgba(0, 0, 0, 0.85)',
-          border: `1px solid ${node.type === 'loss' ? theme.colors.accent + '66' :
-                  node.type === 'solution' || node.type === 'new' || node.type === 'revenue'
-                    ? theme.colors.secondary + '66'
-                    : 'rgba(255, 255, 255, 0.2)'}`,
-          borderRadius: '10px',
-          color: node.type === 'loss' ? theme.colors.accent :
-                node.type === 'solution' || node.type === 'new' || node.type === 'revenue'
-                  ? theme.colors.secondary
-                  : 'rgba(255, 255, 255, 0.8)',
-          fontSize: '11px',
-          fontWeight: 600,
-          fontFamily: 'Inter, system-ui, sans-serif',
-          textAlign: 'center',
-          outline: 'none',
-          padding: '0',
-        }}
-      />
-    </foreignObject>
-  ) : (
-    <g
-      transform={`translate(${node.layer < 2 ? node.width + 16 : -16}, ${node.height / 2 + 18})`}
-      onClick={(e) => {
-        e.stopPropagation();
-        handleStartEditNode(node.id, node.displayValue || '');
-      }}
-      style={{ cursor: editable ? 'pointer' : 'default' }}
-    >
-      <rect
-        x={node.layer < 2 ? 0 : -56}
-        y={-10}
-        width={56}
-        height={20}
-        rx={10}
-        fill="rgba(0, 0, 0, 0.85)"
-        stroke={node.type === 'loss' ? theme.colors.accent + '66' :
-                node.type === 'solution' || node.type === 'new' || node.type === 'revenue'
-                  ? theme.colors.secondary + '66'
-                  : 'rgba(255, 255, 255, 0.2)'}
-        strokeWidth={1}
-      />
-      <text
-        x={node.layer < 2 ? 28 : -28}
-        y={0}
-        dy="0.35em"
-        textAnchor="middle"
-        fill={node.type === 'loss' ? theme.colors.accent :
-              node.type === 'solution' || node.type === 'new' || node.type === 'revenue'
-                ? theme.colors.secondary
-                : 'rgba(255, 255, 255, 0.8)'}
-        fontSize={11}
-        fontWeight={600}
-        fontFamily="Inter, system-ui, sans-serif"
-      >
-        {node.displayValue}
-      </text>
-    </g>
-  )
-)}
+                {/* Node displayValue pills removed - data now in comparison cards */}
 
                 {/* NEW badge - only show if no displayValue */}
                 {node.type === 'new' && !node.displayValue && (
@@ -1359,8 +1201,8 @@ useEffect(() => {
           primaryColor={theme.colors.primary}
         />
       )}
-      {/* Metrics panel - right side */}
-      {!hideUI && (
+      {/* Metrics panel - right side (hidden when comparison cards are visible) */}
+      {!hideUI && (!comparisons || comparisons.length === 0) && (
         <div
           className="absolute top-1/2 right-8 -translate-y-1/2 z-20 flex flex-col gap-4"
           style={{ opacity: uiVisible ? 1 : 0, transition: 'opacity 0.5s ease' }}
@@ -1402,8 +1244,8 @@ useEffect(() => {
         </div>
       )}
 
-      {/* Anchored metric */}
-      {!hideUI && state.anchoredMetric && anchoredPosition && (
+      {/* Anchored metric (hidden when comparison cards are visible) */}
+      {!hideUI && (!comparisons || comparisons.length === 0) && state.anchoredMetric && anchoredPosition && (
         <div
           className="absolute z-25 px-3.5 py-2.5 rounded-xl backdrop-blur-md pointer-events-none"
           style={{
