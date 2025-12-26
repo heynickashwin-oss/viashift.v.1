@@ -28,6 +28,8 @@ import { useNarrativeController } from '../hooks/useNarrativeController';
 import { NodeCallouts, NodePosition } from './NodeCallout';
 import { NarrativeScript } from '../data/templates/b2bSalesEnablement';
 import { timeline, DEBUG_TIMELINE } from '../utils/debugTimeline';
+import { NodeComparisonBand } from './NodeComparisonBand';
+import type { NodeComparison, ViewerType } from '../types/stakeholderComparison';
 
 // ============================================
 // TYPES
