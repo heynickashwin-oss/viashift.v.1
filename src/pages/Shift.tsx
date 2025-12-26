@@ -7,7 +7,7 @@ import { ShareModal } from '../components/ShareModal';
 import { ChampionSharePrompt } from '../components/ChampionSharePrompt';
 import { ConfigPanel } from '../components/branding/BrandingPanel';
 import { BrandConfig } from '../components/branding/brandUtils';
-import { templates, TemplateId, ViewerType } from '../data/templates';
+import { templates, TemplateId, ViewerType, processAutomationComparisons } from '../data/templates';
 import { prepareFlowData, ValueOverrides, getLinkKey } from '../utils/valueUtils';
 import { NodeInteractionDialog } from '../components/NodeInteractionDialog';
 
@@ -358,6 +358,8 @@ export const Shift = () => {
           onNodeValueChange={handleNodeValueChange}
           onLinkLabelChange={handleLinkLabelChange}
           onNodeClick={handleNodeClick}
+          comparisons={shift?.template_id === 'process-automation' ? processAutomationComparisons : undefined}
+          viewerType={viewerType}
         />
       )}
 
