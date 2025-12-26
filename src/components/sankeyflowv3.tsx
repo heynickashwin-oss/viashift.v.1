@@ -253,8 +253,10 @@ const SankeyFlowV3Inner = ({
   editable = false,
   onNodeValueChange,
   onLinkLabelChange,
-  narrative, // ADD THIS
-}: SankeyFlowProps) => {
+    narrative,
+  comparisons = [],
+  viewerType = 'default',
+}: SankeyFlowProps) =>  {
   const theme = useMemo(() => resolveTheme(brand), [brand]);
 
   // Narrative controller for phased storytelling
