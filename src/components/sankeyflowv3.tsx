@@ -1,5 +1,12 @@
 /**
- * SankeyFlowV3 - v3.13
+ * SankeyFlowV3 - v3.14
+ *
+ * CHANGES from v3.13:
+ * - Increased vertical spacing between nodes (nodeGap: 30 → 60)
+ * - Removed rounded ends from flows (strokeLinecap: round → butt)
+ * - Removed rounded corners from nodes (rx: 5 → 0)
+ * - Flows and nodes now have flat/square edges for clean alignment
+ * - Adjusted scaling to use more vertical space
  *
  * CHANGES from v3.12:
  * - FIXED: Proper Sankey layout behavior
@@ -383,7 +390,7 @@ const SankeyFlowV3Inner = ({
     const nodes: LayoutNode[] = [];
     const nodeMap = new Map<string, LayoutNode>();
     const minNodeHeight = 20;
-    const nodeGap = 30; // Gap between nodes in same layer
+    const nodeGap = 60; // Gap between nodes in same layer (increased from 30)
 
     // Calculate total height needed per layer to scale appropriately
     const layerHeights = new Map<number, number>();
@@ -401,7 +408,7 @@ const SankeyFlowV3Inner = ({
 
     // Find max layer height for scaling
     const maxLayerHeight = Math.max(...Array.from(layerHeights.values()), 1);
-    const scaleFactor = Math.min(1, (usableHeight * 0.85) / maxLayerHeight);
+    const scaleFactor = Math.min(1.2, (usableHeight * 0.9) / maxLayerHeight);
 
     nodesByLayer.forEach((layerNodes, layer) => {
       const xPercent = layerXPercent[layer] ?? (layer / Math.max(maxLayer, 1));
@@ -1068,7 +1075,7 @@ useEffect(() => {
                   fill="none"
                   stroke={`url(#${gradId})`}
                   strokeWidth={link.thickness + 8}
-                  strokeLinecap="round"
+                  strokeLinecap="butt"
                   opacity={opacity * 0.15}
                   filter="url(#glow)"
                   style={{
@@ -1084,7 +1091,7 @@ useEffect(() => {
                   fill="none"
                   stroke={`url(#${gradId})`}
                   strokeWidth={link.thickness}
-                  strokeLinecap="round"
+                  strokeLinecap="butt"
                   opacity={opacity}
                   className={`flow-transition flow-hover ${isLoss ? 'loss-flow' : ''}`}
                   style={{
@@ -1143,7 +1150,7 @@ useEffect(() => {
                     y={-6}
                     width={node.width + 12}
                     height={node.height + 12}
-                    rx={10}
+                    rx={0}
                     fill="none"
                     stroke="#00D4E5"
                     strokeWidth={2}
@@ -1162,7 +1169,7 @@ useEffect(() => {
                     y={-4}
                     width={node.width + 8}
                     height={node.height + 8}
-                    rx={8}
+                    rx={0}
                     fill={isSolutionNode ? theme.colors.primary : theme.colors.secondary}
                     opacity={0.2 * pulseOpacity}
                     filter="url(#solutionGlow)"
@@ -1174,7 +1181,7 @@ useEffect(() => {
                 <rect
                   width={node.width}
                   height={node.height}
-                  rx={5}
+                  rx={0}
                   fill={`url(#${gradId})`}
                   stroke={strokeColor}
                   strokeWidth={isLossNode || isSolutionNode || isNewNode ? 1.5 : 1}
