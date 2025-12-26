@@ -61,9 +61,15 @@ export const Shift = () => {
     type: string;
   } | null>(null);
 
-  // Get stakeholder from URL params
+  // Get stakeholder from URL params for initial viewer type
   const stakeholder = searchParams.get('stakeholder') || undefined;
-  const viewerType = getViewerType(previewMode, stakeholder);
+  const initialViewerType = getViewerType(previewMode, stakeholder);
+  const [viewerType, setViewerType] = useState<ViewerType>(initialViewerType);
+  
+  // Update viewer type when URL param changes
+  useEffect(() => {
+    setViewerType(getViewerType(previewMode, stakeholder));
+  }, [previewMode, stakeholder]);
   
   const [config, setConfig] = useState({
     companyName: '',
@@ -360,6 +366,7 @@ export const Shift = () => {
           onNodeClick={handleNodeClick}
           comparisons={shift?.template_id === 'process-automation' ? processAutomationComparisons : undefined}
           viewerType={viewerType}
+          onViewerTypeChange={setViewerType}
         />
       )}
 
