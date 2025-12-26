@@ -164,49 +164,58 @@ const ShiftCard = ({ shift, onSelect, onToggleFavorite }: {
 
   return (
     <div
-      className="relative rounded-xl p-6 cursor-pointer transition-all"
+      className="relative rounded-xl overflow-hidden transition-all"
       style={{ 
         background: '#12161C', 
         border: config.glow ? `1px solid ${config.color}` : '1px solid #1E2530',
         boxShadow: config.glow ? `0 0 20px ${config.color}25` : 'none',
       }}
-      onClick={handleCardClick}
-      onMouseEnter={() => setShowStakeholders(true)}
-      onMouseLeave={() => setShowStakeholders(false)}
     >
-      {/* Favorite star */}
-      <button
-        onClick={(e) => onToggleFavorite(shift.id, e)}
-        className="absolute top-3 left-3 p-1.5 rounded-full transition-all hover:scale-110"
-        style={{ 
-          background: shift.is_favorite ? 'rgba(250, 204, 21, 0.15)' : 'transparent',
-        }}
-      >
-        <Star 
-          size={16} 
-          fill={shift.is_favorite ? '#FACC15' : 'none'}
-          style={{ color: shift.is_favorite ? '#FACC15' : '#4A5568' }}
-        />
-      </button>
-
-      {/* Activity state indicator */}
+      {/* Persistent top bar - not covered by overlay */}
       <div 
-        className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
-        style={{ background: config.bgColor, color: config.color }}
+        className="flex items-center justify-between px-4 py-2"
+        style={{ borderBottom: '1px solid #1E2530' }}
       >
-        {(activityState === 'hot' || activityState === 'active') && <Activity size={12} />}
-        {config.label}
+        <button
+          onClick={(e) => onToggleFavorite(shift.id, e)}
+          className="p-1.5 rounded-full transition-all hover:scale-110"
+          style={{ 
+            background: shift.is_favorite ? 'rgba(250, 204, 21, 0.15)' : 'transparent',
+          }}
+        >
+          <Star 
+            size={16} 
+            fill={shift.is_favorite ? '#FACC15' : 'none'}
+            style={{ color: shift.is_favorite ? '#FACC15' : '#4A5568' }}
+          />
+        </button>
+        
+        {/* Activity state indicator */}
+        <div 
+          className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
+          style={{ background: config.bgColor, color: config.color }}
+        >
+          {(activityState === 'hot' || activityState === 'active') && <Activity size={12} />}
+          {config.label}
+        </div>
       </div>
 
-      {/* Logo / Avatar */}
+      {/* Content area - triggers hover overlay */}
       <div
-        className="mb-4 rounded-lg flex items-center justify-center overflow-hidden"
-        style={{
-          height: '120px',
-          background: shift.logo_url ? '#12161C' : 'linear-gradient(135deg, #1E2530 0%, #12161C 100%)',
-          border: '1px solid #1E2530',
-        }}
+        className="relative p-6 pt-4 cursor-pointer"
+        onClick={handleCardClick}
+        onMouseEnter={() => setShowStakeholders(true)}
+        onMouseLeave={() => setShowStakeholders(false)}
       >
+        {/* Logo / Avatar */}
+        <div
+          className="mb-4 rounded-lg flex items-center justify-center overflow-hidden"
+          style={{
+            height: '120px',
+            background: shift.logo_url ? '#12161C' : 'linear-gradient(135deg, #1E2530 0%, #12161C 100%)',
+            border: '1px solid #1E2530',
+          }}
+        >
         {shift.logo_url ? (
           <img
             src={shift.logo_url}
@@ -375,54 +384,55 @@ const ShiftCard = ({ shift, onSelect, onToggleFavorite }: {
         {advocateStatus === 'waiting' && <AlertTriangle size={14} style={{ color: '#F59E0B' }} />}
       </div>
 
-      {/* Stakeholder picker overlay */}
-      {showStakeholders && (
-        <div
-          className="absolute inset-0 rounded-xl flex flex-col items-center justify-center gap-3 backdrop-blur-sm"
-          style={{ background: 'rgba(10, 14, 20, 0.95)', border: '1px solid #00D4E5' }}
-        >
-          <p className="text-xs font-medium mb-2" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-            Choose perspective for {shift.company_input}
-          </p>
-          <div className="grid grid-cols-2 gap-2 w-full px-4">
-            {(Object.entries(stakeholderConfig) as [StakeholderType, typeof stakeholderConfig.all][]).map(([key, cfg]) => {
-              const Icon = cfg.icon;
-              return (
-                <button
-                  key={key}
-                  onClick={(e) => handleStakeholderClick(e, key)}
-                  className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-medium transition-all"
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    color: 'rgba(255, 255, 255, 0.8)',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = `${cfg.color}20`;
-                    e.currentTarget.style.borderColor = `${cfg.color}50`;
-                    e.currentTarget.style.color = cfg.color;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                    e.currentTarget.style.color = 'rgba(255, 255, 255, 0.8)';
-                  }}
-                >
-                  <Icon size={14} />
-                  {cfg.label}
-                </button>
-              );
-            })}
-          </div>
-          <button
-            onClick={handleCardClick}
-            className="mt-2 text-xs underline"
-            style={{ color: 'rgba(255, 255, 255, 0.5)' }}
+        {/* Stakeholder picker overlay - only covers content area */}
+        {showStakeholders && (
+          <div
+            className="absolute inset-0 rounded-b-xl flex flex-col items-center justify-center gap-3 backdrop-blur-sm"
+            style={{ background: 'rgba(10, 14, 20, 0.95)', border: '1px solid #00D4E5', borderTop: 'none' }}
           >
-            Open without sightline
-          </button>
-        </div>
-      )}
+            <p className="text-xs font-medium mb-2" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+              Choose perspective for {shift.company_input}
+            </p>
+            <div className="grid grid-cols-2 gap-2 w-full px-4">
+              {(Object.entries(stakeholderConfig) as [StakeholderType, typeof stakeholderConfig.all][]).map(([key, cfg]) => {
+                const Icon = cfg.icon;
+                return (
+                  <button
+                    key={key}
+                    onClick={(e) => handleStakeholderClick(e, key)}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-medium transition-all"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      color: 'rgba(255, 255, 255, 0.8)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = `${cfg.color}20`;
+                      e.currentTarget.style.borderColor = `${cfg.color}50`;
+                      e.currentTarget.style.color = cfg.color;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                      e.currentTarget.style.color = 'rgba(255, 255, 255, 0.8)';
+                    }}
+                  >
+                    <Icon size={14} />
+                    {cfg.label}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={handleCardClick}
+              className="mt-2 text-xs underline"
+              style={{ color: 'rgba(255, 255, 255, 0.5)' }}
+            >
+              Open without sightline
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
