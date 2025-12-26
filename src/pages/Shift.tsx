@@ -358,7 +358,7 @@ export const Shift = () => {
           onNodeValueChange={handleNodeValueChange}
           onLinkLabelChange={handleLinkLabelChange}
           onNodeClick={handleNodeClick}
-          comparisons={shift?.template_id === 'process-automation' ? processAutomationComparisons : undefined}
+          comparisons={processAutomationComparisons}
           viewerType={viewerType}
         />
       )}
