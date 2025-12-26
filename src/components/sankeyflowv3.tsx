@@ -1,11 +1,16 @@
 /**
- * SankeyFlowV3 - v3.16
+ * SankeyFlowV3 - v3.17
+ *
+ * CHANGES from v3.16:
+ * - FIXED: Flow labels now show only order count (link.value)
+ *   - Removed displayLabel from flows to avoid stakeholder metric confusion
+ *   - Flow width = orders, flow label = orders (consistent semantics)
+ *   - Stakeholder-specific insights belong in comparison cards only
  *
  * CHANGES from v3.15:
- * - FIXED: Reduced minNodeHeight from 20 to 8 so small flows align better
- * - IMPROVED: Node highlight now simple white dashed border (no leader line)
- * - RESTORED: Flow labels at midpoints showing displayLabel or value
- * - All flows now show their value for context
+ * - FIXED: Reduced minNodeHeight to match minThickness for alignment
+ * - IMPROVED: Node highlight now simple white dashed border
+ * - RESTORED: Flow labels at midpoints
  *
  * CHANGES from v3.14:
  * - FIXED: Node height now correctly matches flow heights
@@ -1136,7 +1141,7 @@ useEffect(() => {
                   }}
                 />
 
-                {/* Flow label at midpoint */}
+                {/* Flow label at midpoint - shows order count only */}
                 {showLabels && layerDrawProgress > 0.6 && (
                   <g
                     transform={`translate(${link.midpoint.x}, ${link.midpoint.y})`}
@@ -1146,10 +1151,10 @@ useEffect(() => {
                     }}
                   >
                     <rect
-                      x={-30}
-                      y={-11}
-                      width={60}
-                      height={22}
+                      x={-24}
+                      y={-10}
+                      width={48}
+                      height={20}
                       rx={4}
                       fill="rgba(0, 0, 0, 0.85)"
                       stroke={isLoss ? theme.colors.accent + '66' : theme.colors.primary + '44'}
@@ -1165,7 +1170,7 @@ useEffect(() => {
                       fontWeight={500}
                       fontFamily="Inter, system-ui, sans-serif"
                     >
-                      {link.displayLabel || link.value}
+                      {link.value}
                     </text>
                   </g>
                 )}
