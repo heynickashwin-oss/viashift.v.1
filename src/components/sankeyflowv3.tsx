@@ -1,5 +1,11 @@
 /**
- * SankeyFlowV3 - v3.11
+ * SankeyFlowV3 - v3.12
+ *
+ * CHANGES from v3.11:
+ * - FIXED: Flow thickness now proportional to value (was capped/floored incorrectly)
+ *   - Uses maxLinkValue to calculate relative thickness
+ *   - 270 orders vs 80 orders now visually ~3.4x wider as expected
+ * - DISABLED: Node callouts temporarily removed to reduce visual complexity
  *
  * CHANGES from v3.10:
  * - Removed duplicate data display:
@@ -353,6 +359,11 @@ const SankeyFlowV3Inner = ({
       nodes.push(layoutNode);
       nodeMap.set(node.id, layoutNode);
     });
+    // Calculate max link value for proportional thickness
+    const maxLinkValue = Math.max(...state.data.links.map(l => l.value), 1);
+    const minThickness = 4;
+    const maxThickness = 40;
+
     const links: LayoutLink[] = state.data.links.map((link, i) => {
       const source = nodeMap.get(link.from);
       const target = nodeMap.get(link.to);
@@ -373,6 +384,9 @@ const SankeyFlowV3Inner = ({
         y: mt*mt*mt*y0 + 3*mt*mt*t*y0 + 3*mt*t*t*y1 + t*t*t*y1,
       };
 
+      // Proportional thickness based on value relative to max
+      const thickness = minThickness + (link.value / maxLinkValue) * (maxThickness - minThickness);
+
       return {
         id: link.id || `link-${i}`,
         from: link.from,
@@ -381,7 +395,7 @@ const SankeyFlowV3Inner = ({
         type: link.type || 'default',
         source,
         target,
-        thickness: Math.max(4, Math.min(28, link.value * 0.25)),
+        thickness,
         path: `M${x0},${y0} C${x0 + dx * 0.45},${y0} ${x0 + dx * 0.55},${y1} ${x1},${y1}`,
         pathLength: Math.sqrt(dx * dx + (y1 - y0) * (y1 - y0)) * 1.3,
         displayLabel: link.displayLabel,
@@ -1191,7 +1205,7 @@ useEffect(() => {
         </div>
       )}
 
-      {/* Node callouts - positioned labels near specific nodes */}
+      {/* Node callouts - DISABLED to reduce visual complexity
       {!hideUI && (
         <NodeCallouts
           callouts={narrativeState.activeCallouts}
@@ -1201,6 +1215,7 @@ useEffect(() => {
           primaryColor={theme.colors.primary}
         />
       )}
+      */}
       {/* Metrics panel - right side (hidden when comparison cards are visible) */}
       {!hideUI && (!comparisons || comparisons.length === 0) && (
         <div
