@@ -1,5 +1,11 @@
 /**
- * SankeyFlowV3 - v3.15
+ * SankeyFlowV3 - v3.16
+ *
+ * CHANGES from v3.15:
+ * - FIXED: Reduced minNodeHeight from 20 to 8 so small flows align better
+ * - IMPROVED: Node highlight now simple white dashed border (no leader line)
+ * - RESTORED: Flow labels at midpoints showing displayLabel or value
+ * - All flows now show their value for context
  *
  * CHANGES from v3.14:
  * - FIXED: Node height now correctly matches flow heights
@@ -7,7 +13,6 @@
  *   - Flows should align perfectly with node edges
  * - IMPROVED: Node highlight indicator for comparison cards
  *   - Changed from cyan (conflicts with flows) to white dashed border
- *   - Added subtle leader line pointing up toward cards
  *   - Clearer visual distinction from flow colors
  *
  * CHANGES from v3.13:
@@ -402,8 +407,8 @@ const SankeyFlowV3Inner = ({
     // Step 4: Position nodes with heights based on flow sums
     const nodes: LayoutNode[] = [];
     const nodeMap = new Map<string, LayoutNode>();
-    const minNodeHeight = 20;
-    const nodeGap = 60; // Gap between nodes in same layer (increased from 30)
+    const minNodeHeight = minThickness; // Match minimum flow thickness for alignment
+    const nodeGap = 60; // Gap between nodes in same layer
 
     // Calculate total height needed per layer to scale appropriately
     const layerHeights = new Map<number, number>();
@@ -1131,7 +1136,39 @@ useEffect(() => {
                   }}
                 />
 
-                {/* Flow labels removed - data now in comparison cards */}
+                {/* Flow label at midpoint */}
+                {showLabels && layerDrawProgress > 0.6 && (
+                  <g
+                    transform={`translate(${link.midpoint.x}, ${link.midpoint.y})`}
+                    style={{
+                      opacity: Math.min(1, (layerDrawProgress - 0.6) * 2.5),
+                      transition: 'opacity 0.3s ease-out',
+                    }}
+                  >
+                    <rect
+                      x={-30}
+                      y={-11}
+                      width={60}
+                      height={22}
+                      rx={4}
+                      fill="rgba(0, 0, 0, 0.85)"
+                      stroke={isLoss ? theme.colors.accent + '66' : theme.colors.primary + '44'}
+                      strokeWidth={1}
+                    />
+                    <text
+                      x={0}
+                      y={0}
+                      dy="0.35em"
+                      textAnchor="middle"
+                      fill={isLoss ? theme.colors.accent : theme.colors.text}
+                      fontSize={11}
+                      fontWeight={500}
+                      fontFamily="Inter, system-ui, sans-serif"
+                    >
+                      {link.displayLabel || link.value}
+                    </text>
+                  </g>
+                )}
               </g>
             );
           })}
@@ -1173,36 +1210,19 @@ useEffect(() => {
                 type: node.type || 'default' 
 })}
               >
-                {/* Highlight indicator for comparison card active node */}
+                {/* Highlight indicator for comparison card active node - dashed white border */}
                 {highlightedNodeId === node.id && (
-                  <>
-                    {/* Subtle white glow */}
-                    <rect
-                      x={-4}
-                      y={-4}
-                      width={node.width + 8}
-                      height={node.height + 8}
-                      rx={0}
-                      fill="none"
-                      stroke="rgba(255, 255, 255, 0.6)"
-                      strokeWidth={2}
-                      strokeDasharray="4 2"
-                      opacity={0.9}
-                      style={{
-                        animation: 'glowPulse 2s ease-in-out infinite',
-                      }}
-                    />
-                    {/* Vertical leader line hint - extends up toward cards */}
-                    <line
-                      x1={node.width / 2}
-                      y1={-4}
-                      x2={node.width / 2}
-                      y2={-25}
-                      stroke="rgba(255, 255, 255, 0.4)"
-                      strokeWidth={1}
-                      strokeDasharray="3 3"
-                    />
-                  </>
+                  <rect
+                    x={-3}
+                    y={-3}
+                    width={node.width + 6}
+                    height={node.height + 6}
+                    rx={0}
+                    fill="none"
+                    stroke="rgba(255, 255, 255, 0.7)"
+                    strokeWidth={2}
+                    strokeDasharray="6 4"
+                  />
                 )}
                 
                 {/* Glow behind node */}
