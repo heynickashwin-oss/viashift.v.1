@@ -59,6 +59,9 @@ export interface NodeComparisonBandProps {
   
   /** Auto-cycle delay for pagination (ms) */
   cycleDelay?: number;
+  
+  /** Callback when active comparison changes (for node highlighting) */
+  onActiveNodeChange?: (nodeId: string | null) => void;
 }
 
 // ============================================
@@ -233,9 +236,10 @@ interface LayerSlotProps {
   viewerType: ViewerType;
   visible: boolean;
   cycleDelay: number;
+  onActiveNodeChange?: (nodeId: string | null) => void;
 }
 
-const LayerSlot = memo(({ comparisons, xPosition, viewerType, visible, cycleDelay }: LayerSlotProps) => {
+const LayerSlot = memo(({ comparisons, xPosition, viewerType, visible, cycleDelay, onActiveNodeChange }: LayerSlotProps) => {
   const [activeIndex, setActiveIndex] = useState(0);
   
   // Auto-cycle through comparisons
@@ -253,6 +257,15 @@ const LayerSlot = memo(({ comparisons, xPosition, viewerType, visible, cycleDela
   useEffect(() => {
     if (!visible) setActiveIndex(0);
   }, [visible]);
+  
+  // Report active node changes
+  useEffect(() => {
+    if (visible && comparisons[activeIndex]) {
+      onActiveNodeChange?.(comparisons[activeIndex].nodeId);
+    } else {
+      onActiveNodeChange?.(null);
+    }
+  }, [visible, activeIndex, comparisons, onActiveNodeChange]);
   
   const activeComparison = comparisons[activeIndex];
   if (!activeComparison) return null;
@@ -308,7 +321,31 @@ export const NodeComparisonBand = memo(({
   containerWidth,
   topOffset = 24,
   cycleDelay = 4000,
+  onActiveNodeChange,
 }: NodeComparisonBandProps) => {
+  
+  // Track active nodes from each layer slot
+  const [activeNodes, setActiveNodes] = useState<Map<number, string | null>>(new Map());
+  
+  // Create stable callback for layer slots
+  const handleLayerNodeChange = useCallback((layer: number, nodeId: string | null) => {
+    setActiveNodes(prev => {
+      const next = new Map(prev);
+      if (nodeId) {
+        next.set(layer, nodeId);
+      } else {
+        next.delete(layer);
+      }
+      return next;
+    });
+  }, []);
+  
+  // Report combined active nodes to parent
+  useEffect(() => {
+    const activeNodeIds = Array.from(activeNodes.values()).filter(Boolean) as string[];
+    // Report the first active node (most visible layer)
+    onActiveNodeChange?.(activeNodeIds[0] || null);
+  }, [activeNodes, onActiveNodeChange]);
   
   // Group comparisons by layer and calculate x-position
   const layerSlots = useMemo(() => {
@@ -378,6 +415,7 @@ export const NodeComparisonBand = memo(({
             viewerType={viewerType}
             visible={visibleLayers.includes(layer)}
             cycleDelay={cycleDelay}
+            onActiveNodeChange={(nodeId) => handleLayerNodeChange(layer, nodeId)}
           />
         ))}
       </div>
