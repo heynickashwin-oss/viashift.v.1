@@ -258,10 +258,10 @@ const ShiftCard = ({ shift, onSelect }: { shift: Shift; onSelect: (stakeholder: 
             )}
           </div>
           
-          {/* Depth/Width bars */}
+          {/* Engagement/Alignment bars */}
           <div className="flex gap-4 text-xs">
             <div className="flex items-center gap-2 flex-1">
-              <span style={{ color: '#6B7A8C' }}>Depth</span>
+              <span style={{ color: '#6B7A8C' }}>Engagement</span>
               <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: '#1E2530' }}>
                 <div 
                   className="h-full rounded-full transition-all"
@@ -276,7 +276,7 @@ const ShiftCard = ({ shift, onSelect }: { shift: Shift; onSelect: (stakeholder: 
               </span>
             </div>
             <div className="flex items-center gap-2 flex-1">
-              <span style={{ color: '#6B7A8C' }}>Width</span>
+              <span style={{ color: '#6B7A8C' }}>Alignment</span>
               <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: '#1E2530' }}>
                 <div 
                   className="h-full rounded-full transition-all"
