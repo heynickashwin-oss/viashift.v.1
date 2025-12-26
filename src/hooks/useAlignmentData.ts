@@ -420,14 +420,14 @@ export function useAlignmentSummary(shiftId: string | undefined): AlignmentSumma
 // UTILITY: Format engagement bar
 // ============================================
 
-export function formatEngagementBar(depth: number, maxBars: number = 10): string {
-  const filled = Math.round(depth * maxBars);
+export function formatEngagementBar(engagement: number, maxBars: number = 10): string {
+  const filled = Math.round(engagement * maxBars);
   const empty = maxBars - filled;
   return '█'.repeat(filled) + '░'.repeat(empty);
 }
 
 // ============================================
-// UTILITY: Get missing stakeholder types
+// UTILITY: Get missing stakeholder types (for alignment)
 // ============================================
 
 export function getMissingStakeholderTypes(engaged: LinkType[]): LinkType[] {
@@ -435,10 +435,10 @@ export function getMissingStakeholderTypes(engaged: LinkType[]): LinkType[] {
 }
 
 // ============================================
-// UTILITY: Calculate width percentage
+// UTILITY: Calculate alignment percentage
 // ============================================
 
-export function calculateWidthPercent(engaged: LinkType[]): number {
+export function calculateAlignmentPercent(engaged: LinkType[]): number {
   const validTypes = engaged.filter(t => t !== 'all');
   return Math.round((validTypes.length / TARGET_STAKEHOLDER_TYPES.length) * 100);
 }
