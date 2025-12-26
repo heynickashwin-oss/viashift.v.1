@@ -5,6 +5,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import logo from '../assets/logo.svg';
 import { UserMenu } from '../components/ui/UserMenu';
+import { 
+  useAlignmentSummary, 
+  ALIGNMENT_STATUS_CONFIG,
+} from '../hooks/useAlignmentData';
 
 // ============================================
 // TYPES
@@ -115,12 +119,15 @@ const LoadingSkeleton = () => (
 );
 
 // ============================================
-// SHIFT CARD
+// SHIFT CARD (WITH ALIGNMENT INTEGRATION)
 // ============================================
 
 const ShiftCard = ({ shift, onSelect }: { shift: Shift; onSelect: (stakeholder: StakeholderType) => void }) => {
   const [showStakeholders, setShowStakeholders] = useState(false);
   const navigate = useNavigate();
+  
+  // NEW: Alignment data hook
+  const alignmentSummary = useAlignmentSummary(shift.id);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -145,6 +152,10 @@ const ShiftCard = ({ shift, onSelect }: { shift: Shift; onSelect: (stakeholder: 
   
   const advocateStatus = getAdvocateStatus(engagement);
   const advocateTime = formatAdvocateTime(engagement?.advocateLastSeen);
+
+  // NEW: Alignment status
+  const alignmentConfig = ALIGNMENT_STATUS_CONFIG[alignmentSummary.status];
+  const hasAlignmentData = alignmentSummary.viewers > 0 && !alignmentSummary.loading;
 
   return (
     <div
@@ -211,6 +222,80 @@ const ShiftCard = ({ shift, onSelect }: { shift: Shift; onSelect: (stakeholder: 
       <div className="text-sm mb-3" style={{ color: '#6B7A8C' }}>
         {formatDate(shift.created_at)}
       </div>
+
+      {/* ============================================ */}
+      {/* NEW: Alignment Status Section               */}
+      {/* ============================================ */}
+      {hasAlignmentData && (
+        <div 
+          className="mb-3 p-3 rounded-lg"
+          style={{ background: '#0A0E14', border: '1px solid #1E2530' }}
+        >
+          {/* Status badge + critical gaps */}
+          <div className="flex items-center justify-between mb-2">
+            <div 
+              className="flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium"
+              style={{ background: alignmentConfig.bgColor, color: alignmentConfig.color }}
+              title={alignmentConfig.description}
+            >
+              {alignmentSummary.status === 'ready' && <Check size={12} />}
+              {alignmentSummary.status === 'contested' && <AlertTriangle size={12} />}
+              {alignmentSummary.status === 'champion' && <Users size={12} />}
+              {alignmentSummary.status === 'lukewarm_consensus' && <Target size={12} />}
+              {alignmentConfig.label}
+            </div>
+            
+            {/* Critical gaps alert */}
+            {alignmentSummary.criticalGaps > 0 && (
+              <div 
+                className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
+                style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444' }}
+                title="High-value stakeholders who viewed but didn't engage"
+              >
+                <AlertTriangle size={12} />
+                {alignmentSummary.criticalGaps} gap{alignmentSummary.criticalGaps !== 1 ? 's' : ''}
+              </div>
+            )}
+          </div>
+          
+          {/* Depth/Width bars */}
+          <div className="flex gap-4 text-xs">
+            <div className="flex items-center gap-2 flex-1">
+              <span style={{ color: '#6B7A8C' }}>Depth</span>
+              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: '#1E2530' }}>
+                <div 
+                  className="h-full rounded-full transition-all"
+                  style={{ 
+                    width: `${alignmentSummary.depth * 100}%`, 
+                    background: alignmentConfig.color,
+                  }}
+                />
+              </div>
+              <span style={{ color: alignmentConfig.color, fontFamily: 'monospace', minWidth: '32px' }}>
+                {Math.round(alignmentSummary.depth * 100)}%
+              </span>
+            </div>
+            <div className="flex items-center gap-2 flex-1">
+              <span style={{ color: '#6B7A8C' }}>Width</span>
+              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: '#1E2530' }}>
+                <div 
+                  className="h-full rounded-full transition-all"
+                  style={{ 
+                    width: `${alignmentSummary.width * 100}%`, 
+                    background: alignmentConfig.color,
+                  }}
+                />
+              </div>
+              <span style={{ color: alignmentConfig.color, fontFamily: 'monospace', minWidth: '32px' }}>
+                {Math.round(alignmentSummary.width * 100)}%
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ============================================ */}
+      {/* END: Alignment Status Section               */}
+      {/* ============================================ */}
 
       {/* Engagement metrics */}
       <div 
@@ -280,8 +365,8 @@ const ShiftCard = ({ shift, onSelect }: { shift: Shift; onSelect: (stakeholder: 
             Choose perspective for {shift.company_input}
           </p>
           <div className="grid grid-cols-2 gap-2 w-full px-4">
-            {(Object.entries(stakeholderConfig) as [StakeholderType, typeof stakeholderConfig.all][]).map(([key, config]) => {
-              const Icon = config.icon;
+            {(Object.entries(stakeholderConfig) as [StakeholderType, typeof stakeholderConfig.all][]).map(([key, cfg]) => {
+              const Icon = cfg.icon;
               return (
                 <button
                   key={key}
@@ -293,9 +378,9 @@ const ShiftCard = ({ shift, onSelect }: { shift: Shift; onSelect: (stakeholder: 
                     color: 'rgba(255, 255, 255, 0.8)',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = `${config.color}20`;
-                    e.currentTarget.style.borderColor = `${config.color}50`;
-                    e.currentTarget.style.color = config.color;
+                    e.currentTarget.style.background = `${cfg.color}20`;
+                    e.currentTarget.style.borderColor = `${cfg.color}50`;
+                    e.currentTarget.style.color = cfg.color;
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
@@ -304,7 +389,7 @@ const ShiftCard = ({ shift, onSelect }: { shift: Shift; onSelect: (stakeholder: 
                   }}
                 >
                   <Icon size={14} />
-                  {config.label}
+                  {cfg.label}
                 </button>
               );
             })}
@@ -334,14 +419,16 @@ export const Dashboard = () => {
   const [limits, setLimits] = useState<{ tier: string; limit: number; used: number } | null>(null);
 
   useEffect(() => {
-    loadShifts();
+    if (user) {
+      loadShifts();
+    }
   }, [user]);
 
   const loadShifts = async () => {
-    if (!user?.id) return;
+    if (!user) return;
 
     try {
-      // Load shifts
+      // Fetch shifts
       const { data: shiftsData, error: shiftsError } = await supabase
         .from('shifts')
         .select('*')
@@ -350,15 +437,15 @@ export const Dashboard = () => {
 
       if (shiftsError) throw shiftsError;
 
-      // Load engagement data for all shifts
-      const shiftIds = (shiftsData || []).map(s => s.id);
+      // Fetch engagement data from node_interactions
+      const engagementMap: Record<string, ShiftEngagement> = {};
       
-      let engagementMap: Record<string, ShiftEngagement> = {};
-      
-      if (shiftIds.length > 0) {
+      if (shiftsData && shiftsData.length > 0) {
+        const shiftIds = shiftsData.map(s => s.id);
+        
         const { data: interactions, error: interactionsError } = await supabase
           .from('node_interactions')
-          .select('shift_id, interaction_type, viewer_type, created_at')
+          .select('*')
           .in('shift_id', shiftIds);
 
         if (!interactionsError && interactions) {
