@@ -791,20 +791,16 @@ useEffect(() => {
 
 {/* Stakeholder Comparison Cards - Top Band */}
 {comparisons && comparisons.length > 0 && !hideUI && (
-  console.log('Rendering NodeComparisonBand, comparisons:', comparisons.length),
   <NodeComparisonBand
-    ...
+    comparisons={comparisons}
+    nodePositions={nodePositions}
+    viewerType={viewerType}
+    visibleLayers={visibleLayers}
+    containerWidth={dimensions.width}
+    topOffset={80}
+    cycleDelay={5000}
   />
 )}
-          comparisons={comparisons}
-          nodePositions={nodePositions}
-          viewerType={viewerType}
-          visibleLayers={visibleLayers}
-          containerWidth={dimensions.width}
-          topOffset={80}
-          cycleDelay={5000}
-        />
-      )}
 
       {/* SVG for links and nodes */}
       <svg width={dimensions.width} height={dimensions.height} className="absolute inset-0">
