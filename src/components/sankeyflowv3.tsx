@@ -97,7 +97,11 @@ export interface SankeyFlowProps {
   editable?: boolean;
   onNodeValueChange?: (nodeId: string, newValue: string) => void;
   onLinkLabelChange?: (linkId: string, newLabel: string) => void;
-  narrative?: NarrativeScript; // ADD THIS
+  narrative?: NarrativeScript;
+  /** Stakeholder comparison data for alignment discovery */
+  comparisons?: NodeComparison[];
+  /** Current viewer type for comparison priority */
+  viewerType?: ViewerType;
 }
 
 // ============================================
@@ -253,10 +257,10 @@ const SankeyFlowV3Inner = ({
   editable = false,
   onNodeValueChange,
   onLinkLabelChange,
-    narrative,
+  narrative,
   comparisons = [],
   viewerType = 'default',
-}: SankeyFlowProps) =>  {
+}: SankeyFlowProps) => {
   const theme = useMemo(() => resolveTheme(brand), [brand]);
 
   // Narrative controller for phased storytelling
@@ -397,6 +401,34 @@ const SankeyFlowV3Inner = ({
     if (!layout) return 3;
     return Math.max(...layout.nodes.map(n => n.layer), 0);
   }, [layout]);
+  
+  // Calculate which layers are visible for comparison cards
+  // A layer is "visible" when its nodes have started drawing
+  const visibleLayers = useMemo((): number[] => {
+    const layers: number[] = [];
+    
+    // For after state with forge animation, use forge layer
+    // For before state, use draw progress
+    if (isForging) {
+      // Include all layers up to and including current forge layer
+      for (let layer = 0; layer <= forgeLayer; layer++) {
+        layers.push(layer);
+      }
+    } else {
+      // Use draw progress for before state
+      for (let layer = 0; layer <= maxLayer; layer++) {
+        const layerDuration = 0.4;
+        const layerOverlap = 0.15;
+        const layerStart = layer * (layerDuration - layerOverlap);
+        
+        if (drawProgress > layerStart + 0.1) {
+          layers.push(layer);
+        }
+      }
+    }
+    
+    return layers;
+  }, [maxLayer, drawProgress, isForging, forgeLayer]);
 
   // Calculate progress for a specific layer based on overall draw progress
   // Layers overlap slightly for smoother visual flow
@@ -756,6 +788,19 @@ useEffect(() => {
           zIndex: exitPhase !== 'none' ? 100 : -1,
         }}
       />
+
+      {/* Stakeholder Comparison Cards - Top Band */}
+      {comparisons && comparisons.length > 0 && !hideUI && (
+        <NodeComparisonBand
+          comparisons={comparisons}
+          nodePositions={nodePositions}
+          viewerType={viewerType}
+          visibleLayers={visibleLayers}
+          containerWidth={dimensions.width}
+          topOffset={80}
+          cycleDelay={5000}
+        />
+      )}
 
       {/* SVG for links and nodes */}
       <svg width={dimensions.width} height={dimensions.height} className="absolute inset-0">
