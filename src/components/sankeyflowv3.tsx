@@ -1,5 +1,12 @@
 /**
- * SankeyFlowV3 - v3.12
+ * SankeyFlowV3 - v3.13
+ *
+ * CHANGES from v3.12:
+ * - FIXED: Proper Sankey layout behavior
+ *   - Node height now equals sum of incoming/outgoing flow thicknesses
+ *   - Flows stack vertically at node edges (no more overlapping)
+ *   - Nodes within layers are vertically centered and properly spaced
+ *   - Links sorted for consistent visual stacking order
  *
  * CHANGES from v3.11:
  * - FIXED: Flow thickness now proportional to value (was capped/floored incorrectly)
@@ -328,50 +335,155 @@ const SankeyFlowV3Inner = ({
   // This ensures layout only changes when data or dimensions actually change
   const layout = useMemo(() => {
     if (!state.data.nodes.length || dimensions.width < 100) return null;
-    const { padding, nodeWidth, nodeMinHeight, nodeMaxHeight } = LAYOUT;
-    const nodes: LayoutNode[] = [];
-    const nodeMap = new Map<string, LayoutNode>();
+    const { padding, nodeWidth } = LAYOUT;
     const maxLayer = Math.max(...state.data.nodes.map(n => n.layer), 0);
     const usableWidth = dimensions.width - padding.left - padding.right;
+    const usableHeight = dimensions.height - padding.top - padding.bottom;
+
+    // Step 1: Calculate link thicknesses first (needed for node heights)
+    const maxLinkValue = Math.max(...state.data.links.map(l => l.value), 1);
+    const minThickness = 4;
+    const maxThickness = 40;
+    
+    const linkThicknesses = new Map<string, number>();
+    state.data.links.forEach((link, i) => {
+      const thickness = minThickness + (link.value / maxLinkValue) * (maxThickness - minThickness);
+      linkThicknesses.set(link.id || `link-${i}`, thickness);
+    });
+
+    // Step 2: Calculate incoming/outgoing flow sums for each node
+    const nodeIncoming = new Map<string, number>();
+    const nodeOutgoing = new Map<string, number>();
+    
+    state.data.nodes.forEach(n => {
+      nodeIncoming.set(n.id, 0);
+      nodeOutgoing.set(n.id, 0);
+    });
+    
+    state.data.links.forEach((link, i) => {
+      const thickness = linkThicknesses.get(link.id || `link-${i}`) || minThickness;
+      nodeOutgoing.set(link.from, (nodeOutgoing.get(link.from) || 0) + thickness);
+      nodeIncoming.set(link.to, (nodeIncoming.get(link.to) || 0) + thickness);
+    });
+
+    // Step 3: Group nodes by layer and calculate node heights
     const nodesByLayer = new Map<number, SankeyNode[]>();
     state.data.nodes.forEach(n => {
       const arr = nodesByLayer.get(n.layer) || [];
       arr.push(n);
       nodesByLayer.set(n.layer, arr);
     });
-    const maxValue = Math.max(...state.data.nodes.map(n => n.value), 1);
-    state.data.nodes.forEach(node => {
-      const layerNodes = nodesByLayer.get(node.layer) || [];
-      const idx = layerNodes.indexOf(node);
-      const totalInLayer = layerNodes.length;
-      const yPos = node.y ?? (idx + 1) / (totalInLayer + 1);
-      
-      const heightRatio = node.value / maxValue;
-      const height = Math.max(nodeMinHeight, Math.min(nodeMaxHeight, heightRatio * nodeMaxHeight * 1.2));
-      const xPercent = layerXPercent[node.layer] ?? (node.layer / Math.max(maxLayer, 1));
-      const layoutNode: LayoutNode = {
-        ...node,
-        x: padding.left + xPercent * usableWidth,
-        y: padding.top + yPos * (dimensions.height - padding.top - padding.bottom),
-        width: nodeWidth,
-        height,
-      };
-      nodes.push(layoutNode);
-      nodeMap.set(node.id, layoutNode);
-    });
-    // Calculate max link value for proportional thickness
-    const maxLinkValue = Math.max(...state.data.links.map(l => l.value), 1);
-    const minThickness = 4;
-    const maxThickness = 40;
 
-    const links: LayoutLink[] = state.data.links.map((link, i) => {
+    // Sort nodes within each layer by their y position
+    nodesByLayer.forEach((layerNodes, layer) => {
+      layerNodes.sort((a, b) => (a.y ?? 0.5) - (b.y ?? 0.5));
+    });
+
+    // Step 4: Position nodes with heights based on flow sums
+    const nodes: LayoutNode[] = [];
+    const nodeMap = new Map<string, LayoutNode>();
+    const minNodeHeight = 20;
+    const nodeGap = 30; // Gap between nodes in same layer
+
+    // Calculate total height needed per layer to scale appropriately
+    const layerHeights = new Map<number, number>();
+    nodesByLayer.forEach((layerNodes, layer) => {
+      let totalHeight = 0;
+      layerNodes.forEach(node => {
+        const incoming = nodeIncoming.get(node.id) || 0;
+        const outgoing = nodeOutgoing.get(node.id) || 0;
+        const height = Math.max(minNodeHeight, incoming, outgoing);
+        totalHeight += height;
+      });
+      totalHeight += (layerNodes.length - 1) * nodeGap;
+      layerHeights.set(layer, totalHeight);
+    });
+
+    // Find max layer height for scaling
+    const maxLayerHeight = Math.max(...Array.from(layerHeights.values()), 1);
+    const scaleFactor = Math.min(1, (usableHeight * 0.85) / maxLayerHeight);
+
+    nodesByLayer.forEach((layerNodes, layer) => {
+      const xPercent = layerXPercent[layer] ?? (layer / Math.max(maxLayer, 1));
+      const x = padding.left + xPercent * usableWidth;
+      
+      // Calculate total height for this layer
+      let totalLayerHeight = 0;
+      const nodeHeights: number[] = [];
+      layerNodes.forEach(node => {
+        const incoming = nodeIncoming.get(node.id) || 0;
+        const outgoing = nodeOutgoing.get(node.id) || 0;
+        const height = Math.max(minNodeHeight, incoming, outgoing) * scaleFactor;
+        nodeHeights.push(height);
+        totalLayerHeight += height;
+      });
+      totalLayerHeight += (layerNodes.length - 1) * nodeGap * scaleFactor;
+
+      // Center the layer vertically
+      let currentY = padding.top + (usableHeight - totalLayerHeight) / 2;
+
+      layerNodes.forEach((node, idx) => {
+        const height = nodeHeights[idx];
+        
+        const layoutNode: LayoutNode = {
+          ...node,
+          x,
+          y: currentY,
+          width: nodeWidth,
+          height,
+        };
+        
+        nodes.push(layoutNode);
+        nodeMap.set(node.id, layoutNode);
+        
+        currentY += height + nodeGap * scaleFactor;
+      });
+    });
+
+    // Step 5: Create links with proper Y offsets (stacked, not overlapping)
+    // Track current Y offset at each node's edges
+    const nodeSourceOffset = new Map<string, number>(); // Right edge (outgoing)
+    const nodeTargetOffset = new Map<string, number>(); // Left edge (incoming)
+    
+    nodes.forEach(node => {
+      nodeSourceOffset.set(node.id, 0);
+      nodeTargetOffset.set(node.id, 0);
+    });
+
+    // Sort links by source node Y, then target node Y for consistent stacking
+    const sortedLinks = [...state.data.links].sort((a, b) => {
+      const sourceA = nodeMap.get(a.from);
+      const sourceB = nodeMap.get(b.from);
+      const targetA = nodeMap.get(a.to);
+      const targetB = nodeMap.get(b.to);
+      
+      if (!sourceA || !sourceB || !targetA || !targetB) return 0;
+      
+      // First sort by source Y
+      if (sourceA.y !== sourceB.y) return sourceA.y - sourceB.y;
+      // Then by target Y
+      return targetA.y - targetB.y;
+    });
+
+    const links: LayoutLink[] = sortedLinks.map((link, i) => {
       const source = nodeMap.get(link.from);
       const target = nodeMap.get(link.to);
       if (!source || !target) return null;
+
+      const thickness = linkThicknesses.get(link.id || `link-${i}`) || minThickness;
+      
+      // Get current offsets and advance them
+      const sourceOffset = nodeSourceOffset.get(link.from) || 0;
+      const targetOffset = nodeTargetOffset.get(link.to) || 0;
+      
+      nodeSourceOffset.set(link.from, sourceOffset + thickness);
+      nodeTargetOffset.set(link.to, targetOffset + thickness);
+
+      // Calculate Y positions (center of this flow's band)
+      const y0 = source.y + sourceOffset + thickness / 2;
+      const y1 = target.y + targetOffset + thickness / 2;
       const x0 = source.x + source.width;
-      const y0 = source.y;
       const x1 = target.x;
-      const y1 = target.y;
       const dx = x1 - x0;
 
       // Calculate bezier midpoint at t=0.5 for label positioning
@@ -383,9 +495,6 @@ const SankeyFlowV3Inner = ({
         x: mt*mt*mt*x0 + 3*mt*mt*t*cp1x + 3*mt*t*t*cp2x + t*t*t*x1,
         y: mt*mt*mt*y0 + 3*mt*mt*t*y0 + 3*mt*t*t*y1 + t*t*t*y1,
       };
-
-      // Proportional thickness based on value relative to max
-      const thickness = minThickness + (link.value / maxLinkValue) * (maxThickness - minThickness);
 
       return {
         id: link.id || `link-${i}`,
