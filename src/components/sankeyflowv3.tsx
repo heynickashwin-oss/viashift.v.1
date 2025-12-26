@@ -1,5 +1,14 @@
 /**
- * SankeyFlowV3 - v3.14
+ * SankeyFlowV3 - v3.15
+ *
+ * CHANGES from v3.14:
+ * - FIXED: Node height now correctly matches flow heights
+ *   - Link thicknesses are now scaled same as node heights
+ *   - Flows should align perfectly with node edges
+ * - IMPROVED: Node highlight indicator for comparison cards
+ *   - Changed from cyan (conflicts with flows) to white dashed border
+ *   - Added subtle leader line pointing up toward cards
+ *   - Clearer visual distinction from flow colors
  *
  * CHANGES from v3.13:
  * - Increased vertical spacing between nodes (nodeGap: 30 → 60)
@@ -348,14 +357,17 @@ const SankeyFlowV3Inner = ({
     const usableHeight = dimensions.height - padding.top - padding.bottom;
 
     // Step 1: Calculate link thicknesses first (needed for node heights)
+    // Use stable IDs based on from-to pair to survive sorting
     const maxLinkValue = Math.max(...state.data.links.map(l => l.value), 1);
     const minThickness = 4;
     const maxThickness = 40;
     
+    const getLinkId = (link: SankeyLink, index: number) => link.id || `${link.from}->${link.to}-${index}`;
+    
     const linkThicknesses = new Map<string, number>();
     state.data.links.forEach((link, i) => {
       const thickness = minThickness + (link.value / maxLinkValue) * (maxThickness - minThickness);
-      linkThicknesses.set(link.id || `link-${i}`, thickness);
+      linkThicknesses.set(getLinkId(link, i), thickness);
     });
 
     // Step 2: Calculate incoming/outgoing flow sums for each node
@@ -368,7 +380,8 @@ const SankeyFlowV3Inner = ({
     });
     
     state.data.links.forEach((link, i) => {
-      const thickness = linkThicknesses.get(link.id || `link-${i}`) || minThickness;
+      const linkId = getLinkId(link, i);
+      const thickness = linkThicknesses.get(linkId) || minThickness;
       nodeOutgoing.set(link.from, (nodeOutgoing.get(link.from) || 0) + thickness);
       nodeIncoming.set(link.to, (nodeIncoming.get(link.to) || 0) + thickness);
     });
@@ -409,6 +422,14 @@ const SankeyFlowV3Inner = ({
     // Find max layer height for scaling
     const maxLayerHeight = Math.max(...Array.from(layerHeights.values()), 1);
     const scaleFactor = Math.min(1.2, (usableHeight * 0.9) / maxLayerHeight);
+
+    // Store scaled thicknesses for link creation
+    const scaledLinkThicknesses = new Map<string, number>();
+    state.data.links.forEach((link, i) => {
+      const linkId = getLinkId(link, i);
+      const baseThickness = linkThicknesses.get(linkId) || minThickness;
+      scaledLinkThicknesses.set(linkId, baseThickness * scaleFactor);
+    });
 
     nodesByLayer.forEach((layerNodes, layer) => {
       const xPercent = layerXPercent[layer] ?? (layer / Math.max(maxLayer, 1));
@@ -472,12 +493,21 @@ const SankeyFlowV3Inner = ({
       return targetA.y - targetB.y;
     });
 
+    // Create a lookup for thicknesses by from->to since we'll sort links
+    const thicknessByFromTo = new Map<string, number>();
+    state.data.links.forEach((link, i) => {
+      const linkId = getLinkId(link, i);
+      const thickness = scaledLinkThicknesses.get(linkId) || minThickness * scaleFactor;
+      thicknessByFromTo.set(`${link.from}->${link.to}`, thickness);
+    });
+
     const links: LayoutLink[] = sortedLinks.map((link, i) => {
       const source = nodeMap.get(link.from);
       const target = nodeMap.get(link.to);
       if (!source || !target) return null;
 
-      const thickness = linkThicknesses.get(link.id || `link-${i}`) || minThickness;
+      // Look up thickness by from->to pair (survives sorting)
+      const thickness = thicknessByFromTo.get(`${link.from}->${link.to}`) || minThickness * scaleFactor;
       
       // Get current offsets and advance them
       const sourceOffset = nodeSourceOffset.get(link.from) || 0;
@@ -504,7 +534,7 @@ const SankeyFlowV3Inner = ({
       };
 
       return {
-        id: link.id || `link-${i}`,
+        id: link.id || `${link.from}->${link.to}`,
         from: link.from,
         to: link.to,
         value: link.value,
@@ -1143,23 +1173,36 @@ useEffect(() => {
                 type: node.type || 'default' 
 })}
               >
-                {/* Highlight glow for comparison card active node */}
+                {/* Highlight indicator for comparison card active node */}
                 {highlightedNodeId === node.id && (
-                  <rect
-                    x={-6}
-                    y={-6}
-                    width={node.width + 12}
-                    height={node.height + 12}
-                    rx={0}
-                    fill="none"
-                    stroke="#00D4E5"
-                    strokeWidth={2}
-                    opacity={0.8}
-                    filter="url(#solutionGlow)"
-                    style={{
-                      animation: 'glowPulse 2s ease-in-out infinite',
-                    }}
-                  />
+                  <>
+                    {/* Subtle white glow */}
+                    <rect
+                      x={-4}
+                      y={-4}
+                      width={node.width + 8}
+                      height={node.height + 8}
+                      rx={0}
+                      fill="none"
+                      stroke="rgba(255, 255, 255, 0.6)"
+                      strokeWidth={2}
+                      strokeDasharray="4 2"
+                      opacity={0.9}
+                      style={{
+                        animation: 'glowPulse 2s ease-in-out infinite',
+                      }}
+                    />
+                    {/* Vertical leader line hint - extends up toward cards */}
+                    <line
+                      x1={node.width / 2}
+                      y1={-4}
+                      x2={node.width / 2}
+                      y2={-25}
+                      stroke="rgba(255, 255, 255, 0.4)"
+                      strokeWidth={1}
+                      strokeDasharray="3 3"
+                    />
+                  </>
                 )}
                 
                 {/* Glow behind node */}
