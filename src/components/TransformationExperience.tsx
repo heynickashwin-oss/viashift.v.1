@@ -1,18 +1,27 @@
 /**
- * TransformationExperience - v3.7
+ * TransformationExperience - v3.8
  * 
  * Dual-layer visualization with ghost comparison
  * Now with narrative support for phased storytelling
  * Added: Stakeholder comparison cards via NodeComparisonBand (in SankeyFlowV3)
+ * Added: Viewer type selector for stakeholder perspective switching
  */
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { Share2, Eye } from 'lucide-react';
+import { Share2, Eye, ChevronDown } from 'lucide-react';
 import { SankeyFlowV3, FlowState } from './sankeyflowv3';
 import { BrandConfig, DEFAULT_BRAND, resolveTheme } from './branding/brandUtils';
 import { UserMenu } from './ui/UserMenu';
 import { NarrativeScript } from '../data/templates/b2bSalesEnablement';
 import type { NodeComparison, ViewerType } from '../types/stakeholderComparison';
+
+// Viewer type metadata for dropdown
+const VIEWER_OPTIONS: { value: ViewerType; label: string; icon: string }[] = [
+  { value: 'default', label: 'All Perspectives', icon: '👁️' },
+  { value: 'cfo', label: 'CFO View', icon: '💰' },
+  { value: 'ops', label: 'Operations View', icon: '⚙️' },
+  { value: 'sales', label: 'Sales View', icon: '📈' },
+];
 
 export interface TransformationStory {
   id: string;
@@ -45,6 +54,8 @@ export interface TransformationExperienceProps {
   };
   /** Current viewer type for comparison priority ordering */
   viewerType?: ViewerType;
+  /** Callback when viewer type changes */
+  onViewerTypeChange?: (viewerType: ViewerType) => void;
 }
 
 export const TransformationExperience = ({
@@ -63,11 +74,13 @@ export const TransformationExperience = ({
   onNodeClick,
   comparisons,
   viewerType = 'default',
+  onViewerTypeChange,
 }: TransformationExperienceProps) => {
   const [variant, setVariant] = useState<'before' | 'after'>('before');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [transitionPhase, setTransitionPhase] = useState<'idle' | 'anticipation' | 'shifting' | 'revealing'>('idle');
   const [brand] = useState<BrandConfig>(initialBrand || DEFAULT_BRAND);
+  const [viewerDropdownOpen, setViewerDropdownOpen] = useState(false);
 
   const [isHovered, setIsHovered] = useState(false);
   const [powerLevel, setPowerLevel] = useState(0);
@@ -259,6 +272,78 @@ export const TransformationExperience = ({
 
       {/* Toolbar - Top Right */}
       <div className="absolute top-6 right-6 z-30 flex items-center gap-3">
+        {/* Viewer Type Dropdown - only show when comparisons exist */}
+        {onViewerTypeChange && comparisons && (comparisons.currentState.length > 0 || comparisons.shiftedState.length > 0) && (
+          <div className="relative">
+            <button
+              onClick={() => setViewerDropdownOpen(!viewerDropdownOpen)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+              style={{
+                background: viewerType !== 'default' ? 'rgba(0, 212, 229, 0.15)' : 'rgba(255, 255, 255, 0.08)',
+                border: `1px solid ${viewerType !== 'default' ? 'rgba(0, 212, 229, 0.4)' : 'rgba(255, 255, 255, 0.15)'}`,
+                color: viewerType !== 'default' ? '#00D4E5' : 'rgba(255, 255, 255, 0.9)',
+              }}
+            >
+              <span>{VIEWER_OPTIONS.find(v => v.value === viewerType)?.icon}</span>
+              <span>{VIEWER_OPTIONS.find(v => v.value === viewerType)?.label}</span>
+              <ChevronDown size={14} style={{ 
+                transform: viewerDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.2s ease',
+              }} />
+            </button>
+            
+            {/* Dropdown menu */}
+            {viewerDropdownOpen && (
+              <>
+                {/* Click outside to close */}
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setViewerDropdownOpen(false)}
+                />
+                <div
+                  className="absolute top-full right-0 mt-2 py-1 rounded-lg z-50 min-w-[180px]"
+                  style={{
+                    background: 'rgba(0, 0, 0, 0.95)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+                  }}
+                >
+                  {VIEWER_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => {
+                        onViewerTypeChange(option.value);
+                        setViewerDropdownOpen(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-all duration-150"
+                      style={{
+                        background: viewerType === option.value ? 'rgba(0, 212, 229, 0.15)' : 'transparent',
+                        color: viewerType === option.value ? '#00D4E5' : 'rgba(255, 255, 255, 0.9)',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (viewerType !== option.value) {
+                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (viewerType !== option.value) {
+                          e.currentTarget.style.background = 'transparent';
+                        }
+                      }}
+                    >
+                      <span>{option.icon}</span>
+                      <span>{option.label}</span>
+                      {viewerType === option.value && (
+                        <span className="ml-auto text-xs">✓</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Preview Mode Toggle */}
         {onPreviewModeChange && (
           <button
