@@ -49,7 +49,7 @@ export const Shift = () => {
   const [error, setError] = useState<string | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showConfigPanel, setShowConfigPanel] = useState(false);
-  const [viewPhase, setViewPhase] = useState<ViewPhase>('sightline');
+  const [viewPhase, setViewPhase] = useState<ViewPhase>('transformation');
   const [previewMode, setPreviewMode] = useState<'seller' | 'champion'>('seller');
   const [showSharePrompt, setShowSharePrompt] = useState(false);
   const [sharePromptDismissedThisSession, setSharePromptDismissedThisSession] = useState(false);
@@ -358,7 +358,7 @@ export const Shift = () => {
           onNodeValueChange={handleNodeValueChange}
           onLinkLabelChange={handleLinkLabelChange}
           onNodeClick={handleNodeClick}
-          comparisons={processAutomationComparisons}
+          comparisons={shift?.template_id === 'process-automation' ? processAutomationComparisons : undefined}
           viewerType={viewerType}
         />
       )}
