@@ -105,10 +105,10 @@ export function AlignmentBadge({ shiftId, compact = false, showGaps = true }: Al
         )}
       </div>
       
-      {/* Depth/Width mini bars */}
+      {/* Engagement/Alignment mini bars */}
       <div className="flex gap-4 text-xs">
         <div className="flex items-center gap-2">
-          <span style={{ color: '#6B7A8C' }}>Depth</span>
+          <span style={{ color: '#6B7A8C' }}>Engagement</span>
           <div className="flex items-center gap-0.5">
             {[...Array(5)].map((_, i) => (
               <div
@@ -123,7 +123,7 @@ export function AlignmentBadge({ shiftId, compact = false, showGaps = true }: Al
           <span style={{ color: config.color }}>{Math.round(summary.depth * 100)}%</span>
         </div>
         <div className="flex items-center gap-2">
-          <span style={{ color: '#6B7A8C' }}>Width</span>
+          <span style={{ color: '#6B7A8C' }}>Alignment</span>
           <div className="flex items-center gap-0.5">
             {[...Array(5)].map((_, i) => (
               <div
