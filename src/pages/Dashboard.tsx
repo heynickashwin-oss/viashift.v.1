@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Eye, Users, DollarSign, Clock, Target, ThumbsUp, ThumbsDown, MessageSquare, Activity, User, AlertTriangle, Check } from 'lucide-react';
+import { Plus, Eye, Users, DollarSign, Clock, Target, ThumbsUp, ThumbsDown, MessageSquare, Activity, User, AlertTriangle, Check, Star, ChevronDown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import logo from '../assets/logo.svg';
@@ -35,6 +35,7 @@ interface Shift {
   shared_at?: string;
   logo_url?: string;
   engagement?: ShiftEngagement;
+  is_favorite?: boolean;
 }
 
 type StakeholderType = 'all' | 'finance' | 'ops' | 'sales';
@@ -122,7 +123,11 @@ const LoadingSkeleton = () => (
 // SHIFT CARD (WITH ALIGNMENT INTEGRATION)
 // ============================================
 
-const ShiftCard = ({ shift, onSelect }: { shift: Shift; onSelect: (stakeholder: StakeholderType) => void }) => {
+const ShiftCard = ({ shift, onSelect, onToggleFavorite }: { 
+  shift: Shift; 
+  onSelect: (stakeholder: StakeholderType) => void;
+  onToggleFavorite: (shiftId: string, e: React.MouseEvent) => void;
+}) => {
   const [showStakeholders, setShowStakeholders] = useState(false);
   const navigate = useNavigate();
   
@@ -169,6 +174,21 @@ const ShiftCard = ({ shift, onSelect }: { shift: Shift; onSelect: (stakeholder: 
       onMouseEnter={() => setShowStakeholders(true)}
       onMouseLeave={() => setShowStakeholders(false)}
     >
+      {/* Favorite star */}
+      <button
+        onClick={(e) => onToggleFavorite(shift.id, e)}
+        className="absolute top-3 left-3 p-1.5 rounded-full transition-all hover:scale-110"
+        style={{ 
+          background: shift.is_favorite ? 'rgba(250, 204, 21, 0.15)' : 'transparent',
+        }}
+      >
+        <Star 
+          size={16} 
+          fill={shift.is_favorite ? '#FACC15' : 'none'}
+          style={{ color: shift.is_favorite ? '#FACC15' : '#4A5568' }}
+        />
+      </button>
+
       {/* Activity state indicator */}
       <div 
         className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
@@ -417,6 +437,41 @@ export const Dashboard = () => {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
   const [limits, setLimits] = useState<{ tier: string; limit: number; used: number } | null>(null);
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'alphabetical' | 'most_active' | 'last_activity'>('newest');
+
+  // Sort shifts based on selected option
+  const sortedShifts = useMemo(() => {
+    const sorted = [...shifts];
+    switch (sortBy) {
+      case 'newest':
+        return sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      case 'oldest':
+        return sorted.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      case 'alphabetical':
+        return sorted.sort((a, b) => a.company_input.localeCompare(b.company_input));
+      case 'most_active':
+        return sorted.sort((a, b) => {
+          const aActivity = (a.engagement?.clicks || 0) + (a.engagement?.thumbsUp || 0) + (a.engagement?.thumbsDown || 0);
+          const bActivity = (b.engagement?.clicks || 0) + (b.engagement?.thumbsUp || 0) + (b.engagement?.thumbsDown || 0);
+          return bActivity - aActivity;
+        });
+      case 'last_activity':
+        return sorted.sort((a, b) => {
+          const aTime = a.engagement?.lastActivity ? new Date(a.engagement.lastActivity).getTime() : 0;
+          const bTime = b.engagement?.lastActivity ? new Date(b.engagement.lastActivity).getTime() : 0;
+          return bTime - aTime;
+        });
+      default:
+        return sorted;
+    }
+  }, [shifts, sortBy]);
+
+  // Separate favorites to top
+  const displayShifts = useMemo(() => {
+    const favorites = sortedShifts.filter(s => s.is_favorite);
+    const others = sortedShifts.filter(s => !s.is_favorite);
+    return [...favorites, ...others];
+  }, [sortedShifts]);
 
   useEffect(() => {
     if (user) {
@@ -529,6 +584,33 @@ export const Dashboard = () => {
     navigate(`/shift/${shiftId}?stakeholder=${stakeholder}`);
   };
 
+  const toggleFavorite = async (shiftId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const shift = shifts.find(s => s.id === shiftId);
+    if (!shift) return;
+
+    const newValue = !shift.is_favorite;
+    
+    // Optimistic update
+    setShifts(prev => prev.map(s => 
+      s.id === shiftId ? { ...s, is_favorite: newValue } : s
+    ));
+
+    // Persist to DB
+    const { error } = await supabase
+      .from('shifts')
+      .update({ is_favorite: newValue })
+      .eq('id', shiftId);
+
+    if (error) {
+      // Revert on error
+      setShifts(prev => prev.map(s => 
+        s.id === shiftId ? { ...s, is_favorite: !newValue } : s
+      ));
+      console.error('Error updating favorite:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div
@@ -639,18 +721,46 @@ export const Dashboard = () => {
           </div>
         ) : (
           <>
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold" style={{ color: '#F5F5F5' }}>Your Shifts</h1>
-              <p className="mt-2" style={{ color: '#6B7A8C' }}>
-                {shifts.length} {shifts.length === 1 ? 'shift' : 'shifts'} • Hover to choose perspective
-              </p>
+            <div className="mb-8 flex items-end justify-between">
+              <div>
+                <h1 className="text-3xl font-bold" style={{ color: '#F5F5F5' }}>Your Shifts</h1>
+                <p className="mt-2" style={{ color: '#6B7A8C' }}>
+                  {shifts.length} {shifts.length === 1 ? 'shift' : 'shifts'} • Hover to choose perspective
+                </p>
+              </div>
+              {/* Sort dropdown */}
+              <div className="relative">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                  className="appearance-none px-4 py-2 pr-8 rounded-lg text-sm font-medium cursor-pointer"
+                  style={{ 
+                    background: '#1E2530', 
+                    border: '1px solid #2A3441', 
+                    color: '#F5F5F5',
+                    outline: 'none',
+                  }}
+                >
+                  <option value="newest">Newest first</option>
+                  <option value="oldest">Oldest first</option>
+                  <option value="alphabetical">A-Z</option>
+                  <option value="most_active">Most active</option>
+                  <option value="last_activity">Recent activity</option>
+                </select>
+                <ChevronDown 
+                  size={16} 
+                  className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                  style={{ color: '#6B7A8C' }}
+                />
+              </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {shifts.map((shift) => (
+              {displayShifts.map((shift) => (
                 <ShiftCard
                   key={shift.id}
                   shift={shift}
                   onSelect={(stakeholder) => handleShiftSelect(shift.id, stakeholder)}
+                  onToggleFavorite={toggleFavorite}
                 />
               ))}
             </div>
