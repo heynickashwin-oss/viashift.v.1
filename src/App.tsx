@@ -7,6 +7,7 @@ import { CompanyInput } from './pages/CompanyInput';
 import { Shift } from './pages/Shift';
 import { ViewShift } from './pages/ViewShift';
 import FeedbackDropbox from './components/FeedbackDropbox';
+import { StakeholderSankeyPOC } from './pages/StakeholderSankeyPOC';
 
 function RootRedirect() {
   const { user, loading } = useAuth();
@@ -37,6 +38,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/view/:id" element={<ViewShift />} />
           <Route path="/feedback" element={<FeedbackDropbox />} />
+          <Route path="/poc" element={<StakeholderSankeyPOC />} />
           <Route
             path="/create"
             element={
