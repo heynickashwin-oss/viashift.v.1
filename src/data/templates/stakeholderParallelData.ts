@@ -76,16 +76,16 @@ const ordersCurrentData: SankeyData = {
     
     // Layer 1: CLASSIFICATION
     { id: 'valid', label: 'Valid Orders', layer: 1, value: 485, type: 'default', displayValue: '485 orders' },
-    { id: 'invalid', label: 'Invalid/Flagged', layer: 1, value: 15, type: 'loss', displayValue: '15 orders' },
+    { id: 'invalid', label: 'Invalid/Flagged', layer: 1, value: 15, type: 'default', displayValue: '15 orders' },
     
-    // Layer 2: PROCESSING
-    { id: 'manual-process', label: 'Manual Processing', layer: 2, value: 485, type: 'loss', displayValue: '485 orders' },
+    // Layer 2: PROCESSING (intermediate - not loss)
+    { id: 'manual-process', label: 'Manual Processing', layer: 2, value: 485, type: 'default', displayValue: '485 orders' },
     
-    // Layer 3: OUTCOMES
+    // Layer 3: OUTCOMES (intermediate - not loss yet)
     { id: 'processed-ok', label: 'Processed OK', layer: 3, value: 398, type: 'default', displayValue: '398 (82%)' },
-    { id: 'errors', label: 'Errors & Rework', layer: 3, value: 87, type: 'loss', displayValue: '87 errors (18%)' },
+    { id: 'errors', label: 'Errors & Rework', layer: 3, value: 87, type: 'default', displayValue: '87 (18%)' },
     
-    // Layer 4: FINAL
+    // Layer 4: FINAL OUTCOMES (terminal - these get loss/revenue)
     { id: 'on-time', label: '✓ On-Time', layer: 4, value: 360, type: 'revenue', displayValue: '360 orders (72%)' },
     { id: 'delayed', label: '⚠ Delayed', layer: 4, value: 110, type: 'loss', displayValue: '110 orders (22%)' },
     { id: 'escalated', label: '✗ Escalated', layer: 4, value: 30, type: 'loss', displayValue: '30 orders (6%)' },
@@ -126,15 +126,15 @@ const dollarsCurrentData: SankeyData = {
     // Layer 0: INPUT
     { id: 'budget', label: 'Weekly Budget', layer: 0, value: 4100, type: 'source', displayValue: '$4,100/wk' },
     
-    // Layer 1: ALLOCATION
+    // Layer 1: ALLOCATION (intermediate)
     { id: 'validation-cost', label: 'Validation', layer: 1, value: 292, type: 'default', displayValue: '$292' },
     { id: 'labor-pool', label: 'Processing Labor', layer: 1, value: 3808, type: 'default', displayValue: '$3,808' },
     
-    // Layer 2: DISTRIBUTION
-    { id: 'productive-labor', label: 'Productive Work', layer: 2, value: 2513, type: 'revenue', displayValue: '$2,513' },
-    { id: 'error-cost', label: 'Error Handling', layer: 2, value: 1545, type: 'loss', displayValue: '$1,545' },
+    // Layer 2: DISTRIBUTION (intermediate - NOT loss yet, money can still recover)
+    { id: 'productive-labor', label: 'Productive Work', layer: 2, value: 2513, type: 'default', displayValue: '$2,513' },
+    { id: 'error-cost', label: 'Error Handling', layer: 2, value: 1545, type: 'default', displayValue: '$1,545' },
     
-    // Layer 3: OUTCOMES
+    // Layer 3: FINAL OUTCOMES (terminal - these get loss/revenue)
     { id: 'value-created', label: '✓ Value Created', layer: 3, value: 3113, type: 'revenue', displayValue: '$3,113 (76%)' },
     { id: 'waste', label: '✗ Pure Waste', layer: 3, value: 987, type: 'loss', displayValue: '$987 (24%)' },
   ],
@@ -171,15 +171,15 @@ const timeCurrentData: SankeyData = {
     // Layer 0: INPUT
     { id: 'capacity', label: 'Team Capacity', layer: 0, value: 117, type: 'source', displayValue: '117 hrs/wk' },
     
-    // Layer 1: ALLOCATION
+    // Layer 1: ALLOCATION (intermediate)
     { id: 'validation-time', label: 'Validation', layer: 1, value: 8, type: 'default', displayValue: '8 hrs' },
     { id: 'processing-time', label: 'Processing', layer: 1, value: 109, type: 'default', displayValue: '109 hrs' },
     
-    // Layer 2: DISTRIBUTION
-    { id: 'productive-time', label: 'Productive Work', layer: 2, value: 72, type: 'revenue', displayValue: '72 hrs' },
-    { id: 'error-time', label: 'Error Handling', layer: 2, value: 44, type: 'loss', displayValue: '44 hrs' },
+    // Layer 2: DISTRIBUTION (intermediate - NOT loss yet, time can still be productive)
+    { id: 'productive-time', label: 'Productive Work', layer: 2, value: 72, type: 'default', displayValue: '72 hrs' },
+    { id: 'error-time', label: 'Error Handling', layer: 2, value: 44, type: 'default', displayValue: '44 hrs' },
     
-    // Layer 3: OUTCOMES
+    // Layer 3: FINAL OUTCOMES (terminal - these get loss/revenue)
     { id: 'value-hours', label: '✓ Value-Adding', layer: 3, value: 87, type: 'revenue', displayValue: '87 hrs (74%)' },
     { id: 'lost-time', label: '✗ Lost Capacity', layer: 3, value: 30, type: 'loss', displayValue: '30 hrs (26%)' },
   ],
