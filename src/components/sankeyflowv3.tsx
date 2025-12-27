@@ -1303,6 +1303,7 @@ useEffect(() => {
       </svg>
 
       {/* Brand logo - top left */}
+      {!hideUI && (
       <div className="absolute top-7 left-8 z-30 flex items-center gap-3.5">
         {brand.logoUrl ? (
           <div className="px-3 py-2 rounded-lg" style={{ background: 'rgba(255, 255, 255, 0.08)' }}>
@@ -1327,8 +1328,10 @@ useEffect(() => {
           </>
         )}
       </div>
+      )}
 
       {/* State label - top center */}
+      {!hideUI && (
       <div
         className="absolute top-7 left-1/2 -translate-x-1/2 z-20"
         style={{
@@ -1350,6 +1353,7 @@ useEffect(() => {
           {state.stageLabel}
         </div>
       </div>
+      )}
 
     {/* Stage labels */}
       <div
