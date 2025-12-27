@@ -1144,7 +1144,7 @@ useEffect(() => {
                   }}
                 />
 
-                {/* Flow label at midpoint - shows order count only */}
+                {/* Flow label at midpoint - shows displayLabel or value */}
                 {showLabels && layerDrawProgress > 0.6 && (
                   <g
                     transform={`translate(${link.midpoint.x}, ${link.midpoint.y})`}
@@ -1154,9 +1154,9 @@ useEffect(() => {
                     }}
                   >
                     <rect
-                      x={-24}
+                      x={-32}
                       y={-10}
-                      width={48}
+                      width={64}
                       height={20}
                       rx={4}
                       fill="rgba(0, 0, 0, 0.85)"
@@ -1173,7 +1173,7 @@ useEffect(() => {
                       fontWeight={500}
                       fontFamily="Inter, system-ui, sans-serif"
                     >
-                      {link.value}
+                      {link.displayLabel || link.value}
                     </text>
                   </g>
                 )}
