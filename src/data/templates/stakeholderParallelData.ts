@@ -72,42 +72,42 @@ export const viewConfigs: Record<StakeholderViewType, StakeholderViewConfig> = {
 const ordersCurrentData: SankeyData = {
   nodes: [
     // Layer 0: INPUT
-    { id: 'intake', label: 'Order Intake', layer: 0, value: 500, type: 'source', displayValue: '500/wk' },
+    { id: 'intake', label: 'Order Intake', layer: 0, value: 500, type: 'source', displayValue: '500 orders/wk' },
     
     // Layer 1: CLASSIFICATION
-    { id: 'valid', label: 'Valid Orders', layer: 1, value: 485, type: 'default', displayValue: '485' },
-    { id: 'invalid', label: 'Invalid/Flagged', layer: 1, value: 15, type: 'loss', displayValue: '15' },
+    { id: 'valid', label: 'Valid Orders', layer: 1, value: 485, type: 'default', displayValue: '485 orders' },
+    { id: 'invalid', label: 'Invalid/Flagged', layer: 1, value: 15, type: 'loss', displayValue: '15 orders' },
     
     // Layer 2: PROCESSING
-    { id: 'manual-process', label: 'Manual Processing', layer: 2, value: 485, type: 'loss', displayValue: '485' },
+    { id: 'manual-process', label: 'Manual Processing', layer: 2, value: 485, type: 'loss', displayValue: '485 orders' },
     
     // Layer 3: OUTCOMES
     { id: 'processed-ok', label: 'Processed OK', layer: 3, value: 398, type: 'default', displayValue: '398 (82%)' },
-    { id: 'errors', label: 'Errors & Rework', layer: 3, value: 87, type: 'loss', displayValue: '87 (18%)' },
+    { id: 'errors', label: 'Errors & Rework', layer: 3, value: 87, type: 'loss', displayValue: '87 errors (18%)' },
     
     // Layer 4: FINAL
-    { id: 'on-time', label: 'On-Time Delivery', layer: 4, value: 360, type: 'revenue', displayValue: '72%' },
-    { id: 'delayed', label: 'Delayed', layer: 4, value: 110, type: 'loss', displayValue: '110' },
-    { id: 'escalated', label: 'Escalated', layer: 4, value: 30, type: 'loss', displayValue: '30' },
+    { id: 'on-time', label: '✓ On-Time', layer: 4, value: 360, type: 'revenue', displayValue: '360 orders (72%)' },
+    { id: 'delayed', label: '⚠ Delayed', layer: 4, value: 110, type: 'loss', displayValue: '110 orders (22%)' },
+    { id: 'escalated', label: '✗ Escalated', layer: 4, value: 30, type: 'loss', displayValue: '30 orders (6%)' },
   ],
   links: [
     // Intake → Classification
-    { from: 'intake', to: 'valid', value: 485, type: 'default' },
-    { from: 'intake', to: 'invalid', value: 15, type: 'loss' },
+    { from: 'intake', to: 'valid', value: 485, type: 'default', displayLabel: '485' },
+    { from: 'intake', to: 'invalid', value: 15, type: 'loss', displayLabel: '15' },
     
     // Classification → Processing
-    { from: 'valid', to: 'manual-process', value: 485, type: 'default' },
+    { from: 'valid', to: 'manual-process', value: 485, type: 'default', displayLabel: '485' },
     
     // Processing → Outcomes
-    { from: 'manual-process', to: 'processed-ok', value: 398, type: 'default' },
-    { from: 'manual-process', to: 'errors', value: 87, type: 'loss', displayLabel: '18% errors' },
+    { from: 'manual-process', to: 'processed-ok', value: 398, type: 'default', displayLabel: '398' },
+    { from: 'manual-process', to: 'errors', value: 87, type: 'loss', displayLabel: '87 (18%)' },
     
     // Outcomes → Final
-    { from: 'processed-ok', to: 'on-time', value: 350, type: 'revenue' },
-    { from: 'processed-ok', to: 'delayed', value: 48, type: 'default' },
-    { from: 'errors', to: 'delayed', value: 62, type: 'loss' },
-    { from: 'errors', to: 'escalated', value: 25, type: 'loss' },
-    { from: 'invalid', to: 'escalated', value: 5, type: 'loss' },
+    { from: 'processed-ok', to: 'on-time', value: 350, type: 'revenue', displayLabel: '350' },
+    { from: 'processed-ok', to: 'delayed', value: 48, type: 'default', displayLabel: '48' },
+    { from: 'errors', to: 'delayed', value: 62, type: 'loss', displayLabel: '62' },
+    { from: 'errors', to: 'escalated', value: 25, type: 'loss', displayLabel: '25' },
+    { from: 'invalid', to: 'escalated', value: 5, type: 'loss', displayLabel: '5' },
   ],
 };
 
@@ -135,24 +135,24 @@ const dollarsCurrentData: SankeyData = {
     { id: 'error-cost', label: 'Error Handling', layer: 2, value: 1545, type: 'loss', displayValue: '$1,545' },
     
     // Layer 3: OUTCOMES
-    { id: 'value-created', label: 'Value Created', layer: 3, value: 3113, type: 'revenue', displayValue: '$3,113 (76%)' },
-    { id: 'waste', label: 'Pure Waste', layer: 3, value: 987, type: 'loss', displayValue: '$987 (24%)' },
+    { id: 'value-created', label: '✓ Value Created', layer: 3, value: 3113, type: 'revenue', displayValue: '$3,113 (76%)' },
+    { id: 'waste', label: '✗ Pure Waste', layer: 3, value: 987, type: 'loss', displayValue: '$987 (24%)' },
   ],
   links: [
     // Budget → Allocation
-    { from: 'budget', to: 'validation-cost', value: 292, type: 'default', displayLabel: '$292 validation' },
-    { from: 'budget', to: 'labor-pool', value: 3808, type: 'default', displayLabel: '$3,808 labor' },
+    { from: 'budget', to: 'validation-cost', value: 292, type: 'default', displayLabel: '$292' },
+    { from: 'budget', to: 'labor-pool', value: 3808, type: 'default', displayLabel: '$3,808' },
     
     // Allocation → Distribution
-    { from: 'validation-cost', to: 'productive-labor', value: 250, type: 'default' },
-    { from: 'validation-cost', to: 'waste', value: 42, type: 'loss' },
-    { from: 'labor-pool', to: 'productive-labor', value: 2263, type: 'default', displayLabel: '$2,263 processing' },
-    { from: 'labor-pool', to: 'error-cost', value: 1545, type: 'loss', displayLabel: '$1,545 errors' },
+    { from: 'validation-cost', to: 'productive-labor', value: 250, type: 'default', displayLabel: '$250' },
+    { from: 'validation-cost', to: 'waste', value: 42, type: 'loss', displayLabel: '$42' },
+    { from: 'labor-pool', to: 'productive-labor', value: 2263, type: 'default', displayLabel: '$2,263' },
+    { from: 'labor-pool', to: 'error-cost', value: 1545, type: 'loss', displayLabel: '$1,545' },
     
     // Distribution → Outcomes
-    { from: 'productive-labor', to: 'value-created', value: 2513, type: 'revenue' },
-    { from: 'error-cost', to: 'value-created', value: 600, type: 'default', displayLabel: '$600 recovered' },
-    { from: 'error-cost', to: 'waste', value: 945, type: 'loss', displayLabel: '$945 lost' },
+    { from: 'productive-labor', to: 'value-created', value: 2513, type: 'revenue', displayLabel: '$2,513' },
+    { from: 'error-cost', to: 'value-created', value: 600, type: 'default', displayLabel: '$600' },
+    { from: 'error-cost', to: 'waste', value: 945, type: 'loss', displayLabel: '$945' },
   ],
 };
 
@@ -180,8 +180,8 @@ const timeCurrentData: SankeyData = {
     { id: 'error-time', label: 'Error Handling', layer: 2, value: 44, type: 'loss', displayValue: '44 hrs' },
     
     // Layer 3: OUTCOMES
-    { id: 'value-hours', label: 'Value-Adding', layer: 3, value: 87, type: 'revenue', displayValue: '87 hrs (74%)' },
-    { id: 'lost-time', label: 'Lost Capacity', layer: 3, value: 30, type: 'loss', displayValue: '30 hrs (26%)' },
+    { id: 'value-hours', label: '✓ Value-Adding', layer: 3, value: 87, type: 'revenue', displayValue: '87 hrs (74%)' },
+    { id: 'lost-time', label: '✗ Lost Capacity', layer: 3, value: 30, type: 'loss', displayValue: '30 hrs (26%)' },
   ],
   links: [
     // Capacity → Allocation
@@ -189,15 +189,15 @@ const timeCurrentData: SankeyData = {
     { from: 'capacity', to: 'processing-time', value: 109, type: 'default', displayLabel: '109 hrs' },
     
     // Allocation → Distribution
-    { from: 'validation-time', to: 'productive-time', value: 7, type: 'default' },
-    { from: 'validation-time', to: 'lost-time', value: 1, type: 'loss' },
-    { from: 'processing-time', to: 'productive-time', value: 65, type: 'default', displayLabel: '65 hrs work' },
-    { from: 'processing-time', to: 'error-time', value: 44, type: 'loss', displayLabel: '44 hrs errors' },
+    { from: 'validation-time', to: 'productive-time', value: 7, type: 'default', displayLabel: '7 hrs' },
+    { from: 'validation-time', to: 'lost-time', value: 1, type: 'loss', displayLabel: '1 hr' },
+    { from: 'processing-time', to: 'productive-time', value: 65, type: 'default', displayLabel: '65 hrs' },
+    { from: 'processing-time', to: 'error-time', value: 44, type: 'loss', displayLabel: '44 hrs' },
     
     // Distribution → Outcomes
-    { from: 'productive-time', to: 'value-hours', value: 72, type: 'revenue' },
-    { from: 'error-time', to: 'value-hours', value: 15, type: 'default', displayLabel: '15 hrs recovered' },
-    { from: 'error-time', to: 'lost-time', value: 29, type: 'loss', displayLabel: '29 hrs lost' },
+    { from: 'productive-time', to: 'value-hours', value: 72, type: 'revenue', displayLabel: '72 hrs' },
+    { from: 'error-time', to: 'value-hours', value: 15, type: 'default', displayLabel: '15 hrs' },
+    { from: 'error-time', to: 'lost-time', value: 29, type: 'loss', displayLabel: '29 hrs' },
   ],
 };
 
