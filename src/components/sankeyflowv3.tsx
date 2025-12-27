@@ -1097,12 +1097,17 @@ useEffect(() => {
         {/* Links */}
         <g>
           {layout?.links.map(link => {
-            const gradId = link.type === 'loss' ? 'grad-loss' :
-                          (link.type === 'new' || link.type === 'revenue') ? 'grad-secondary' : 'grad-primary';
+            // Only color flow red if it enters a LOSS TYPE NODE (not based on link.type)
+            // This makes intermediate flows neutral, and only terminal losses red
+            const targetIsLoss = link.target.type === 'loss';
+            const targetIsGain = link.target.type === 'revenue' || link.target.type === 'new';
+            
+            const gradId = targetIsLoss ? 'grad-loss' :
+                          targetIsGain ? 'grad-secondary' : 'grad-primary';
 
             const linkLayer = Math.max(link.source.layer, link.target.layer);
             const layerDrawProgress = getLayerProgress(linkLayer, drawProgress);
-            const isLoss = link.type === 'loss';
+            const isLoss = targetIsLoss;
 
             // ALL flows draw in sequence now (loss flows included)
             const baseOpacity = isLoss ? 0.6 : 0.7;
