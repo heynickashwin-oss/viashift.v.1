@@ -1280,7 +1280,21 @@ useEffect(() => {
                   {node.label}
                 </text>
 
-                {/* Node displayValue pills removed - data now in comparison cards */}
+                {/* Node displayValue - shown below label */}
+                {node.displayValue && (
+                  <text
+                    x={node.layer < 2 ? node.width + 16 : -16}
+                    y={node.height / 2 + 16}
+                    textAnchor={node.layer < 2 ? 'start' : 'end'}
+                    fill={node.type === 'loss' ? theme.colors.accent : node.type === 'revenue' ? theme.colors.primary : theme.colors.textMuted}
+                    fontSize={11}
+                    fontWeight={500}
+                    fontFamily="Inter, system-ui, sans-serif"
+                    opacity={0.85}
+                  >
+                    {node.displayValue}
+                  </text>
+                )}
 
                 {/* NEW badge - only show if no displayValue */}
                 {node.type === 'new' && !node.displayValue && (
