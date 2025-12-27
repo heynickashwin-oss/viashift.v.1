@@ -28,6 +28,29 @@ const VIEW_BUTTONS: { type: StakeholderViewType; icon: string; label: string; co
   { type: 'time', icon: '⏱️', label: 'Time', color: '#00D4E5' },
 ];
 
+// Cross-reference data - what other views see for the same "waste point"
+const CROSS_REFERENCE_DATA: Record<StakeholderViewType, { 
+  metric: string; 
+  label: string;
+  subtext: string;
+}> = {
+  orders: { 
+    metric: '87', 
+    label: 'orders with errors',
+    subtext: '18% error rate',
+  },
+  dollars: { 
+    metric: '$987', 
+    label: 'wasted per week',
+    subtext: '$51K annually',
+  },
+  time: { 
+    metric: '30 hrs', 
+    label: 'lost capacity',
+    subtext: '26% of team time',
+  },
+};
+
 export const StakeholderSankeyPOC = () => {
   const [activeView, setActiveView] = useState<StakeholderViewType>('orders');
   
@@ -133,53 +156,101 @@ export const StakeholderSankeyPOC = () => {
         />
       </div>
       
-      {/* Comparison Hint */}
+      {/* Cross-Reference Bar - Shows other stakeholder perspectives */}
       <div className="absolute bottom-6 left-6 right-6 z-20">
         <div 
-          className="flex items-center justify-center gap-8 p-4 rounded-xl"
+          className="p-4 rounded-xl"
           style={{
-            background: 'rgba(0, 0, 0, 0.4)',
+            background: 'rgba(0, 0, 0, 0.5)',
             border: '1px solid rgba(255, 255, 255, 0.1)',
+            backdropFilter: 'blur(8px)',
           }}
         >
-          <div className="text-center">
-            <div className="text-2xl font-bold text-white">
-              {activeView === 'orders' ? '18%' : activeView === 'dollars' ? '24%' : '26%'}
-            </div>
-            <div className="text-xs text-white/50">
-              {activeView === 'orders' ? 'Orders with Errors' : activeView === 'dollars' ? 'Budget Wasted' : 'Capacity Lost'}
-            </div>
-          </div>
-          
-          <div className="h-8 w-px bg-white/20" />
-          
-          <div className="text-sm text-white/60 max-w-sm">
-            <span className="text-white/40">Toggle views above to see:</span>
-            <br />
-            Same process, same problems—
-            <span style={{ color: VIEW_BUTTONS.find(b => b.type === activeView)?.color }}>
-              {' '}different stakeholder impact
-            </span>
-          </div>
-          
-          <div className="h-8 w-px bg-white/20" />
-          
-          {/* Cross-reference hints */}
-          <div className="flex items-center gap-4">
-            {VIEW_BUTTONS.filter(b => b.type !== activeView).map(btn => (
-              <button
-                key={btn.type}
-                onClick={() => setActiveView(btn.type)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all duration-200 hover:bg-white/10"
-                style={{
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: 'rgba(255, 255, 255, 0.7)',
+          {/* Current view indicator */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span 
+                className="text-xs font-medium px-2 py-1 rounded"
+                style={{ 
+                  background: `${VIEW_BUTTONS.find(b => b.type === activeView)?.color}20`,
+                  color: VIEW_BUTTONS.find(b => b.type === activeView)?.color,
                 }}
               >
-                <span>{btn.icon}</span>
-                <span>See {btn.label} View</span>
-              </button>
-            ))}
+                {VIEW_BUTTONS.find(b => b.type === activeView)?.icon} Currently viewing: {viewConfig.title}
+              </span>
+            </div>
+            <div className="text-xs text-white/40">
+              Same problem, different perspectives
+            </div>
+          </div>
+          
+          {/* Cross-reference cards for other views */}
+          <div className="flex items-stretch gap-4">
+            {VIEW_BUTTONS.filter(btn => btn.type !== activeView).map((btn) => {
+              const crossRef = CROSS_REFERENCE_DATA[btn.type];
+              return (
+                <button
+                  key={btn.type}
+                  onClick={() => setActiveView(btn.type)}
+                  className="flex-1 p-3 rounded-lg transition-all duration-200 hover:scale-[1.02] text-left group"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    {/* Icon */}
+                    <div 
+                      className="w-10 h-10 rounded-lg flex items-center justify-center text-lg shrink-0"
+                      style={{ 
+                        background: `${btn.color}15`,
+                        border: `1px solid ${btn.color}25`,
+                      }}
+                    >
+                      {btn.icon}
+                    </div>
+                    
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2">
+                        <span 
+                          className="text-xl font-bold"
+                          style={{ color: btn.color }}
+                        >
+                          {crossRef.metric}
+                        </span>
+                        <span className="text-sm text-white/70">
+                          {crossRef.label}
+                        </span>
+                      </div>
+                      <div className="text-xs text-white/40 mt-0.5">
+                        {crossRef.subtext}
+                      </div>
+                    </div>
+                    
+                    {/* Hover hint */}
+                    <div 
+                      className="text-xs opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                      style={{ color: btn.color }}
+                    >
+                      View →
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+            
+            {/* Alignment indicator */}
+            <div 
+              className="w-px self-stretch"
+              style={{ background: 'rgba(255, 255, 255, 0.1)' }}
+            />
+            <div className="flex flex-col justify-center px-4 shrink-0">
+              <div className="text-xs text-white/40 mb-1">The same problem</div>
+              <div className="text-sm text-white/70">
+                <span style={{ color: '#ef4444' }}>3 stakeholders</span> feeling the pain
+              </div>
+            </div>
           </div>
         </div>
       </div>
