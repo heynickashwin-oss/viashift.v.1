@@ -1356,6 +1356,7 @@ useEffect(() => {
       )}
 
     {/* Stage labels */}
+      {!hideUI && stageLabels.length > 0 && (
       <div
         className="absolute top-24 left-0 right-0 z-15 flex justify-center px-16"
         style={{
@@ -1372,6 +1373,7 @@ useEffect(() => {
           </div>
         ))}
       </div>
+      )}
 
       {/* Narrative header - shows phase-specific messaging */}
       {narrativeState.header && !hideUI && (
