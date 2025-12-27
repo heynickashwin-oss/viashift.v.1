@@ -1,53 +1,58 @@
 /**
  * StakeholderSankeyPOC - Proof of Concept
  * 
- * Tests the hypothesis: Same visual framework, stakeholder-native data
- * - CFO sees dollars flowing
- * - Ops sees time flowing  
- * - Sales sees orders flowing
- * 
- * Clean layout: Toggle + insight at top, visualization middle, bottom reserved for comparison cards
+ * Clean layout: Full-width toggle cards with embedded insights
+ * Toggle IS the information - not separate from it
  */
 
 import { useState, useMemo } from 'react';
 import { SankeyFlowV3 } from '../components/sankeyflowv3';
 import { 
   StakeholderViewType, 
-  viewConfigs, 
   getFlowStateForView,
 } from '../data/templates/stakeholderParallelData';
 import { DEFAULT_BRAND } from '../components/branding/brandUtils';
 
-// View configuration with icons and colors
-const VIEW_BUTTONS: { type: StakeholderViewType; icon: string; label: string; color: string; insight: string }[] = [
+// View configuration with current and shifted state insights
+const VIEW_DATA: { 
+  type: StakeholderViewType; 
+  icon: string; 
+  label: string; 
+  color: string; 
+  currentInsight: string;
+  shiftedInsight: string;
+}[] = [
   { 
     type: 'orders', 
     icon: '📦', 
     label: 'Orders', 
     color: '#00BFA6',
-    insight: '87 orders (18%) require rework → only 72% on-time delivery',
+    currentInsight: '87 orders (18%) require rework → 72% on-time',
+    shiftedInsight: '94% on-time delivery, 1% exceptions',
   },
   { 
     type: 'dollars', 
     icon: '💰', 
     label: 'Dollars', 
     color: '#22c55e',
-    insight: '$987/week (24%) flows to pure waste → $51K annually',
+    currentInsight: '$987/week (24%) flows to waste → $51K/year',
+    shiftedInsight: '$3,096/week (76%) recovered → $161K/year saved',
   },
   { 
     type: 'time', 
     icon: '⏱️', 
     label: 'Time', 
     color: '#00D4E5',
-    insight: '30 hours/week (26%) lost to rework and firefighting',
+    currentInsight: '30 hrs/week (26%) lost to rework',
+    shiftedInsight: '111 hrs/week (95%) freed for strategic work',
   },
 ];
 
 export const StakeholderSankeyPOC = () => {
   const [activeView, setActiveView] = useState<StakeholderViewType>('orders');
+  const [showShifted, setShowShifted] = useState(false); // For future shifted state toggle
   
   const flowState = useMemo(() => getFlowStateForView(activeView), [activeView]);
-  const activeButton = VIEW_BUTTONS.find(b => b.type === activeView)!;
   
   return (
     <div 
@@ -56,64 +61,85 @@ export const StakeholderSankeyPOC = () => {
         background: 'linear-gradient(180deg, #0a0a0f 0%, #121218 50%, #0a0a0f 100%)',
       }}
     >
-      {/* Unified Top Bar: Toggle + Insight */}
+      {/* Full-Width Toggle Cards */}
       <div className="absolute top-0 left-0 right-0 z-20 p-4">
-        <div 
-          className="flex items-center justify-between p-3 rounded-xl"
-          style={{
-            background: 'rgba(0, 0, 0, 0.4)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-          }}
-        >
-          {/* Left: View Toggle */}
-          <div className="flex items-center gap-1 p-1 rounded-lg bg-white/5">
-            {VIEW_BUTTONS.map((btn) => (
+        <div className="flex gap-2">
+          {VIEW_DATA.map((view) => {
+            const isActive = activeView === view.type;
+            return (
               <button
-                key={btn.type}
-                onClick={() => setActiveView(btn.type)}
-                className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200"
+                key={view.type}
+                onClick={() => setActiveView(view.type)}
+                className="flex-1 p-4 rounded-xl text-left transition-all duration-300"
                 style={{
-                  background: activeView === btn.type 
-                    ? `linear-gradient(135deg, ${btn.color}25 0%, ${btn.color}15 100%)`
-                    : 'transparent',
-                  border: activeView === btn.type 
-                    ? `1px solid ${btn.color}50`
-                    : '1px solid transparent',
-                  color: activeView === btn.type 
-                    ? btn.color 
-                    : 'rgba(255, 255, 255, 0.5)',
-                  boxShadow: activeView === btn.type
-                    ? `0 0 20px ${btn.color}20`
+                  background: isActive 
+                    ? `linear-gradient(135deg, ${view.color}15 0%, ${view.color}08 100%)`
+                    : 'rgba(255, 255, 255, 0.02)',
+                  border: isActive 
+                    ? `1px solid ${view.color}40`
+                    : '1px solid rgba(255, 255, 255, 0.06)',
+                  boxShadow: isActive
+                    ? `0 4px 24px ${view.color}15`
                     : 'none',
                 }}
               >
-                <span>{btn.icon}</span>
-                <span>{btn.label}</span>
+                {/* Header row: Icon + Label */}
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-lg">{view.icon}</span>
+                  <span 
+                    className="text-sm font-semibold"
+                    style={{ color: isActive ? view.color : 'rgba(255, 255, 255, 0.5)' }}
+                  >
+                    {view.label}
+                  </span>
+                  {isActive && (
+                    <div 
+                      className="ml-auto w-2 h-2 rounded-full"
+                      style={{ background: view.color }}
+                    />
+                  )}
+                </div>
+                
+                {/* Current state insight */}
+                <div 
+                  className="text-xs leading-relaxed"
+                  style={{ 
+                    color: isActive ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.35)',
+                  }}
+                >
+                  <span style={{ color: isActive ? '#ef4444' : 'rgba(239, 68, 68, 0.5)' }}>
+                    Current:
+                  </span>{' '}
+                  {view.currentInsight}
+                </div>
+                
+                {/* Shifted state insight - shown when active (preview of transformation) */}
+                {isActive && (
+                  <div 
+                    className="text-xs leading-relaxed mt-1.5 pt-1.5"
+                    style={{ 
+                      color: 'rgba(255, 255, 255, 0.6)',
+                      borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                    }}
+                  >
+                    <span style={{ color: '#22c55e' }}>
+                      Shifted:
+                    </span>{' '}
+                    {view.shiftedInsight}
+                  </div>
+                )}
               </button>
-            ))}
-          </div>
-          
-          {/* Right: Current View Insight */}
-          <div className="flex items-center gap-3">
-            <div 
-              className="w-px h-8"
-              style={{ background: 'rgba(255, 255, 255, 0.1)' }}
-            />
-            <div className="text-sm text-white/70 max-w-md">
-              <span style={{ color: activeButton.color }}>{activeButton.icon}</span>
-              {' '}
-              {activeButton.insight}
-            </div>
-          </div>
+            );
+          })}
         </div>
       </div>
       
       {/* Sankey Visualization - Clean, full space */}
-      <div className="absolute inset-0 pt-20 pb-4">
+      <div className="absolute inset-0 pt-32 pb-4">
         <SankeyFlowV3
           key={activeView}
           state={flowState}
-          stageLabels={['Input', 'Allocation', 'Distribution', 'Outcomes']}
+          stageLabels={[]} // Empty - removed for cleaner look
           variant="before"
           brand={DEFAULT_BRAND}
           animated={true}
@@ -122,12 +148,7 @@ export const StakeholderSankeyPOC = () => {
         />
       </div>
       
-      {/* Bottom: Reserved for comparison cards (empty for now) */}
-      {/* 
-      <div className="absolute bottom-0 left-0 right-0 z-20 p-4">
-        Comparison cards will appear here on node hover/click
-      </div>
-      */}
+      {/* Bottom: Reserved for comparison cards on node interaction */}
     </div>
   );
 };
