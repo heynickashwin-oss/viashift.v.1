@@ -1,11 +1,15 @@
 /**
- * SankeyFlowV3 - v3.17
+ * SankeyFlowV3 - v3.18
+ *
+ * CHANGES from v3.17:
+ * - DISABLED: Comparison cards (debugging layout issues first)
+ * - REWRITTEN: Layout calculation with cleaner logic
+ * - ADDED: Debug logging for nodes and links
+ * - FIXED: Simplified thickness/height calculation flow
  *
  * CHANGES from v3.16:
- * - FIXED: Flow labels now show only order count (link.value)
+ * - Flow labels now show only order count (link.value)
  *   - Removed displayLabel from flows to avoid stakeholder metric confusion
- *   - Flow width = orders, flow label = orders (consistent semantics)
- *   - Stakeholder-specific insights belong in comparison cards only
  *
  * CHANGES from v3.15:
  * - FIXED: Reduced minNodeHeight to match minThickness for alignment
@@ -361,42 +365,50 @@ const SankeyFlowV3Inner = ({
   // This ensures layout only changes when data or dimensions actually change
   const layout = useMemo(() => {
     if (!state.data.nodes.length || dimensions.width < 100) return null;
+    
     const { padding, nodeWidth } = LAYOUT;
     const maxLayer = Math.max(...state.data.nodes.map(n => n.layer), 0);
     const usableWidth = dimensions.width - padding.left - padding.right;
     const usableHeight = dimensions.height - padding.top - padding.bottom;
 
-    // Step 1: Calculate link thicknesses first (needed for node heights)
-    // Use stable IDs based on from-to pair to survive sorting
+    // === STEP 1: Calculate base link thicknesses (unscaled) ===
     const maxLinkValue = Math.max(...state.data.links.map(l => l.value), 1);
     const minThickness = 4;
     const maxThickness = 40;
     
-    const getLinkId = (link: SankeyLink, index: number) => link.id || `${link.from}->${link.to}-${index}`;
-    
-    const linkThicknesses = new Map<string, number>();
-    state.data.links.forEach((link, i) => {
+    // Map from "from->to" to base thickness
+    const baseThickness = new Map<string, number>();
+    state.data.links.forEach(link => {
+      const key = `${link.from}->${link.to}`;
       const thickness = minThickness + (link.value / maxLinkValue) * (maxThickness - minThickness);
-      linkThicknesses.set(getLinkId(link, i), thickness);
+      baseThickness.set(key, thickness);
     });
 
-    // Step 2: Calculate incoming/outgoing flow sums for each node
-    const nodeIncoming = new Map<string, number>();
-    const nodeOutgoing = new Map<string, number>();
+    // === STEP 2: Calculate node heights (sum of connected flows) ===
+    const nodeOutgoingSum = new Map<string, number>();
+    const nodeIncomingSum = new Map<string, number>();
     
     state.data.nodes.forEach(n => {
-      nodeIncoming.set(n.id, 0);
-      nodeOutgoing.set(n.id, 0);
+      nodeOutgoingSum.set(n.id, 0);
+      nodeIncomingSum.set(n.id, 0);
     });
     
-    state.data.links.forEach((link, i) => {
-      const linkId = getLinkId(link, i);
-      const thickness = linkThicknesses.get(linkId) || minThickness;
-      nodeOutgoing.set(link.from, (nodeOutgoing.get(link.from) || 0) + thickness);
-      nodeIncoming.set(link.to, (nodeIncoming.get(link.to) || 0) + thickness);
+    state.data.links.forEach(link => {
+      const key = `${link.from}->${link.to}`;
+      const thickness = baseThickness.get(key) || minThickness;
+      nodeOutgoingSum.set(link.from, (nodeOutgoingSum.get(link.from) || 0) + thickness);
+      nodeIncomingSum.set(link.to, (nodeIncomingSum.get(link.to) || 0) + thickness);
     });
 
-    // Step 3: Group nodes by layer and calculate node heights
+    // Node height = max(incoming, outgoing) - this ensures node can accommodate all flows
+    const nodeBaseHeight = new Map<string, number>();
+    state.data.nodes.forEach(n => {
+      const incoming = nodeIncomingSum.get(n.id) || 0;
+      const outgoing = nodeOutgoingSum.get(n.id) || 0;
+      nodeBaseHeight.set(n.id, Math.max(minThickness, incoming, outgoing));
+    });
+
+    // === STEP 3: Group nodes by layer and calculate scaling ===
     const nodesByLayer = new Map<number, SankeyNode[]>();
     state.data.nodes.forEach(n => {
       const arr = nodesByLayer.get(n.layer) || [];
@@ -404,55 +416,37 @@ const SankeyFlowV3Inner = ({
       nodesByLayer.set(n.layer, arr);
     });
 
-    // Sort nodes within each layer by their y position
-    nodesByLayer.forEach((layerNodes, layer) => {
+    // Sort nodes within each layer by their y position hint
+    nodesByLayer.forEach((layerNodes) => {
       layerNodes.sort((a, b) => (a.y ?? 0.5) - (b.y ?? 0.5));
     });
 
-    // Step 4: Position nodes with heights based on flow sums
+    // Calculate total height needed per layer
+    const nodeGap = 50;
+    let maxTotalHeight = 0;
+    nodesByLayer.forEach((layerNodes) => {
+      let totalHeight = layerNodes.reduce((sum, n) => sum + (nodeBaseHeight.get(n.id) || minThickness), 0);
+      totalHeight += (layerNodes.length - 1) * nodeGap;
+      maxTotalHeight = Math.max(maxTotalHeight, totalHeight);
+    });
+
+    // Scale factor to fit in available height
+    const scaleFactor = Math.min(1.5, (usableHeight * 0.85) / Math.max(maxTotalHeight, 1));
+
+    // === STEP 4: Position nodes ===
     const nodes: LayoutNode[] = [];
     const nodeMap = new Map<string, LayoutNode>();
-    const minNodeHeight = minThickness; // Match minimum flow thickness for alignment
-    const nodeGap = 60; // Gap between nodes in same layer
-
-    // Calculate total height needed per layer to scale appropriately
-    const layerHeights = new Map<number, number>();
-    nodesByLayer.forEach((layerNodes, layer) => {
-      let totalHeight = 0;
-      layerNodes.forEach(node => {
-        const incoming = nodeIncoming.get(node.id) || 0;
-        const outgoing = nodeOutgoing.get(node.id) || 0;
-        const height = Math.max(minNodeHeight, incoming, outgoing);
-        totalHeight += height;
-      });
-      totalHeight += (layerNodes.length - 1) * nodeGap;
-      layerHeights.set(layer, totalHeight);
-    });
-
-    // Find max layer height for scaling
-    const maxLayerHeight = Math.max(...Array.from(layerHeights.values()), 1);
-    const scaleFactor = Math.min(1.2, (usableHeight * 0.9) / maxLayerHeight);
-
-    // Store scaled thicknesses for link creation
-    const scaledLinkThicknesses = new Map<string, number>();
-    state.data.links.forEach((link, i) => {
-      const linkId = getLinkId(link, i);
-      const baseThickness = linkThicknesses.get(linkId) || minThickness;
-      scaledLinkThicknesses.set(linkId, baseThickness * scaleFactor);
-    });
 
     nodesByLayer.forEach((layerNodes, layer) => {
       const xPercent = layerXPercent[layer] ?? (layer / Math.max(maxLayer, 1));
       const x = padding.left + xPercent * usableWidth;
       
-      // Calculate total height for this layer
+      // Calculate total scaled height for this layer
       let totalLayerHeight = 0;
-      const nodeHeights: number[] = [];
+      const scaledHeights: number[] = [];
       layerNodes.forEach(node => {
-        const incoming = nodeIncoming.get(node.id) || 0;
-        const outgoing = nodeOutgoing.get(node.id) || 0;
-        const height = Math.max(minNodeHeight, incoming, outgoing) * scaleFactor;
-        nodeHeights.push(height);
+        const height = (nodeBaseHeight.get(node.id) || minThickness) * scaleFactor;
+        scaledHeights.push(height);
         totalLayerHeight += height;
       });
       totalLayerHeight += (layerNodes.length - 1) * nodeGap * scaleFactor;
@@ -461,7 +455,7 @@ const SankeyFlowV3Inner = ({
       let currentY = padding.top + (usableHeight - totalLayerHeight) / 2;
 
       layerNodes.forEach((node, idx) => {
-        const height = nodeHeights[idx];
+        const height = scaledHeights[idx];
         
         const layoutNode: LayoutNode = {
           ...node,
@@ -478,65 +472,58 @@ const SankeyFlowV3Inner = ({
       });
     });
 
-    // Step 5: Create links with proper Y offsets (stacked, not overlapping)
+    // === STEP 5: Create links with stacked Y positions ===
     // Track current Y offset at each node's edges
-    const nodeSourceOffset = new Map<string, number>(); // Right edge (outgoing)
-    const nodeTargetOffset = new Map<string, number>(); // Left edge (incoming)
+    const nodeSourceYOffset = new Map<string, number>(); // Right edge (outgoing)
+    const nodeTargetYOffset = new Map<string, number>(); // Left edge (incoming)
     
     nodes.forEach(node => {
-      nodeSourceOffset.set(node.id, 0);
-      nodeTargetOffset.set(node.id, 0);
+      nodeSourceYOffset.set(node.id, 0);
+      nodeTargetYOffset.set(node.id, 0);
     });
 
-    // Sort links by source node Y, then target node Y for consistent stacking
+    // Sort links for consistent stacking: by source Y, then target Y
     const sortedLinks = [...state.data.links].sort((a, b) => {
       const sourceA = nodeMap.get(a.from);
       const sourceB = nodeMap.get(b.from);
       const targetA = nodeMap.get(a.to);
       const targetB = nodeMap.get(b.to);
       
-      if (!sourceA || !sourceB || !targetA || !targetB) return 0;
-      
-      // First sort by source Y
+      if (!sourceA || !sourceB) return 0;
       if (sourceA.y !== sourceB.y) return sourceA.y - sourceB.y;
-      // Then by target Y
+      if (!targetA || !targetB) return 0;
       return targetA.y - targetB.y;
     });
 
-    // Create a lookup for thicknesses by from->to since we'll sort links
-    const thicknessByFromTo = new Map<string, number>();
-    state.data.links.forEach((link, i) => {
-      const linkId = getLinkId(link, i);
-      const thickness = scaledLinkThicknesses.get(linkId) || minThickness * scaleFactor;
-      thicknessByFromTo.set(`${link.from}->${link.to}`, thickness);
-    });
-
-    const links: LayoutLink[] = sortedLinks.map((link, i) => {
+    const links: LayoutLink[] = sortedLinks.map((link) => {
       const source = nodeMap.get(link.from);
       const target = nodeMap.get(link.to);
       if (!source || !target) return null;
 
-      // Look up thickness by from->to pair (survives sorting)
-      const thickness = thicknessByFromTo.get(`${link.from}->${link.to}`) || minThickness * scaleFactor;
+      const key = `${link.from}->${link.to}`;
+      const thickness = (baseThickness.get(key) || minThickness) * scaleFactor;
       
-      // Get current offsets and advance them
-      const sourceOffset = nodeSourceOffset.get(link.from) || 0;
-      const targetOffset = nodeTargetOffset.get(link.to) || 0;
+      // Get current Y offsets
+      const sourceYOffset = nodeSourceYOffset.get(link.from) || 0;
+      const targetYOffset = nodeTargetYOffset.get(link.to) || 0;
       
-      nodeSourceOffset.set(link.from, sourceOffset + thickness);
-      nodeTargetOffset.set(link.to, targetOffset + thickness);
+      // Update offsets for next link
+      nodeSourceYOffset.set(link.from, sourceYOffset + thickness);
+      nodeTargetYOffset.set(link.to, targetYOffset + thickness);
 
-      // Calculate Y positions (center of this flow's band)
-      const y0 = source.y + sourceOffset + thickness / 2;
-      const y1 = target.y + targetOffset + thickness / 2;
+      // Calculate Y positions (top edge of this flow's band, then center it)
+      const y0 = source.y + sourceYOffset + thickness / 2;
+      const y1 = target.y + targetYOffset + thickness / 2;
       const x0 = source.x + source.width;
       const x1 = target.x;
       const dx = x1 - x0;
 
-      // Calculate bezier midpoint at t=0.5 for label positioning
+      // Bezier control points for smooth curve
+      const cp1x = x0 + dx * 0.4;
+      const cp2x = x0 + dx * 0.6;
+
+      // Calculate midpoint for label positioning
       const t = 0.5;
-      const cp1x = x0 + dx * 0.45;
-      const cp2x = x0 + dx * 0.55;
       const mt = 1 - t;
       const midpoint = {
         x: mt*mt*mt*x0 + 3*mt*mt*t*cp1x + 3*mt*t*t*cp2x + t*t*t*x1,
@@ -544,7 +531,7 @@ const SankeyFlowV3Inner = ({
       };
 
       return {
-        id: link.id || `${link.from}->${link.to}`,
+        id: link.id || key,
         from: link.from,
         to: link.to,
         value: link.value,
@@ -552,7 +539,7 @@ const SankeyFlowV3Inner = ({
         source,
         target,
         thickness,
-        path: `M${x0},${y0} C${x0 + dx * 0.45},${y0} ${x0 + dx * 0.55},${y1} ${x1},${y1}`,
+        path: `M${x0},${y0} C${cp1x},${y0} ${cp2x},${y1} ${x1},${y1}`,
         pathLength: Math.sqrt(dx * dx + (y1 - y0) * (y1 - y0)) * 1.3,
         displayLabel: link.displayLabel,
         midpoint,
@@ -561,6 +548,21 @@ const SankeyFlowV3Inner = ({
 
     return { nodes, links };
   }, [state.data, dimensions]);
+
+  // DEBUG: Log layout info
+  useEffect(() => {
+    if (layout) {
+      console.log('=== SANKEY DEBUG ===');
+      console.log('Nodes:', layout.nodes.length);
+      console.log('Links:', layout.links.length);
+      layout.nodes.forEach(n => {
+        console.log(`  Node: ${n.id}, height: ${n.height.toFixed(1)}, y: ${n.y.toFixed(1)}`);
+      });
+      layout.links.forEach(l => {
+        console.log(`  Link: ${l.from} → ${l.to}, thickness: ${l.thickness.toFixed(1)}, value: ${l.value}`);
+      });
+    }
+  }, [layout]);
 
   // Build nodePositions map for callout positioning
   const nodePositions = useMemo((): Map<string, NodePosition> => {
@@ -973,7 +975,7 @@ useEffect(() => {
         }}
       />
 
-      {/* Stakeholder Comparison Cards - Top Band */}
+      {/* Stakeholder Comparison Cards - DISABLED for debugging
       {comparisons && comparisons.length > 0 && !hideUI && (
         <NodeComparisonBand
           comparisons={comparisons}
@@ -986,6 +988,7 @@ useEffect(() => {
           onActiveNodeChange={setHighlightedNodeId}
         />
       )}
+      */}
 
       {/* SVG for links and nodes */}
       <svg width={dimensions.width} height={dimensions.height} className="absolute inset-0">
@@ -1400,8 +1403,8 @@ useEffect(() => {
         />
       )}
       */}
-      {/* Metrics panel - right side (hidden when comparison cards are visible) */}
-      {!hideUI && (!comparisons || comparisons.length === 0) && (
+      {/* Metrics panel - right side */}
+      {!hideUI && (
         <div
           className="absolute top-1/2 right-8 -translate-y-1/2 z-20 flex flex-col gap-4"
           style={{ opacity: uiVisible ? 1 : 0, transition: 'opacity 0.5s ease' }}
@@ -1443,8 +1446,8 @@ useEffect(() => {
         </div>
       )}
 
-      {/* Anchored metric (hidden when comparison cards are visible) */}
-      {!hideUI && (!comparisons || comparisons.length === 0) && state.anchoredMetric && anchoredPosition && (
+      {/* Anchored metric */}
+      {!hideUI && state.anchoredMetric && anchoredPosition && (
         <div
           className="absolute z-25 px-3.5 py-2.5 rounded-xl backdrop-blur-md pointer-events-none"
           style={{
