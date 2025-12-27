@@ -78,36 +78,29 @@ const ordersCurrentData: SankeyData = {
     { id: 'valid', label: 'Valid Orders', layer: 1, value: 485, type: 'default', displayValue: '485 orders' },
     { id: 'invalid', label: 'Invalid/Flagged', layer: 1, value: 15, type: 'default', displayValue: '15 orders' },
     
-    // Layer 2: PROCESSING (intermediate - not loss)
+    // Layer 2: PROCESSING
     { id: 'manual-process', label: 'Manual Processing', layer: 2, value: 485, type: 'default', displayValue: '485 orders' },
     
-    // Layer 3: OUTCOMES (intermediate - not loss yet)
-    { id: 'processed-ok', label: 'Processed OK', layer: 3, value: 398, type: 'default', displayValue: '398 (82%)' },
-    { id: 'errors', label: 'Errors & Rework', layer: 3, value: 87, type: 'default', displayValue: '87 (18%)' },
-    
-    // Layer 4: FINAL OUTCOMES (terminal - these get loss/revenue)
-    { id: 'on-time', label: '✓ On-Time', layer: 4, value: 360, type: 'revenue', displayValue: '360 orders (72%)' },
-    { id: 'delayed', label: '⚠ Delayed', layer: 4, value: 110, type: 'loss', displayValue: '110 orders (22%)' },
-    { id: 'escalated', label: '✗ Escalated', layer: 4, value: 30, type: 'loss', displayValue: '30 orders (6%)' },
+    // Layer 3: FINAL OUTCOMES
+    { id: 'on-time', label: '✓ On-Time', layer: 3, value: 360, type: 'revenue', displayValue: '360 (72%)' },
+    { id: 'delayed', label: '⚠ Delayed', layer: 3, value: 110, type: 'loss', displayValue: '110 (22%)' },
+    { id: 'escalated', label: '✗ Escalated', layer: 3, value: 30, type: 'loss', displayValue: '30 (6%)' },
   ],
   links: [
     // Intake → Classification
     { from: 'intake', to: 'valid', value: 485, type: 'default', displayLabel: '485' },
-    { from: 'intake', to: 'invalid', value: 15, type: 'loss', displayLabel: '15' },
+    { from: 'intake', to: 'invalid', value: 15, type: 'default', displayLabel: '15' },
     
     // Classification → Processing
     { from: 'valid', to: 'manual-process', value: 485, type: 'default', displayLabel: '485' },
     
-    // Processing → Outcomes
-    { from: 'manual-process', to: 'processed-ok', value: 398, type: 'default', displayLabel: '398' },
-    { from: 'manual-process', to: 'errors', value: 87, type: 'loss', displayLabel: '87 (18%)' },
+    // Processing → Final Outcomes
+    { from: 'manual-process', to: 'on-time', value: 360, type: 'default', displayLabel: '360' },
+    { from: 'manual-process', to: 'delayed', value: 87, type: 'default', displayLabel: '87' },
+    { from: 'manual-process', to: 'escalated', value: 38, type: 'default', displayLabel: '38' },
     
-    // Outcomes → Final
-    { from: 'processed-ok', to: 'on-time', value: 350, type: 'revenue', displayLabel: '350' },
-    { from: 'processed-ok', to: 'delayed', value: 48, type: 'default', displayLabel: '48' },
-    { from: 'errors', to: 'delayed', value: 62, type: 'loss', displayLabel: '62' },
-    { from: 'errors', to: 'escalated', value: 25, type: 'loss', displayLabel: '25' },
-    { from: 'invalid', to: 'escalated', value: 5, type: 'loss', displayLabel: '5' },
+    // Invalid → Escalated
+    { from: 'invalid', to: 'escalated', value: 15, type: 'default', displayLabel: '15' },
   ],
 };
 
