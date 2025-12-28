@@ -1,10 +1,10 @@
 /**
  * NarrativeBar.tsx
  * 
- * Horizontal narrative strip that tells the story as a flowing sentence.
- * Builds left-to-right as the Sankey animates.
+ * Cinematic floating narrative - no borders, just text.
+ * Feels like a documentary voiceover on the canvas.
  * 
- * Compact design - takes minimal vertical space.
+ * Large, impactful text with subtle shadow for legibility.
  */
 
 import { memo, useMemo } from 'react';
@@ -16,31 +16,22 @@ import { memo, useMemo } from 'react';
 export type NarrativeVariant = 'before' | 'after';
 
 export interface NarrativeScript {
-  part1: string;  // Scene setting
-  part2: string;  // Tension/problem
-  part3: string;  // Impact/stakes
-  cta: string;    // Call to action
+  part1: string;
+  part2: string;
+  part3: string;
+  cta: string;
 }
 
 export interface NarrativeBarProps {
-  /** Which lens is active */
   lens: 'orders' | 'dollars' | 'time';
-  
-  /** Current/shifted state */
   variant: NarrativeVariant;
-  
-  /** Animation progress 0-1 */
   progress: number;
-  
-  /** Accent color for the lens */
   accentColor?: string;
-  
-  /** Callback when feedback CTA is clicked */
   onFeedbackClick?: () => void;
 }
 
 // ============================================
-// NARRATIVE SCRIPTS - Flowing sentences
+// NARRATIVE SCRIPTS
 // ============================================
 
 const NARRATIVES: Record<string, Record<NarrativeVariant, NarrativeScript>> = {
@@ -76,7 +67,7 @@ const NARRATIVES: Record<string, Record<NarrativeVariant, NarrativeScript>> = {
     before: {
       part1: "Every week, your team has 117 hours of capacity",
       part2: "but 30 hours (26%) disappear into rework",
-      part3: "a third of your best people fixing instead of building.",
+      part3: "a third of your time fixing instead of building.",
       cta: "Does this match?",
     },
     after: {
@@ -108,112 +99,95 @@ export const NarrativeBar = memo(({
   const script = NARRATIVES[lens]?.[variant] || NARRATIVES.orders.before;
   const ctaLabel = CTA_LABEL[variant];
   
-  // Determine which parts are visible based on progress
-  const visibility = useMemo(() => {
-    return {
-      part1: progress >= 0.05,
-      part2: progress >= 0.35,
-      part3: progress >= 0.65,
-      cta: progress >= 0.90,
-    };
-  }, [progress]);
+  const visibility = useMemo(() => ({
+    part1: progress >= 0.05,
+    part2: progress >= 0.35,
+    part3: progress >= 0.65,
+    cta: progress >= 0.90,
+  }), [progress]);
+
+  const textShadow = '0 2px 20px rgba(0, 0, 0, 0.8), 0 1px 3px rgba(0, 0, 0, 0.9)';
   
   return (
     <div 
-      className="w-full max-w-5xl mx-auto px-6"
+      className="w-full text-center px-8"
       style={{
         opacity: progress > 0.02 ? 1 : 0,
         transition: 'opacity 0.5s ease-out',
       }}
     >
-      {/* Narrative strip */}
-      <div 
-        className="rounded-lg px-6 py-4 flex flex-wrap items-center gap-x-1.5 gap-y-1"
-        style={{
-          background: 'rgba(255, 255, 255, 0.03)',
-          border: '1px solid rgba(255, 255, 255, 0.06)',
-        }}
-      >
+      {/* Narrative text - cinematic style */}
+      <div className="space-y-2">
         {/* Part 1 */}
-        <span
-          className="text-base transition-all duration-500"
+        <p
+          className="text-xl md:text-2xl font-light tracking-wide transition-all duration-700"
           style={{
-            color: visibility.part2 ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.9)',
+            color: visibility.part2 ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.85)',
+            textShadow,
             opacity: visibility.part1 ? 1 : 0,
+            transform: visibility.part1 ? 'translateY(0)' : 'translateY(10px)',
           }}
         >
           {script.part1}
-        </span>
-        
-        {/* Connector */}
-        {visibility.part2 && (
-          <span 
-            className="text-base transition-opacity duration-300"
-            style={{ color: 'rgba(255, 255, 255, 0.3)' }}
-          >
-            →
-          </span>
-        )}
+        </p>
         
         {/* Part 2 */}
-        <span
-          className="text-base transition-all duration-500"
+        <p
+          className="text-xl md:text-2xl font-light tracking-wide transition-all duration-700"
           style={{
-            color: visibility.part3 ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.9)',
+            color: visibility.part3 ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.85)',
+            textShadow,
             opacity: visibility.part2 ? 1 : 0,
+            transform: visibility.part2 ? 'translateY(0)' : 'translateY(10px)',
           }}
         >
+          <span style={{ color: 'rgba(255, 255, 255, 0.3)' }}>→ </span>
           {script.part2}
-        </span>
-        
-        {/* Connector */}
-        {visibility.part3 && (
-          <span 
-            className="text-base transition-opacity duration-300"
-            style={{ color: 'rgba(255, 255, 255, 0.3)' }}
-          >
-            →
-          </span>
-        )}
+        </p>
         
         {/* Part 3 - emphasized */}
-        <span
-          className="text-base font-medium transition-all duration-500"
+        <p
+          className="text-2xl md:text-3xl font-medium tracking-wide transition-all duration-700"
           style={{
             color: accentColor,
+            textShadow: `${textShadow}, 0 0 40px ${accentColor}40`,
             opacity: visibility.part3 ? 1 : 0,
+            transform: visibility.part3 ? 'translateY(0)' : 'translateY(10px)',
           }}
         >
+          <span style={{ color: 'rgba(255, 255, 255, 0.3)' }}>→ </span>
           {script.part3}
-        </span>
-        
-        {/* Spacer */}
-        <span className="flex-1" />
-        
-        {/* CTA */}
-        <span
-          className="flex items-center gap-3 transition-all duration-500"
-          style={{
-            opacity: visibility.cta ? 1 : 0,
+        </p>
+      </div>
+      
+      {/* CTA - floating below */}
+      <div
+        className="mt-6 transition-all duration-700"
+        style={{
+          opacity: visibility.cta ? 1 : 0,
+          transform: visibility.cta ? 'translateY(0)' : 'translateY(10px)',
+        }}
+      >
+        <span 
+          className="text-base mr-4"
+          style={{ 
+            color: 'rgba(255, 255, 255, 0.5)',
+            textShadow,
           }}
         >
-          <span 
-            className="text-sm"
-            style={{ color: 'rgba(255, 255, 255, 0.6)' }}
-          >
-            {script.cta}
-          </span>
-          <button
-            onClick={onFeedbackClick}
-            className="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 hover:scale-[1.03]"
-            style={{
-              background: accentColor,
-              color: '#000',
-            }}
-          >
-            {ctaLabel}
-          </button>
+          {script.cta}
         </span>
+        <button
+          onClick={onFeedbackClick}
+          className="px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 hover:scale-105"
+          style={{
+            background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}cc 100%)`,
+            color: '#000',
+            boxShadow: `0 4px 20px ${accentColor}40`,
+          }}
+        >
+          {ctaLabel}
+        </button>
       </div>
     </div>
   );
