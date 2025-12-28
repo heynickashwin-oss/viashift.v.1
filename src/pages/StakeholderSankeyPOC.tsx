@@ -140,6 +140,14 @@ export const StakeholderSankeyPOC = () => {
     return getNodeComparisonForLens(activeLens, selectedNodeId);
   }, [activeLens, selectedNodeId]);
   
+  // Determine if selected node is terminal (for Step vs Outcome label)
+  const selectedNodeIsTerminal = useMemo(() => {
+    if (!selectedNodeId) return false;
+    const node = flowState.data.nodes.find(n => n.id === selectedNodeId);
+    const maxLayer = Math.max(...flowState.data.nodes.map(n => n.layer));
+    return node?.layer === maxLayer;
+  }, [selectedNodeId, flowState.data.nodes]);
+  
   // Get current lens color for accent
   const activeLensColor = useMemo(() => {
     return LENS_DATA.find(v => v.type === activeLens)?.color || '#00e5ff';
@@ -155,10 +163,16 @@ export const StakeholderSankeyPOC = () => {
     const lensCount = getLensCountForNode(activeLens, nodeId);
     const socialProof = SEED_SOCIAL_PROOF[activeLens]?.[nodeId];
     
+    // Determine max layer to detect terminal nodes
+    const maxLayer = Math.max(...flowState.data.nodes.map(n => n.layer));
+    const isTerminal = node?.layer === maxLayer;
+    
     return {
       id: nodeId,
       name: node?.label || nodeId,
       metric: node?.displayValue,
+      nodeType: node?.type || 'default',
+      isTerminal,
       position: {
         x: position.x + position.width + 16, // 16px to the right of node
         y: position.y + position.height / 2, // Centered vertically
@@ -369,6 +383,7 @@ export const StakeholderSankeyPOC = () => {
           <NodeHoverCard
             name={hoveredNodeData.name}
             metric={hoveredNodeData.metric}
+            nodeType={hoveredNodeData.nodeType}
             visible={showHoverCard}
             position={hoveredNodeData.position}
             accentColor={activeLensColor}
@@ -386,6 +401,7 @@ export const StakeholderSankeyPOC = () => {
         isOpen={drawerOpen}
         onClose={handleDrawerClose}
         variant="before"
+        isTerminal={selectedNodeIsTerminal}
         accentColor={activeLensColor}
         socialProof={selectedNodeId ? SEED_SOCIAL_PROOF[activeLens]?.[selectedNodeId] : undefined}
         onFeedbackClick={() => {
