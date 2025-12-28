@@ -358,7 +358,21 @@ export const StakeholderSankeyPOC = () => {
       
       {/* Sankey Visualization */}
       <div className="absolute inset-0 pt-32 pb-4 flex justify-center">
-        <div className="w-full max-w-[1400px] h-full">
+        <div className="w-full max-w-[1400px] h-full relative">
+          {/* Left fade gradient */}
+          <div 
+            className="absolute left-0 top-0 bottom-0 w-32 z-10 pointer-events-none"
+            style={{
+              background: 'linear-gradient(to right, #0a0a0f 0%, transparent 100%)',
+            }}
+          />
+          {/* Right fade gradient */}
+          <div 
+            className="absolute right-0 top-0 bottom-0 w-32 z-10 pointer-events-none"
+            style={{
+              background: 'linear-gradient(to left, #0a0a0f 0%, transparent 100%)',
+            }}
+          />
           <SankeyFlowV3
             key={activeLens}
             state={flowState}
