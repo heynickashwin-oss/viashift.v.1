@@ -15,7 +15,10 @@
 
 export type StakeholderRole = 'finance' | 'ops' | 'sales' | 'users' | 'it' | 'leadership';
 
-export type ViewerType = 'default' | 'cfo' | 'ops' | 'sales';
+export type LensType = 'default' | 'cfo' | 'ops' | 'sales';
+
+/** @deprecated Use LensType instead - kept for backwards compatibility */
+export type ViewerType = LensType;
 
 export interface StakeholderRoleMeta {
   label: string;
@@ -64,10 +67,10 @@ export const STAKEHOLDER_ROLES: Record<StakeholderRole, StakeholderRoleMeta> = {
 };
 
 // ============================================
-// VIEWER PRIORITY - "Your lens first, then theirs"
+// LENS PRIORITY - "Your lens first, then theirs"
 // ============================================
 
-export const VIEWER_PRIORITY: Record<ViewerType, StakeholderRole[]> = {
+export const LENS_PRIORITY: Record<LensType, StakeholderRole[]> = {
   cfo: ['finance', 'leadership', 'ops', 'users', 'it', 'sales'],
   ops: ['ops', 'users', 'finance', 'it', 'leadership', 'sales'],
   sales: ['sales', 'leadership', 'finance', 'ops', 'users', 'it'],
@@ -75,13 +78,13 @@ export const VIEWER_PRIORITY: Record<ViewerType, StakeholderRole[]> = {
 };
 
 /**
- * Get ordered roles for a viewer type
+ * Get ordered roles for a lens type
  */
-export function getOrderedRolesForViewer(
-  viewerType: ViewerType,
+export function getOrderedRolesForLens(
+  lensType: LensType,
   availableRoles: StakeholderRole[]
 ): StakeholderRole[] {
-  const priority = VIEWER_PRIORITY[viewerType] || VIEWER_PRIORITY.default;
+  const priority = LENS_PRIORITY[lensType] || LENS_PRIORITY.default;
   return priority.filter(role => availableRoles.includes(role));
 }
 
