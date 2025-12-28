@@ -1,10 +1,8 @@
 /**
  * NarrativeBar.tsx
  * 
- * Cinematic floating narrative - no borders, just text.
- * Feels like a documentary voiceover on the canvas.
- * 
- * Large, impactful text with subtle shadow for legibility.
+ * Cinematic horizontal narrative - flows like a sentence.
+ * No boxes, just floating text that reads left to right.
  */
 
 import { memo, useMemo } from 'react';
@@ -106,7 +104,7 @@ export const NarrativeBar = memo(({
     cta: progress >= 0.90,
   }), [progress]);
 
-  const textShadow = '0 2px 20px rgba(0, 0, 0, 0.8), 0 1px 3px rgba(0, 0, 0, 0.9)';
+  const textShadow = '0 2px 20px rgba(0, 0, 0, 0.9), 0 1px 3px rgba(0, 0, 0, 0.9)';
   
   return (
     <div 
@@ -116,60 +114,79 @@ export const NarrativeBar = memo(({
         transition: 'opacity 0.5s ease-out',
       }}
     >
-      {/* Narrative text - cinematic style */}
-      <div className="space-y-2">
+      {/* Narrative - single flowing line */}
+      <p className="text-xl md:text-2xl font-light tracking-wide leading-relaxed">
         {/* Part 1 */}
-        <p
-          className="text-xl md:text-2xl font-light tracking-wide transition-all duration-700"
+        <span
+          className="transition-all duration-500"
           style={{
-            color: visibility.part2 ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.85)',
+            color: visibility.part2 ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.9)',
             textShadow,
             opacity: visibility.part1 ? 1 : 0,
-            transform: visibility.part1 ? 'translateY(0)' : 'translateY(10px)',
           }}
         >
           {script.part1}
-        </p>
+        </span>
         
-        {/* Part 2 */}
-        <p
-          className="text-xl md:text-2xl font-light tracking-wide transition-all duration-700"
+        {/* Arrow 1 */}
+        <span
+          className="transition-opacity duration-300 mx-2"
           style={{
-            color: visibility.part3 ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.85)',
+            color: 'rgba(255, 255, 255, 0.3)',
             textShadow,
             opacity: visibility.part2 ? 1 : 0,
-            transform: visibility.part2 ? 'translateY(0)' : 'translateY(10px)',
           }}
         >
-          <span style={{ color: 'rgba(255, 255, 255, 0.3)' }}>→ </span>
+          →
+        </span>
+        
+        {/* Part 2 */}
+        <span
+          className="transition-all duration-500"
+          style={{
+            color: visibility.part3 ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.9)',
+            textShadow,
+            opacity: visibility.part2 ? 1 : 0,
+          }}
+        >
           {script.part2}
-        </p>
+        </span>
+        
+        {/* Arrow 2 */}
+        <span
+          className="transition-opacity duration-300 mx-2"
+          style={{
+            color: 'rgba(255, 255, 255, 0.3)',
+            textShadow,
+            opacity: visibility.part3 ? 1 : 0,
+          }}
+        >
+          →
+        </span>
         
         {/* Part 3 - emphasized */}
-        <p
-          className="text-2xl md:text-3xl font-medium tracking-wide transition-all duration-700"
+        <span
+          className="font-medium transition-all duration-500"
           style={{
             color: accentColor,
-            textShadow: `${textShadow}, 0 0 40px ${accentColor}40`,
+            textShadow: `${textShadow}, 0 0 30px ${accentColor}50`,
             opacity: visibility.part3 ? 1 : 0,
-            transform: visibility.part3 ? 'translateY(0)' : 'translateY(10px)',
           }}
         >
-          <span style={{ color: 'rgba(255, 255, 255, 0.3)' }}>→ </span>
           {script.part3}
-        </p>
-      </div>
+        </span>
+      </p>
       
-      {/* CTA - floating below */}
+      {/* CTA row */}
       <div
-        className="mt-6 transition-all duration-700"
+        className="mt-4 transition-all duration-700 flex items-center justify-center gap-4"
         style={{
           opacity: visibility.cta ? 1 : 0,
-          transform: visibility.cta ? 'translateY(0)' : 'translateY(10px)',
+          transform: visibility.cta ? 'translateY(0)' : 'translateY(5px)',
         }}
       >
         <span 
-          className="text-base mr-4"
+          className="text-base"
           style={{ 
             color: 'rgba(255, 255, 255, 0.5)',
             textShadow,
