@@ -953,36 +953,37 @@ useEffect(() => {
       ref={containerRef}
       className={`sankey-v3 relative w-full h-full min-h-screen overflow-hidden ${className}`}
       style={{
-        background: isBefore
-          ? `radial-gradient(ellipse at 50% 0%, ${theme.colors.bgSurface} 0%, ${theme.colors.bgDark} 70%)`
-          : `radial-gradient(ellipse at 50% 30%, ${theme.colors.primary}12 0%, ${theme.colors.bgSurface} 40%, ${theme.colors.bgDark} 100%)`,
-        transition: 'background 1.5s ease-out',
+        background: 'transparent',
       }}
     >
-      {/* Background layers */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          opacity: isBefore ? 0.4 : 0.6,
-          background: isBefore
-            ? `radial-gradient(circle at 75% 70%, ${theme.colors.accent}12 0%, transparent 45%),
-               radial-gradient(circle at 25% 30%, rgba(255, 255, 255, 0.02) 0%, transparent 40%)`
-            : `radial-gradient(circle at 30% 35%, ${theme.colors.primary}18 0%, transparent 50%),
-               radial-gradient(circle at 70% 55%, ${theme.colors.secondary}14 0%, transparent 45%)`,
-          transition: 'opacity 1.2s ease-out, background 1.2s ease-out',
-        }}
-      />
+      {/* Background layers - disabled for transparent mode */}
+      {!hideUI && (
+        <>
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              opacity: isBefore ? 0.4 : 0.6,
+              background: isBefore
+                ? `radial-gradient(circle at 75% 70%, ${theme.colors.accent}12 0%, transparent 45%),
+                   radial-gradient(circle at 25% 30%, rgba(255, 255, 255, 0.02) 0%, transparent 40%)`
+                : `radial-gradient(circle at 30% 35%, ${theme.colors.primary}18 0%, transparent 50%),
+                   radial-gradient(circle at 70% 55%, ${theme.colors.secondary}14 0%, transparent 45%)`,
+              transition: 'opacity 1.2s ease-out, background 1.2s ease-out',
+            }}
+          />
 
-      <div
-        className="absolute inset-0 pointer-events-none opacity-15"
-        style={{
-          backgroundImage: `
-            linear-gradient(${theme.colors.borderLight} 1px, transparent 1px),
-            linear-gradient(90deg, ${theme.colors.borderLight} 1px, transparent 1px)
-          `,
-          backgroundSize: '80px 80px',
-        }}
-      />
+          <div
+            className="absolute inset-0 pointer-events-none opacity-15"
+            style={{
+              backgroundImage: `
+                linear-gradient(${theme.colors.borderLight} 1px, transparent 1px),
+                linear-gradient(90deg, ${theme.colors.borderLight} 1px, transparent 1px)
+              `,
+              backgroundSize: '80px 80px',
+            }}
+          />
+        </>
+      )}
 
       {/* Exit overlay */}
       <div
