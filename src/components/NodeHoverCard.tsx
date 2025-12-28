@@ -26,6 +26,9 @@ export interface NodeHoverCardProps {
   /** Primary metric to display (e.g., "$3,808/week") */
   metric?: string;
   
+  /** Node type for metric coloring */
+  nodeType?: 'default' | 'source' | 'solution' | 'loss' | 'new' | 'revenue' | 'destination';
+  
   /** Whether card is visible */
   visible: boolean;
   
@@ -54,6 +57,7 @@ export interface NodeHoverCardProps {
 export const NodeHoverCard = memo(({
   name,
   metric,
+  nodeType = 'default',
   visible,
   position,
   accentColor = '#00e5ff',
@@ -68,6 +72,20 @@ export const NodeHoverCard = memo(({
     socialProof.thumbsDown > 0 || 
     socialProof.comments > 0
   );
+  
+  // Determine metric color based on node type
+  const metricColor = (() => {
+    switch (nodeType) {
+      case 'loss':
+        return '#f87171'; // Red for losses/problems
+      case 'revenue':
+      case 'solution':
+      case 'new':
+        return '#4ade80'; // Green for positive outcomes
+      default:
+        return 'rgba(255, 255, 255, 0.9)'; // White for neutral
+    }
+  })();
   
   return (
     <div
@@ -107,7 +125,7 @@ export const NodeHoverCard = memo(({
           <div className="px-3 py-2">
             <span 
               className="text-lg font-bold"
-              style={{ color: accentColor }}
+              style={{ color: metricColor }}
             >
               {metric}
             </span>
