@@ -1176,29 +1176,22 @@ useEffect(() => {
                   <g
                     transform={`translate(${link.midpoint.x}, ${link.midpoint.y})`}
                     style={{
-                      opacity: Math.min(1, (layerDrawProgress - 0.6) * 2.5),
+                      opacity: Math.min(0.7, (layerDrawProgress - 0.6) * 1.75),
                       transition: 'opacity 0.3s ease-out',
                     }}
                   >
-                    <rect
-                      x={-32}
-                      y={-10}
-                      width={64}
-                      height={20}
-                      rx={4}
-                      fill="rgba(0, 0, 0, 0.85)"
-                      stroke={isLoss ? theme.colors.accent + '66' : theme.colors.primary + '44'}
-                      strokeWidth={1}
-                    />
                     <text
                       x={0}
                       y={0}
                       dy="0.35em"
                       textAnchor="middle"
-                      fill={isLoss ? theme.colors.accent : theme.colors.text}
-                      fontSize={14}
+                      fill={isLoss ? theme.colors.accent : 'rgba(255, 255, 255, 0.85)'}
+                      fontSize={12}
                       fontWeight={500}
                       fontFamily="Inter, system-ui, sans-serif"
+                      style={{
+                        textShadow: '0 1px 3px rgba(0, 0, 0, 0.8), 0 0 8px rgba(0, 0, 0, 0.5)',
+                      }}
                     >
                       {link.displayLabel || link.value}
                     </text>
@@ -1293,9 +1286,10 @@ useEffect(() => {
                 />
 
                 {/* Node label - Layer 0 on LEFT, all others on RIGHT */}
+                {/* When displayValue exists, offset label up so the pair is centered */}
                 <text
                   x={node.layer === 0 ? -16 : node.width + 16}
-                  y={node.height / 2}
+                  y={node.displayValue ? node.height / 2 - 9 : node.height / 2}
                   dy="0.35em"
                   textAnchor={node.layer === 0 ? 'end' : 'start'}
                   fill={node.type === 'loss' ? theme.colors.accent : theme.colors.text}
@@ -1313,7 +1307,7 @@ useEffect(() => {
                 {node.displayValue && (
                   <text
                     x={node.layer === 0 ? -16 : node.width + 16}
-                    y={node.height / 2 + 18}
+                    y={node.height / 2 + 9}
                     textAnchor={node.layer === 0 ? 'end' : 'start'}
                     fill={node.type === 'loss' ? theme.colors.accent : node.type === 'revenue' ? theme.colors.primary : theme.colors.textMuted}
                     fontSize={14}
@@ -1329,7 +1323,7 @@ useEffect(() => {
                 {node.type === 'new' && !node.displayValue && (
                   <text
                     x={node.layer === 0 ? -16 : node.width + 16}
-                    y={node.height / 2 + 16}
+                    y={node.height / 2 + 12}
                     textAnchor={node.layer === 0 ? 'end' : 'start'}
                     fill={theme.colors.secondary}
                     fontSize={11}
