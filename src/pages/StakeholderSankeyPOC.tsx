@@ -357,21 +357,23 @@ export const StakeholderSankeyPOC = () => {
       </div>
       
       {/* Sankey Visualization */}
-      <div className="absolute inset-0 pt-32 pb-4">
-        <SankeyFlowV3
-          key={activeLens}
-          state={flowState}
-          stageLabels={[]}
-          variant="before"
-          brand={DEFAULT_BRAND}
-          animated={true}
-          showLabels={true}
-          hideUI={true}
-          onLayoutReady={handleLayoutReady}
-          onAnimationComplete={handleAnimationComplete}
-          onNodeHover={handleNodeHover}
-          onNodeClick={(nodeId) => handleNodeClick(nodeId)}
-        />
+      <div className="absolute inset-0 pt-32 pb-4 flex justify-center">
+        <div className="w-full max-w-[1400px] h-full">
+          <SankeyFlowV3
+            key={activeLens}
+            state={flowState}
+            stageLabels={[]}
+            variant="before"
+            brand={DEFAULT_BRAND}
+            animated={true}
+            showLabels={true}
+            hideUI={true}
+            onLayoutReady={handleLayoutReady}
+            onAnimationComplete={handleAnimationComplete}
+            onNodeHover={handleNodeHover}
+            onNodeClick={(nodeId) => handleNodeClick(nodeId)}
+          />
+        </div>
       </div>
       
       {/* Node Hover Card */}
