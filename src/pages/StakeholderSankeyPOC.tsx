@@ -388,7 +388,7 @@ export const StakeholderSankeyPOC = () => {
       </div>
       
       {/* Narrative Bar - tells the story */}
-      <div className="absolute top-28 left-0 right-0 z-20">
+      <div className="absolute top-24 left-0 right-0 z-20">
         <NarrativeBar
           lens={activeLens}
           variant="before"
@@ -405,7 +405,7 @@ export const StakeholderSankeyPOC = () => {
       </div>
       
       {/* Sankey Visualization */}
-      <div className="absolute inset-0 pt-80 pb-4 flex justify-center">
+      <div className="absolute inset-0 pt-44 pb-4 flex justify-center">
         <div className="w-full max-w-[1400px] h-full">
           <SankeyFlowV3
             key={activeLens}
