@@ -163,6 +163,8 @@ export interface SankeyFlowProps {
   onLayoutReady?: (nodePositions: Map<string, NodePosition>) => void;
   /** Called when draw animation completes */
   onAnimationComplete?: () => void;
+  /** Called when hovering over a node */
+  onNodeHover?: (nodeId: string | null) => void;
 }
 
 // ============================================
@@ -323,6 +325,7 @@ const SankeyFlowV3Inner = ({
   viewerType = 'default',
   onLayoutReady,
   onAnimationComplete,
+  onNodeHover,
 }: SankeyFlowProps) => {
   const theme = useMemo(() => resolveTheme(brand), [brand]);
 
@@ -1232,14 +1235,16 @@ useEffect(() => {
                   opacity: exitPhase === 'desaturate' ? nodeOpacity * 0.4
                          : exitPhase === 'gone' ? 0
                          : nodeOpacity,
-                  cursor: onNodeClick ? 'pointer' : 'default',
+                  cursor: 'pointer',
                   transition: exitPhase !== 'none' ? 'opacity 0.3s' : 'none',
                 }}
                 onClick={() => onNodeClick?.(node.id, { 
-                label: node.label, 
-                value: node.displayValue || '', 
-                type: node.type || 'default' 
-})}
+                  label: node.label, 
+                  value: node.displayValue || '', 
+                  type: node.type || 'default' 
+                })}
+                onMouseEnter={() => onNodeHover?.(node.id)}
+                onMouseLeave={() => onNodeHover?.(null)}
               >
                 {/* Highlight indicator for comparison card active node - dashed white border */}
                 {highlightedNodeId === node.id && (
