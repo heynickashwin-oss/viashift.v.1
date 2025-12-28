@@ -56,7 +56,7 @@ export interface ComparisonDrawerProps {
 const FOMU_LANGUAGE = {
   before: {
     subtitle: 'What this means for each stakeholder',
-    question: 'Does this match what you're seeing?',
+    question: "Does this match what you're seeing?",
     cta: 'Help us get this right →',
     ctaSubtext: 'Your input shapes the solution',
   },
