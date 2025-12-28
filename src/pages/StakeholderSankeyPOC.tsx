@@ -12,27 +12,27 @@
  * - Premium & Tactile: Proud to share, enjoyable to use
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { SankeyFlowV3, NodePosition } from '../components/sankeyflowv3';
 import { ComparePill } from '../components/ComparePill';
-import { ComparisonDrawer } from '../components/ComparisonDrawer';
+import { ComparisonDrawer } from '../components/comparisondrawer';
 import { 
-  StakeholderViewType, 
-  getFlowStateForView,
+  StakeholderLensType, 
+  getFlowStateForLens,
 } from '../data/templates/stakeholderParallelData';
 import { 
-  getComparisonsForView,
-  getNodeComparisonForView,
-  getViewCountForNode,
+  getComparisonsForLens,
+  getNodeComparisonForLens,
+  getLensCountForNode,
 } from '../data/templates/stakeholderParallelComparisons';
 import { DEFAULT_BRAND } from '../components/branding/brandUtils';
 
 // ============================================
-// VIEW CONFIGURATION
+// LENS CONFIGURATION
 // ============================================
 
-const VIEW_DATA: { 
-  type: StakeholderViewType; 
+const LENS_DATA: { 
+  type: StakeholderLensType; 
   icon: string; 
   label: string; 
   color: string; 
@@ -70,31 +70,43 @@ const VIEW_DATA: {
 // ============================================
 
 export const StakeholderSankeyPOC = () => {
-  // View state
-  const [activeView, setActiveView] = useState<StakeholderViewType>('orders');
+  // Lens state
+  const [activeLens, setActiveLens] = useState<StakeholderLensType>('orders');
   
   // Layout and animation state
   const [nodePositions, setNodePositions] = useState<Map<string, NodePosition>>(new Map());
   const [animationComplete, setAnimationComplete] = useState(false);
+  const [showPills, setShowPills] = useState(false);
   
   // Drawer state
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   
-  // Get flow state and comparisons for current view
-  const flowState = useMemo(() => getFlowStateForView(activeView), [activeView]);
-  const comparisons = useMemo(() => getComparisonsForView(activeView), [activeView]);
+  // Get flow state and comparisons for current lens
+  const flowState = useMemo(() => getFlowStateForLens(activeLens), [activeLens]);
+  const comparisons = useMemo(() => getComparisonsForLens(activeLens), [activeLens]);
   
   // Get selected comparison for drawer
   const selectedComparison = useMemo(() => {
     if (!selectedNodeId) return null;
-    return getNodeComparisonForView(activeView, selectedNodeId);
-  }, [activeView, selectedNodeId]);
+    return getNodeComparisonForLens(activeLens, selectedNodeId);
+  }, [activeLens, selectedNodeId]);
   
-  // Get current view color for accent
-  const activeViewColor = useMemo(() => {
-    return VIEW_DATA.find(v => v.type === activeView)?.color || '#00e5ff';
-  }, [activeView]);
+  // Get current lens color for accent
+  const activeLensColor = useMemo(() => {
+    return LENS_DATA.find(v => v.type === activeLens)?.color || '#00e5ff';
+  }, [activeLens]);
+  
+  // Show pills earlier - after a short delay once layout is ready
+  // This makes them appear ~3 seconds into the animation instead of waiting for completion
+  useEffect(() => {
+    if (nodePositions.size > 0 && !showPills) {
+      const timer = setTimeout(() => {
+        setShowPills(true);
+      }, 3000); // 3 seconds after layout ready
+      return () => clearTimeout(timer);
+    }
+  }, [nodePositions.size, showPills]);
   
   // Callbacks
   const handleLayoutReady = useCallback((positions: Map<string, NodePosition>) => {
@@ -103,12 +115,14 @@ export const StakeholderSankeyPOC = () => {
   
   const handleAnimationComplete = useCallback(() => {
     setAnimationComplete(true);
+    setShowPills(true); // Also show pills when animation completes (fallback)
   }, []);
   
-  const handleViewChange = useCallback((viewType: StakeholderViewType) => {
-    // Reset animation state when changing views
+  const handleLensChange = useCallback((lensType: StakeholderLensType) => {
+    // Reset animation state when changing lenses
     setAnimationComplete(false);
-    setActiveView(viewType);
+    setShowPills(false);
+    setActiveLens(lensType);
     setSelectedNodeId(null);
     setDrawerOpen(false);
   }, []);
@@ -128,23 +142,23 @@ export const StakeholderSankeyPOC = () => {
       nodeId: string;
       x: number;
       y: number;
-      viewCount: number;
+      lensCount: number;
     }> = [];
     
     nodePositions.forEach((pos, nodeId) => {
-      const viewCount = getViewCountForNode(activeView, nodeId);
-      if (viewCount > 0) {
+      const lensCount = getLensCountForNode(activeLens, nodeId);
+      if (lensCount > 0) {
         positions.push({
           nodeId,
           x: pos.x + pos.width / 2,
           y: pos.y + pos.height + 12, // 12px below node
-          viewCount,
+          lensCount,
         });
       }
     });
     
     return positions;
-  }, [nodePositions, activeView]);
+  }, [nodePositions, activeLens]);
   
   return (
     <div 
@@ -156,38 +170,38 @@ export const StakeholderSankeyPOC = () => {
       {/* Toggle Cards */}
       <div className="absolute top-0 left-0 right-0 z-20 p-4">
         <div className="flex gap-2">
-          {VIEW_DATA.map((view) => {
-            const isActive = activeView === view.type;
+          {LENS_DATA.map((lens) => {
+            const isActive = activeLens === lens.type;
             return (
               <button
-                key={view.type}
-                onClick={() => handleViewChange(view.type)}
-                className="flex-1 p-4 rounded-xl text-left transition-all duration-300"
+                key={lens.type}
+                onClick={() => handleLensChange(lens.type)}
+                className="flex-1 p-4 rounded-xl text-left transition-all duration-300 group"
                 style={{
                   background: isActive 
-                    ? `linear-gradient(135deg, ${view.color}15 0%, ${view.color}08 100%)`
+                    ? `linear-gradient(135deg, ${lens.color}15 0%, ${lens.color}08 100%)`
                     : 'rgba(255, 255, 255, 0.02)',
                   border: isActive 
-                    ? `1px solid ${view.color}40`
-                    : '1px solid rgba(255, 255, 255, 0.06)',
+                    ? `1px solid ${lens.color}40`
+                    : '1px solid rgba(255, 255, 255, 0.08)',
                   boxShadow: isActive
-                    ? `0 4px 24px ${view.color}15`
+                    ? `0 4px 24px ${lens.color}15`
                     : 'none',
                 }}
               >
                 {/* Header row: Icon + Label */}
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg">{view.icon}</span>
+                  <span className="text-lg">{lens.icon}</span>
                   <span 
-                    className="text-sm font-semibold"
-                    style={{ color: isActive ? view.color : 'rgba(255, 255, 255, 0.5)' }}
+                    className="text-sm font-semibold transition-colors duration-300"
+                    style={{ color: isActive ? lens.color : 'rgba(255, 255, 255, 0.5)' }}
                   >
-                    {view.label}
+                    {lens.label}
                   </span>
                   {isActive && (
                     <div 
                       className="ml-auto w-2 h-2 rounded-full"
-                      style={{ background: view.color }}
+                      style={{ background: lens.color }}
                     />
                   )}
                 </div>
@@ -202,7 +216,7 @@ export const StakeholderSankeyPOC = () => {
                   <span style={{ color: isActive ? '#ef4444' : 'rgba(239, 68, 68, 0.5)' }}>
                     Current:
                   </span>{' '}
-                  {view.currentInsight}
+                  {lens.currentInsight}
                 </div>
                 
                 {/* Shifted state insight - shown when active */}
@@ -217,7 +231,7 @@ export const StakeholderSankeyPOC = () => {
                     <span style={{ color: '#22c55e' }}>
                       Shifted:
                     </span>{' '}
-                    {view.shiftedInsight}
+                    {lens.shiftedInsight}
                   </div>
                 )}
               </button>
@@ -229,7 +243,7 @@ export const StakeholderSankeyPOC = () => {
       {/* Sankey Visualization */}
       <div className="absolute inset-0 pt-32 pb-4">
         <SankeyFlowV3
-          key={activeView}
+          key={activeLens}
           state={flowState}
           stageLabels={[]}
           variant="before"
@@ -243,14 +257,14 @@ export const StakeholderSankeyPOC = () => {
       </div>
       
       {/* Compare Pills - positioned below nodes */}
-      {pillPositions.map(({ nodeId, x, y, viewCount }) => (
+      {pillPositions.map(({ nodeId, x, y, lensCount }) => (
         <ComparePill
           key={nodeId}
-          viewCount={viewCount}
-          visible={animationComplete}
+          lensCount={lensCount}
+          visible={showPills}
           onClick={() => handlePillClick(nodeId)}
           position={{ x, y }}
-          accentColor={activeViewColor}
+          accentColor={activeLensColor}
         />
       ))}
       
@@ -259,7 +273,7 @@ export const StakeholderSankeyPOC = () => {
         comparison={selectedComparison}
         isOpen={drawerOpen}
         onClose={handleDrawerClose}
-        accentColor={activeViewColor}
+        accentColor={activeLensColor}
       />
     </div>
   );
