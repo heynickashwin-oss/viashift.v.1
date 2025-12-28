@@ -287,7 +287,7 @@ const AnimatedValue = ({
 // ============================================
 
 const LAYOUT = {
-  padding: { top: 100, right: 60, bottom: 120, left: 60 },
+  padding: { top: 100, right: 100, bottom: 120, left: 100 },
   nodeWidth: 18,
   nodeMinHeight: 35,
   nodeMaxHeight: 90,
@@ -1195,7 +1195,7 @@ useEffect(() => {
                       dy="0.35em"
                       textAnchor="middle"
                       fill={isLoss ? theme.colors.accent : theme.colors.text}
-                      fontSize={11}
+                      fontSize={14}
                       fontWeight={500}
                       fontFamily="Inter, system-ui, sans-serif"
                     >
@@ -1298,7 +1298,7 @@ useEffect(() => {
                   dy="0.35em"
                   textAnchor={node.layer === 0 ? 'end' : 'start'}
                   fill={node.type === 'loss' ? theme.colors.accent : theme.colors.text}
-                  fontSize={12}
+                  fontSize={15}
                   fontWeight={node.type === 'solution' ? 600 : 500}
                   fontFamily="Inter, system-ui, sans-serif"
                   style={{
@@ -1312,10 +1312,10 @@ useEffect(() => {
                 {node.displayValue && (
                   <text
                     x={node.layer === 0 ? -16 : node.width + 16}
-                    y={node.height / 2 + 16}
+                    y={node.height / 2 + 18}
                     textAnchor={node.layer === 0 ? 'end' : 'start'}
                     fill={node.type === 'loss' ? theme.colors.accent : node.type === 'revenue' ? theme.colors.primary : theme.colors.textMuted}
-                    fontSize={11}
+                    fontSize={14}
                     fontWeight={500}
                     fontFamily="Inter, system-ui, sans-serif"
                     opacity={0.85}
@@ -1328,10 +1328,10 @@ useEffect(() => {
                 {node.type === 'new' && !node.displayValue && (
                   <text
                     x={node.layer === 0 ? -16 : node.width + 16}
-                    y={node.height / 2 + 14}
+                    y={node.height / 2 + 16}
                     textAnchor={node.layer === 0 ? 'end' : 'start'}
                     fill={theme.colors.secondary}
-                    fontSize={9}
+                    fontSize={11}
                     fontWeight={600}
                     opacity={0.7}
                   >
