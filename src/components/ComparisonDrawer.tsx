@@ -2,18 +2,22 @@
  * ComparisonDrawer.tsx
  * 
  * Slide-up drawer showing stakeholder perspectives for a specific node.
- * Appears when user clicks a ComparePill, dims the Sankey behind it.
+ * 
+ * FOMU-aligned language changes based on state:
+ * - Current (before): Validate understanding, surface disagreements
+ * - Shifted (after): Make change feel safe, surface concerns
  * 
  * Design principles:
  * - Slide up feels tactile and alive
  * - Premium dark aesthetic
- * - Clear hierarchy: node name → perspectives → narrative
- * - Easy to dismiss (X button or click outside)
+ * - Clear hierarchy: node name → perspectives → narrative → CTA
+ * - Every surface has path to engagement (viral loop)
  */
 
 import { memo, useEffect, useCallback } from 'react';
 import type { NodeComparison, StakeholderRole } from '../types/stakeholderComparison';
 import { STAKEHOLDER_ROLES, getActiveRoles } from '../types/stakeholderComparison';
+import type { SocialProof } from './NodeHoverCard';
 
 // ============================================
 // TYPES
@@ -29,9 +33,37 @@ export interface ComparisonDrawerProps {
   /** Close handler */
   onClose: () => void;
   
+  /** Which state we're showing */
+  variant?: 'before' | 'after';
+  
   /** Accent color for the current view */
   accentColor?: string;
+  
+  /** Social proof data for this node */
+  socialProof?: SocialProof;
+  
+  /** Callback when feedback CTA is clicked */
+  onFeedbackClick?: () => void;
 }
+
+// ============================================
+// FOMU LANGUAGE CONFIG
+// ============================================
+
+const FOMU_LANGUAGE = {
+  before: {
+    subtitle: 'What this means for each stakeholder',
+    question: 'Does this match what you're seeing?',
+    cta: 'Help us get this right →',
+    ctaSubtext: 'Your input shapes the solution',
+  },
+  after: {
+    subtitle: 'How this changes for each stakeholder',
+    question: 'Does this feel achievable?',
+    cta: 'Share your concerns →',
+    ctaSubtext: 'Surface doubts before they become blockers',
+  },
+};
 
 // ============================================
 // SENTIMENT STYLING
@@ -134,6 +166,76 @@ const InsightCard = memo(({ role, insight, delay, isVisible }: InsightCardProps)
 InsightCard.displayName = 'InsightCard';
 
 // ============================================
+// SOCIAL PROOF COMPONENT
+// ============================================
+
+interface SocialProofRowProps {
+  socialProof: SocialProof;
+  isVisible: boolean;
+  delay: number;
+}
+
+const SocialProofRow = memo(({ socialProof, isVisible, delay }: SocialProofRowProps) => {
+  const hasSocialProof = socialProof.thumbsUp > 0 || 
+                         socialProof.thumbsDown > 0 || 
+                         socialProof.comments > 0;
+  
+  if (!hasSocialProof) return null;
+  
+  return (
+    <div
+      className="flex items-center gap-4 transition-all duration-500"
+      style={{
+        opacity: isVisible ? 1 : 0,
+        transitionDelay: `${delay}ms`,
+      }}
+    >
+      {socialProof.thumbsUp > 0 && (
+        <div className="flex items-center gap-1.5">
+          <span className="text-base">👍</span>
+          <span 
+            className="text-sm font-medium"
+            style={{ color: 'rgba(74, 222, 128, 0.9)' }}
+          >
+            {socialProof.thumbsUp}
+          </span>
+        </div>
+      )}
+      {socialProof.thumbsDown > 0 && (
+        <div className="flex items-center gap-1.5">
+          <span className="text-base">👎</span>
+          <span 
+            className="text-sm font-medium"
+            style={{ color: 'rgba(239, 68, 68, 0.9)' }}
+          >
+            {socialProof.thumbsDown}
+          </span>
+        </div>
+      )}
+      {socialProof.comments > 0 && (
+        <div className="flex items-center gap-1.5">
+          <span className="text-base">💬</span>
+          <span 
+            className="text-sm font-medium"
+            style={{ color: 'rgba(255, 255, 255, 0.6)' }}
+          >
+            {socialProof.comments}
+          </span>
+        </div>
+      )}
+      <span 
+        className="text-xs"
+        style={{ color: 'rgba(255, 255, 255, 0.4)' }}
+      >
+        have weighed in
+      </span>
+    </div>
+  );
+});
+
+SocialProofRow.displayName = 'SocialProofRow';
+
+// ============================================
 // MAIN DRAWER COMPONENT
 // ============================================
 
@@ -141,8 +243,14 @@ export const ComparisonDrawer = memo(({
   comparison,
   isOpen,
   onClose,
+  variant = 'before',
   accentColor = '#00e5ff',
+  socialProof,
+  onFeedbackClick,
 }: ComparisonDrawerProps) => {
+  
+  // Get FOMU language for current variant
+  const fomu = FOMU_LANGUAGE[variant];
   
   // Close on escape key
   useEffect(() => {
@@ -165,6 +273,9 @@ export const ComparisonDrawer = memo(({
       onClose();
     }
   }, [onClose]);
+  
+  // Calculate animation delays
+  const baseDelay = activeRoles.length * 75;
   
   return (
     <>
@@ -213,13 +324,13 @@ export const ComparisonDrawer = memo(({
                 className="text-lg font-semibold"
                 style={{ color: 'rgba(255, 255, 255, 0.95)' }}
               >
-                {comparison?.nodeName || 'Node'}
+                {comparison?.nodeName || 'Node'} Step
               </h2>
               <p 
                 className="text-sm mt-0.5"
                 style={{ color: 'rgba(255, 255, 255, 0.5)' }}
               >
-                {activeRoles.length} stakeholder {activeRoles.length === 1 ? 'lens' : 'lenses'}
+                {fomu.subtitle}
               </p>
             </div>
             
@@ -267,7 +378,7 @@ export const ComparisonDrawer = memo(({
                   border: '1px solid rgba(255, 255, 255, 0.06)',
                   opacity: isOpen ? 1 : 0,
                   transform: isOpen ? 'translateY(0)' : 'translateY(20px)',
-                  transitionDelay: `${activeRoles.length * 75 + 100}ms`,
+                  transitionDelay: `${baseDelay + 100}ms`,
                 }}
               >
                 <p 
@@ -279,26 +390,56 @@ export const ComparisonDrawer = memo(({
               </div>
             )}
             
-            {/* Discussion prompt */}
-            {comparison?.discussionPrompt && (
-              <div
-                className="mt-4 p-4 rounded-xl transition-all duration-500 ease-out"
+            {/* FOMU Feedback Section */}
+            <div
+              className="mt-6 p-5 rounded-xl transition-all duration-500 ease-out"
+              style={{
+                background: `linear-gradient(135deg, ${accentColor}08 0%, ${accentColor}04 100%)`,
+                border: `1px solid ${accentColor}20`,
+                opacity: isOpen ? 1 : 0,
+                transform: isOpen ? 'translateY(0)' : 'translateY(20px)',
+                transitionDelay: `${baseDelay + 200}ms`,
+              }}
+            >
+              {/* Social proof row */}
+              {socialProof && (
+                <div className="mb-4">
+                  <SocialProofRow 
+                    socialProof={socialProof} 
+                    isVisible={isOpen}
+                    delay={baseDelay + 250}
+                  />
+                </div>
+              )}
+              
+              {/* FOMU question */}
+              <p 
+                className="text-base font-medium mb-4"
+                style={{ color: 'rgba(255, 255, 255, 0.9)' }}
+              >
+                {fomu.question}
+              </p>
+              
+              {/* Feedback CTA */}
+              <button
+                onClick={onFeedbackClick}
+                className="w-full py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-[1.02] group"
                 style={{
-                  background: `linear-gradient(135deg, ${accentColor}08 0%, ${accentColor}04 100%)`,
-                  border: `1px solid ${accentColor}20`,
-                  opacity: isOpen ? 1 : 0,
-                  transform: isOpen ? 'translateY(0)' : 'translateY(20px)',
-                  transitionDelay: `${activeRoles.length * 75 + 200}ms`,
+                  background: accentColor,
+                  color: '#000',
                 }}
               >
-                <p 
-                  className="text-sm font-medium"
-                  style={{ color: accentColor }}
-                >
-                  💬 {comparison.discussionPrompt}
-                </p>
-              </div>
-            )}
+                <span className="font-semibold">{fomu.cta}</span>
+              </button>
+              
+              {/* CTA subtext */}
+              <p 
+                className="text-xs text-center mt-2"
+                style={{ color: 'rgba(255, 255, 255, 0.4)' }}
+              >
+                {fomu.ctaSubtext}
+              </p>
+            </div>
           </div>
           
           {/* Bottom padding for safe area */}
