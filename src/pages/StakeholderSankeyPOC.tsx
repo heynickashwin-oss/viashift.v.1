@@ -4,7 +4,7 @@
  * Core experience hierarchy:
  * 1. Toggle cards (lens selection)
  * 2. Sankey visualization + narrative
- * 3. Compare pills → Drawer (deeper dive, pull not push)
+ * 3. Hover cards → Drawer (deeper dive, pull not push)
  * 
  * Design principles:
  * - FOMU > FOMO: Make them feel safer about deciding
@@ -14,7 +14,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { SankeyFlowV3, NodePosition } from '../components/sankeyflowv3';
-import { ComparePill } from '../components/ComparePill';
+import { NodeHoverCard } from '../components/NodeHoverCard';
 import { ComparisonDrawer } from '../components/ComparisonDrawer';
 import { 
   StakeholderViewType as StakeholderLensType, 
@@ -76,7 +76,9 @@ export const StakeholderSankeyPOC = () => {
   // Layout and animation state
   const [nodePositions, setNodePositions] = useState<Map<string, NodePosition>>(new Map());
   const [animationComplete, setAnimationComplete] = useState(false);
-  const [showPills, setShowPills] = useState(false);
+  
+  // Hover state
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   
   // Drawer state
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -97,16 +99,25 @@ export const StakeholderSankeyPOC = () => {
     return LENS_DATA.find(v => v.type === activeLens)?.color || '#00e5ff';
   }, [activeLens]);
   
-  // Show pills earlier - after a short delay once layout is ready
-  // This makes them appear ~3 seconds into the animation instead of waiting for completion
-  useEffect(() => {
-    if (nodePositions.size > 0 && !showPills) {
-      const timer = setTimeout(() => {
-        setShowPills(true);
-      }, 3000); // 3 seconds after layout ready
-      return () => clearTimeout(timer);
-    }
-  }, [nodePositions.size, showPills]);
+  // Get hovered node data
+  const hoveredNodeData = useMemo(() => {
+    if (!hoveredNodeId || !nodePositions.has(hoveredNodeId)) return null;
+    
+    const position = nodePositions.get(hoveredNodeId)!;
+    const node = flowState.data.nodes.find(n => n.id === hoveredNodeId);
+    const lensCount = getLensCountForNode(activeLens, hoveredNodeId);
+    
+    return {
+      id: hoveredNodeId,
+      name: node?.label || hoveredNodeId,
+      metric: node?.displayValue,
+      position: {
+        x: position.x + position.width + 16, // 16px to the right of node
+        y: position.y + position.height / 2, // Centered vertically
+      },
+      hasComparison: lensCount > 0,
+    };
+  }, [hoveredNodeId, nodePositions, flowState.data.nodes, activeLens]);
   
   // Callbacks
   const handleLayoutReady = useCallback((positions: Map<string, NodePosition>) => {
@@ -115,50 +126,41 @@ export const StakeholderSankeyPOC = () => {
   
   const handleAnimationComplete = useCallback(() => {
     setAnimationComplete(true);
-    setShowPills(true); // Also show pills when animation completes (fallback)
   }, []);
   
   const handleLensChange = useCallback((lensType: StakeholderLensType) => {
-    // Reset animation state when changing lenses
+    // Reset state when changing lenses
     setAnimationComplete(false);
-    setShowPills(false);
     setActiveLens(lensType);
     setSelectedNodeId(null);
     setDrawerOpen(false);
+    setHoveredNodeId(null);
   }, []);
   
-  const handlePillClick = useCallback((nodeId: string) => {
-    setSelectedNodeId(nodeId);
-    setDrawerOpen(true);
+  const handleNodeHover = useCallback((nodeId: string | null) => {
+    setHoveredNodeId(nodeId);
   }, []);
+  
+  const handleCompareClick = useCallback(() => {
+    if (hoveredNodeId) {
+      setSelectedNodeId(hoveredNodeId);
+      setDrawerOpen(true);
+    }
+  }, [hoveredNodeId]);
   
   const handleDrawerClose = useCallback(() => {
     setDrawerOpen(false);
   }, []);
   
-  // Calculate pill positions based on node positions
-  const pillPositions = useMemo(() => {
-    const positions: Array<{
-      nodeId: string;
-      x: number;
-      y: number;
-      lensCount: number;
-    }> = [];
-    
-    nodePositions.forEach((pos, nodeId) => {
-      const lensCount = getLensCountForNode(activeLens, nodeId);
-      if (lensCount > 0) {
-        positions.push({
-          nodeId,
-          x: pos.x + pos.width / 2,
-          y: pos.y + pos.height + 12, // 12px below node
-          lensCount,
-        });
-      }
-    });
-    
-    return positions;
-  }, [nodePositions, activeLens]);
+  const handleThumbsUp = useCallback(() => {
+    console.log('Thumbs up for:', hoveredNodeId);
+    // TODO: Implement feedback submission
+  }, [hoveredNodeId]);
+  
+  const handleThumbsDown = useCallback(() => {
+    console.log('Thumbs down for:', hoveredNodeId);
+    // TODO: Implement feedback submission
+  }, [hoveredNodeId]);
   
   return (
     <div 
@@ -253,20 +255,24 @@ export const StakeholderSankeyPOC = () => {
           hideUI={true}
           onLayoutReady={handleLayoutReady}
           onAnimationComplete={handleAnimationComplete}
+          onNodeHover={handleNodeHover}
         />
       </div>
       
-      {/* Compare Pills - positioned below nodes */}
-      {pillPositions.map(({ nodeId, x, y, lensCount }) => (
-        <ComparePill
-          key={nodeId}
-          lensCount={lensCount}
-          visible={showPills}
-          onClick={() => handlePillClick(nodeId)}
-          position={{ x, y }}
+      {/* Node Hover Card */}
+      {hoveredNodeData && (
+        <NodeHoverCard
+          name={hoveredNodeData.name}
+          metric={hoveredNodeData.metric}
+          visible={!!hoveredNodeId}
+          position={hoveredNodeData.position}
           accentColor={activeLensColor}
+          hasComparison={hoveredNodeData.hasComparison}
+          onCompareClick={handleCompareClick}
+          onThumbsUp={handleThumbsUp}
+          onThumbsDown={handleThumbsDown}
         />
-      ))}
+      )}
       
       {/* Comparison Drawer */}
       <ComparisonDrawer
