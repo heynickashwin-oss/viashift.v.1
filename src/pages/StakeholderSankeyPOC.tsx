@@ -15,7 +15,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { SankeyFlowV3, NodePosition } from '../components/sankeyflowv3';
 import { ComparePill } from '../components/ComparePill';
-import { ComparisonDrawer } from '../components/comparisondrawer';
+import { ComparisonDrawer } from '../components/ComparisonDrawer';
 import { 
   StakeholderLensType, 
   getFlowStateForLens,
