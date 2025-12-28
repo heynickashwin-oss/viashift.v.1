@@ -219,7 +219,7 @@ export const ComparisonDrawer = memo(({
                 className="text-sm mt-0.5"
                 style={{ color: 'rgba(255, 255, 255, 0.5)' }}
               >
-                {activeRoles.length} stakeholder {activeRoles.length === 1 ? 'perspective' : 'perspectives'}
+                {activeRoles.length} stakeholder {activeRoles.length === 1 ? 'lens' : 'lenses'}
               </p>
             </div>
             
