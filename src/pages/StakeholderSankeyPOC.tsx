@@ -17,13 +17,13 @@ import { SankeyFlowV3, NodePosition } from '../components/sankeyflowv3';
 import { ComparePill } from '../components/ComparePill';
 import { ComparisonDrawer } from '../components/ComparisonDrawer';
 import { 
-  StakeholderLensType, 
-  getFlowStateForLens,
+  StakeholderViewType as StakeholderLensType, 
+  getFlowStateForView as getFlowStateForLens,
 } from '../data/templates/stakeholderParallelData';
 import { 
-  getComparisonsForLens,
-  getNodeComparisonForLens,
-  getLensCountForNode,
+  getComparisonsForView as getComparisonsForLens,
+  getNodeComparisonForView as getNodeComparisonForLens,
+  getViewCountForNode as getLensCountForNode,
 } from '../data/templates/stakeholderParallelComparisons';
 import { DEFAULT_BRAND } from '../components/branding/brandUtils';
 
