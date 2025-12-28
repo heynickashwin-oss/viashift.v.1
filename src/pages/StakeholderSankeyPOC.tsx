@@ -387,8 +387,26 @@ export const StakeholderSankeyPOC = () => {
         </div>
       </div>
       
-      {/* Sankey Visualization */}
-      <div className="absolute inset-0 pt-32 pb-4 flex justify-center">
+      {/* Narrative - THE HERO - centered with breathing room */}
+      <div className="absolute top-[120px] left-0 right-0 z-10">
+        <div className="py-6">
+          <NarrativeBar
+            lens={activeLens}
+            variant="before"
+            progress={animationProgress}
+            accentColor={activeLensColor}
+            onFeedbackClick={() => {
+              const firstNode = flowState.data.nodes[0];
+              if (firstNode) {
+                handleFeedbackClick(firstNode.id);
+              }
+            }}
+          />
+        </div>
+      </div>
+      
+      {/* Sankey Visualization - pushed down to give narrative room */}
+      <div className="absolute inset-0 pt-[260px] pb-4 flex justify-center">
         <div className="w-full max-w-[1400px] h-full">
           <SankeyFlowV3
             key={activeLens}
@@ -403,24 +421,6 @@ export const StakeholderSankeyPOC = () => {
             onAnimationComplete={handleAnimationComplete}
             onNodeHover={handleNodeHover}
             onNodeClick={(nodeId) => handleNodeClick(nodeId)}
-          />
-        </div>
-      </div>
-      
-      {/* Narrative - floating over canvas, below lens cards */}
-      <div className="absolute top-[140px] left-0 right-0 z-10 pointer-events-none">
-        <div className="pointer-events-auto">
-          <NarrativeBar
-            lens={activeLens}
-            variant="before"
-            progress={animationProgress}
-            accentColor={activeLensColor}
-            onFeedbackClick={() => {
-              const firstNode = flowState.data.nodes[0];
-              if (firstNode) {
-                handleFeedbackClick(firstNode.id);
-              }
-            }}
           />
         </div>
       </div>
