@@ -385,7 +385,15 @@ export const StakeholderSankeyPOC = () => {
         comparison={selectedComparison}
         isOpen={drawerOpen}
         onClose={handleDrawerClose}
+        variant="before"
         accentColor={activeLensColor}
+        socialProof={selectedNodeId ? SEED_SOCIAL_PROOF[activeLens]?.[selectedNodeId] : undefined}
+        onFeedbackClick={() => {
+          if (selectedNodeId) {
+            handleFeedbackClick(selectedNodeId);
+            setDrawerOpen(false);
+          }
+        }}
       />
       
       {/* Feedback Dialog */}
