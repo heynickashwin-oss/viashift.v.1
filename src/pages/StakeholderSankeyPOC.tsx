@@ -14,8 +14,9 @@
 
 import { useState, useMemo, useCallback, useRef } from 'react';
 import { SankeyFlowV3, NodePosition } from '../components/sankeyflowv3';
-import { NodeHoverCard } from '../components/NodeHoverCard';
+import { NodeHoverCard, SocialProof } from '../components/NodeHoverCard';
 import { ComparisonDrawer } from '../components/ComparisonDrawer';
+import { NodeInteractionDialog } from '../components/NodeInteractionDialog';
 import { 
   StakeholderViewType as StakeholderLensType, 
   getFlowStateForView as getFlowStateForLens,
@@ -26,6 +27,35 @@ import {
   getViewCountForNode as getLensCountForNode,
 } from '../data/templates/stakeholderParallelComparisons';
 import { DEFAULT_BRAND } from '../components/branding/brandUtils';
+
+// ============================================
+// SEED DATA: Social Proof (mock data for POC)
+// In production, this would come from Supabase
+// ============================================
+
+const SEED_SOCIAL_PROOF: Record<string, Record<string, SocialProof>> = {
+  orders: {
+    'intake': { thumbsUp: 2, thumbsDown: 0, comments: 1 },
+    'manual-process': { thumbsUp: 1, thumbsDown: 3, comments: 2 },
+    'on-time': { thumbsUp: 4, thumbsDown: 1, comments: 0 },
+    'delayed': { thumbsUp: 0, thumbsDown: 2, comments: 1 },
+    'escalated': { thumbsUp: 0, thumbsDown: 4, comments: 3 },
+  },
+  dollars: {
+    'budget': { thumbsUp: 1, thumbsDown: 0, comments: 0 },
+    'labor-pool': { thumbsUp: 2, thumbsDown: 2, comments: 1 },
+    'error-cost': { thumbsUp: 0, thumbsDown: 5, comments: 2 },
+    'value-created': { thumbsUp: 3, thumbsDown: 0, comments: 0 },
+    'waste': { thumbsUp: 0, thumbsDown: 3, comments: 2 },
+  },
+  time: {
+    'capacity': { thumbsUp: 1, thumbsDown: 0, comments: 0 },
+    'processing-time': { thumbsUp: 1, thumbsDown: 2, comments: 1 },
+    'error-time': { thumbsUp: 0, thumbsDown: 4, comments: 2 },
+    'value-hours': { thumbsUp: 2, thumbsDown: 1, comments: 0 },
+    'lost-time': { thumbsUp: 0, thumbsDown: 3, comments: 1 },
+  },
+};
 
 // ============================================
 // LENS CONFIGURATION
@@ -96,6 +126,10 @@ export const StakeholderSankeyPOC = () => {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   
+  // Feedback dialog state
+  const [feedbackNodeId, setFeedbackNodeId] = useState<string | null>(null);
+  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
+  
   // Get flow state and comparisons for current lens
   const flowState = useMemo(() => getFlowStateForLens(activeLens), [activeLens]);
   const comparisons = useMemo(() => getComparisonsForLens(activeLens), [activeLens]);
@@ -119,6 +153,7 @@ export const StakeholderSankeyPOC = () => {
     const position = nodePositions.get(nodeId)!;
     const node = flowState.data.nodes.find(n => n.id === nodeId);
     const lensCount = getLensCountForNode(activeLens, nodeId);
+    const socialProof = SEED_SOCIAL_PROOF[activeLens]?.[nodeId];
     
     return {
       id: nodeId,
@@ -129,6 +164,7 @@ export const StakeholderSankeyPOC = () => {
         y: position.y + position.height / 2, // Centered vertically
       },
       hasComparison: lensCount > 0,
+      socialProof,
     };
   }, [activeNodeId, nodePositions, flowState.data.nodes, activeLens]);
   
@@ -198,15 +234,33 @@ export const StakeholderSankeyPOC = () => {
     setDrawerOpen(false);
   }, []);
   
-  const handleThumbsUp = useCallback(() => {
-    console.log('Thumbs up for:', hoveredNodeId);
-    // TODO: Implement feedback submission
-  }, [hoveredNodeId]);
+  // Open feedback dialog - can be triggered from hover card or direct node click
+  const handleFeedbackClick = useCallback((nodeId: string) => {
+    setFeedbackNodeId(nodeId);
+    setFeedbackDialogOpen(true);
+  }, []);
   
-  const handleThumbsDown = useCallback(() => {
-    console.log('Thumbs down for:', hoveredNodeId);
-    // TODO: Implement feedback submission
-  }, [hoveredNodeId]);
+  const handleFeedbackDialogClose = useCallback(() => {
+    setFeedbackDialogOpen(false);
+    setFeedbackNodeId(null);
+  }, []);
+  
+  // Direct node click opens feedback dialog
+  const handleNodeClick = useCallback((nodeId: string) => {
+    handleFeedbackClick(nodeId);
+  }, [handleFeedbackClick]);
+  
+  // Get node info for feedback dialog
+  const feedbackNodeInfo = useMemo(() => {
+    if (!feedbackNodeId) return null;
+    const node = flowState.data.nodes.find(n => n.id === feedbackNodeId);
+    return {
+      id: feedbackNodeId,
+      label: node?.label || feedbackNodeId,
+      value: node?.displayValue || '',
+      type: node?.type || 'default',
+    };
+  }, [feedbackNodeId, flowState.data.nodes]);
   
   return (
     <div 
@@ -302,6 +356,7 @@ export const StakeholderSankeyPOC = () => {
           onLayoutReady={handleLayoutReady}
           onAnimationComplete={handleAnimationComplete}
           onNodeHover={handleNodeHover}
+          onNodeClick={(nodeId) => handleNodeClick(nodeId)}
         />
       </div>
       
@@ -317,10 +372,10 @@ export const StakeholderSankeyPOC = () => {
             visible={showHoverCard}
             position={hoveredNodeData.position}
             accentColor={activeLensColor}
+            socialProof={hoveredNodeData.socialProof}
             hasComparison={hoveredNodeData.hasComparison}
+            onFeedbackClick={() => handleFeedbackClick(hoveredNodeData.id)}
             onCompareClick={handleCompareClick}
-            onThumbsUp={handleThumbsUp}
-            onThumbsDown={handleThumbsDown}
           />
         </div>
       )}
@@ -332,6 +387,20 @@ export const StakeholderSankeyPOC = () => {
         onClose={handleDrawerClose}
         accentColor={activeLensColor}
       />
+      
+      {/* Feedback Dialog */}
+      {feedbackNodeInfo && (
+        <NodeInteractionDialog
+          isOpen={feedbackDialogOpen}
+          onClose={handleFeedbackDialogClose}
+          shiftId="poc-demo"
+          elementId={feedbackNodeInfo.id}
+          elementType="node"
+          elementLabel={feedbackNodeInfo.label}
+          currentValue={feedbackNodeInfo.value}
+          viewerType="anonymous"
+        />
+      )}
     </div>
   );
 };
