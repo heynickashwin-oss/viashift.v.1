@@ -12,7 +12,7 @@
  * - Premium & Tactile: Proud to share, enjoyable to use
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { SankeyFlowV3, NodePosition } from '../components/sankeyflowv3';
 import { NodeHoverCard } from '../components/NodeHoverCard';
 import { ComparisonDrawer } from '../components/ComparisonDrawer';
@@ -77,8 +77,20 @@ export const StakeholderSankeyPOC = () => {
   const [nodePositions, setNodePositions] = useState<Map<string, NodePosition>>(new Map());
   const [animationComplete, setAnimationComplete] = useState(false);
   
-  // Hover state
+  // Hover state with delay for "hover bridge"
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+  const [isHoveringCard, setIsHoveringCard] = useState(false);
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastHoveredNodeRef = useRef<string | null>(null);
+  
+  // Track last hovered node for card display
+  if (hoveredNodeId) {
+    lastHoveredNodeRef.current = hoveredNodeId;
+  }
+  
+  // Show card if hovering node OR hovering card
+  const showHoverCard = hoveredNodeId !== null || isHoveringCard;
+  const activeNodeId = hoveredNodeId || (isHoveringCard ? lastHoveredNodeRef.current : null);
   
   // Drawer state
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -101,15 +113,16 @@ export const StakeholderSankeyPOC = () => {
   
   // Get hovered node data
   const hoveredNodeData = useMemo(() => {
-    if (!hoveredNodeId || !nodePositions.has(hoveredNodeId)) return null;
+    const nodeId = activeNodeId;
+    if (!nodeId || !nodePositions.has(nodeId)) return null;
     
-    const position = nodePositions.get(hoveredNodeId)!;
-    const node = flowState.data.nodes.find(n => n.id === hoveredNodeId);
-    const lensCount = getLensCountForNode(activeLens, hoveredNodeId);
+    const position = nodePositions.get(nodeId)!;
+    const node = flowState.data.nodes.find(n => n.id === nodeId);
+    const lensCount = getLensCountForNode(activeLens, nodeId);
     
     return {
-      id: hoveredNodeId,
-      name: node?.label || hoveredNodeId,
+      id: nodeId,
+      name: node?.label || nodeId,
       metric: node?.displayValue,
       position: {
         x: position.x + position.width + 16, // 16px to the right of node
@@ -117,7 +130,7 @@ export const StakeholderSankeyPOC = () => {
       },
       hasComparison: lensCount > 0,
     };
-  }, [hoveredNodeId, nodePositions, flowState.data.nodes, activeLens]);
+  }, [activeNodeId, nodePositions, flowState.data.nodes, activeLens]);
   
   // Callbacks
   const handleLayoutReady = useCallback((positions: Map<string, NodePosition>) => {
@@ -138,15 +151,48 @@ export const StakeholderSankeyPOC = () => {
   }, []);
   
   const handleNodeHover = useCallback((nodeId: string | null) => {
-    setHoveredNodeId(nodeId);
+    // Clear any pending hide timeout
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    
+    if (nodeId) {
+      setHoveredNodeId(nodeId);
+      setIsHoveringCard(false);
+    } else {
+      // Delay hiding to allow moving to card
+      hoverTimeoutRef.current = setTimeout(() => {
+        setHoveredNodeId(null);
+      }, 200); // 200ms grace period
+    }
+  }, []);
+  
+  const handleCardHover = useCallback((hovering: boolean) => {
+    // Clear any pending hide timeout when entering card
+    if (hovering && hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    
+    setIsHoveringCard(hovering);
+    
+    if (!hovering) {
+      // Left card - start hide timeout
+      hoverTimeoutRef.current = setTimeout(() => {
+        setHoveredNodeId(null);
+        lastHoveredNodeRef.current = null;
+      }, 100);
+    }
   }, []);
   
   const handleCompareClick = useCallback(() => {
-    if (hoveredNodeId) {
-      setSelectedNodeId(hoveredNodeId);
+    const nodeId = activeNodeId;
+    if (nodeId) {
+      setSelectedNodeId(nodeId);
       setDrawerOpen(true);
     }
-  }, [hoveredNodeId]);
+  }, [activeNodeId]);
   
   const handleDrawerClose = useCallback(() => {
     setDrawerOpen(false);
@@ -261,17 +307,22 @@ export const StakeholderSankeyPOC = () => {
       
       {/* Node Hover Card */}
       {hoveredNodeData && (
-        <NodeHoverCard
-          name={hoveredNodeData.name}
-          metric={hoveredNodeData.metric}
-          visible={!!hoveredNodeId}
-          position={hoveredNodeData.position}
-          accentColor={activeLensColor}
-          hasComparison={hoveredNodeData.hasComparison}
-          onCompareClick={handleCompareClick}
-          onThumbsUp={handleThumbsUp}
-          onThumbsDown={handleThumbsDown}
-        />
+        <div
+          onMouseEnter={() => handleCardHover(true)}
+          onMouseLeave={() => handleCardHover(false)}
+        >
+          <NodeHoverCard
+            name={hoveredNodeData.name}
+            metric={hoveredNodeData.metric}
+            visible={showHoverCard}
+            position={hoveredNodeData.position}
+            accentColor={activeLensColor}
+            hasComparison={hoveredNodeData.hasComparison}
+            onCompareClick={handleCompareClick}
+            onThumbsUp={handleThumbsUp}
+            onThumbsDown={handleThumbsDown}
+          />
+        </div>
       )}
       
       {/* Comparison Drawer */}
