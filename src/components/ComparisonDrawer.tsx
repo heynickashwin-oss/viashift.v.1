@@ -303,6 +303,7 @@ export const ComparisonDrawer = memo(({
         style={{
           transform: isOpen ? 'translateY(0)' : 'translateY(100%)',
         }}
+        onClick={handleBackdropClick}
       >
         <div
           className="mx-auto max-w-4xl rounded-t-2xl overflow-hidden"
@@ -312,6 +313,7 @@ export const ComparisonDrawer = memo(({
             borderBottom: 'none',
             boxShadow: '0 -8px 32px rgba(0, 0, 0, 0.5)',
           }}
+          onClick={(e) => e.stopPropagation()}
         >
           {/* Handle bar */}
           <div className="flex justify-center pt-3 pb-2">
