@@ -1,8 +1,8 @@
 /**
  * NarrativeBar.tsx
  * 
- * Cinematic horizontal narrative - flows like a sentence.
- * No boxes, just floating text that reads left to right.
+ * Cinematic horizontal narrative - dramatic storytelling.
+ * Floating text with strong visual hierarchy.
  */
 
 import { memo, useMemo } from 'react';
@@ -103,8 +103,6 @@ export const NarrativeBar = memo(({
     part3: progress >= 0.65,
     cta: progress >= 0.90,
   }), [progress]);
-
-  const textShadow = '0 2px 20px rgba(0, 0, 0, 0.9), 0 1px 3px rgba(0, 0, 0, 0.9)';
   
   return (
     <div 
@@ -114,97 +112,100 @@ export const NarrativeBar = memo(({
         transition: 'opacity 0.5s ease-out',
       }}
     >
-      {/* Narrative - single flowing line */}
-      <p className="text-xl md:text-2xl font-light tracking-wide leading-relaxed">
-        {/* Part 1 */}
-        <span
-          className="transition-all duration-500"
-          style={{
-            color: visibility.part2 ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.9)',
-            textShadow,
-            opacity: visibility.part1 ? 1 : 0,
-          }}
-        >
-          {script.part1}
-        </span>
-        
-        {/* Arrow 1 */}
-        <span
-          className="transition-opacity duration-300 mx-2"
-          style={{
-            color: 'rgba(255, 255, 255, 0.3)',
-            textShadow,
-            opacity: visibility.part2 ? 1 : 0,
-          }}
-        >
-          →
-        </span>
-        
-        {/* Part 2 */}
-        <span
-          className="transition-all duration-500"
-          style={{
-            color: visibility.part3 ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.9)',
-            textShadow,
-            opacity: visibility.part2 ? 1 : 0,
-          }}
-        >
-          {script.part2}
-        </span>
-        
-        {/* Arrow 2 */}
-        <span
-          className="transition-opacity duration-300 mx-2"
-          style={{
-            color: 'rgba(255, 255, 255, 0.3)',
-            textShadow,
-            opacity: visibility.part3 ? 1 : 0,
-          }}
-        >
-          →
-        </span>
-        
-        {/* Part 3 - emphasized */}
-        <span
-          className="font-medium transition-all duration-500"
-          style={{
-            color: accentColor,
-            textShadow: `${textShadow}, 0 0 30px ${accentColor}50`,
-            opacity: visibility.part3 ? 1 : 0,
-          }}
-        >
-          {script.part3}
-        </span>
-      </p>
-      
-      {/* CTA row */}
-      <div
-        className="mt-4 transition-all duration-700 flex items-center justify-center gap-4"
+      {/* Narrative container with subtle backdrop */}
+      <div 
+        className="inline-block px-8 py-4 rounded-2xl"
         style={{
-          opacity: visibility.cta ? 1 : 0,
-          transform: visibility.cta ? 'translateY(0)' : 'translateY(5px)',
+          background: 'rgba(0, 0, 0, 0.3)',
+          backdropFilter: 'blur(8px)',
+          border: '1px solid rgba(255, 255, 255, 0.05)',
         }}
       >
-        <span 
-          className="text-base"
-          style={{ 
-            color: 'rgba(255, 255, 255, 0.5)',
-            textShadow,
-          }}
-        >
-          {script.cta}
-        </span>
-        <button
-          onClick={onFeedbackClick}
-          className="px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 hover:scale-105"
+        {/* Story text */}
+        <p className="text-lg md:text-xl leading-relaxed tracking-wide">
+          {/* Part 1 - italic, storytelling */}
+          <span
+            className="italic transition-all duration-500"
+            style={{
+              color: visibility.part2 ? 'rgba(255, 255, 255, 0.35)' : 'rgba(255, 255, 255, 0.75)',
+              opacity: visibility.part1 ? 1 : 0,
+            }}
+          >
+            "{script.part1}"
+          </span>
+          
+          {/* Connector */}
+          <span
+            className="mx-3 transition-opacity duration-300"
+            style={{
+              color: 'rgba(255, 255, 255, 0.2)',
+              opacity: visibility.part2 ? 1 : 0,
+            }}
+          >
+            —
+          </span>
+          
+          {/* Part 2 - emphasis on the problem */}
+          <span
+            className="font-medium transition-all duration-500"
+            style={{
+              color: visibility.part3 ? 'rgba(255, 255, 255, 0.35)' : 'rgba(255, 255, 255, 0.9)',
+              opacity: visibility.part2 ? 1 : 0,
+            }}
+          >
+            {script.part2}
+          </span>
+          
+          {/* Connector */}
+          <span
+            className="mx-3 transition-opacity duration-300"
+            style={{
+              color: 'rgba(255, 255, 255, 0.2)',
+              opacity: visibility.part3 ? 1 : 0,
+            }}
+          >
+            —
+          </span>
+          
+          {/* Part 3 - the punchline, bold and colored */}
+          <span
+            className="font-semibold text-xl md:text-2xl transition-all duration-500"
+            style={{
+              color: accentColor,
+              textShadow: `0 0 30px ${accentColor}60`,
+              opacity: visibility.part3 ? 1 : 0,
+            }}
+          >
+            {script.part3}
+          </span>
+        </p>
+        
+        {/* CTA row */}
+        <div
+          className="mt-4 flex items-center justify-center gap-4 transition-all duration-700"
           style={{
-            background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}cc 100%)`,
-            color: '#000',
-            boxShadow: `0 4px 20px ${accentColor}40`,
+            opacity: visibility.cta ? 1 : 0,
+            transform: visibility.cta ? 'translateY(0)' : 'translateY(5px)',
           }}
         >
-          {ctaLabel}
-        </button>
+          <span 
+            className="text-sm italic"
+            style={{ color: 'rgba(255, 255, 255, 0.5)' }}
+          >
+            {script.cta}
+          </span>
+          <button
+            onClick={onFeedbackClick}
+            className="px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg"
+            style={{
+              background: accentColor,
+              color: '#000',
+              boxShadow: `0 4px 20px ${accentColor}50`,
+            }}
+          >
+            {ctaLabel}
+          </button>
+        </div>
       </div>
     </div>
   );
