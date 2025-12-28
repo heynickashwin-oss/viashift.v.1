@@ -12,11 +12,12 @@
  * - Premium & Tactile: Proud to share, enjoyable to use
  */
 
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { SankeyFlowV3, NodePosition } from '../components/sankeyflowv3';
 import { NodeHoverCard, SocialProof } from '../components/NodeHoverCard';
 import { ComparisonDrawer } from '../components/ComparisonDrawer';
 import { NodeInteractionDialog } from '../components/NodeInteractionDialog';
+import { NarrativeBar } from '../components/NarrativeBar';
 import { 
   StakeholderViewType as StakeholderLensType, 
   getFlowStateForView as getFlowStateForLens,
@@ -27,6 +28,9 @@ import {
   getViewCountForNode as getLensCountForNode,
 } from '../data/templates/stakeholderParallelComparisons';
 import { DEFAULT_BRAND } from '../components/branding/brandUtils';
+
+// Animation duration must match LAYOUT.drawDuration in sankeyflowv3.tsx
+const ANIMATION_DURATION = 16000;
 
 // ============================================
 // SEED DATA: Social Proof (mock data for POC)
@@ -106,6 +110,33 @@ export const StakeholderSankeyPOC = () => {
   // Layout and animation state
   const [nodePositions, setNodePositions] = useState<Map<string, NodePosition>>(new Map());
   const [animationComplete, setAnimationComplete] = useState(false);
+  const [animationProgress, setAnimationProgress] = useState(0);
+  const animationStartRef = useRef<number | null>(null);
+  
+  // Animation progress timer - syncs with Sankey draw
+  useEffect(() => {
+    // Reset on lens change
+    animationStartRef.current = Date.now();
+    setAnimationProgress(0);
+    
+    const updateProgress = () => {
+      if (!animationStartRef.current) return;
+      
+      const elapsed = Date.now() - animationStartRef.current;
+      const progress = Math.min(elapsed / ANIMATION_DURATION, 1);
+      setAnimationProgress(progress);
+      
+      if (progress < 1) {
+        requestAnimationFrame(updateProgress);
+      }
+    };
+    
+    requestAnimationFrame(updateProgress);
+    
+    return () => {
+      animationStartRef.current = null;
+    };
+  }, [activeLens]);
   
   // Hover state with delay for "hover bridge"
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
@@ -356,8 +387,25 @@ export const StakeholderSankeyPOC = () => {
         </div>
       </div>
       
+      {/* Narrative Bar - tells the story */}
+      <div className="absolute top-28 left-0 right-0 z-20">
+        <NarrativeBar
+          lens={activeLens}
+          variant="before"
+          progress={animationProgress}
+          accentColor={activeLensColor}
+          onFeedbackClick={() => {
+            // Open general feedback - could use first node or a general dialog
+            const firstNode = flowState.data.nodes[0];
+            if (firstNode) {
+              handleFeedbackClick(firstNode.id);
+            }
+          }}
+        />
+      </div>
+      
       {/* Sankey Visualization */}
-      <div className="absolute inset-0 pt-32 pb-4 flex justify-center">
+      <div className="absolute inset-0 pt-80 pb-4 flex justify-center">
         <div className="w-full max-w-[1400px] h-full">
           <SankeyFlowV3
             key={activeLens}
