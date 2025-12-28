@@ -12,7 +12,7 @@
  * - Premium & Tactile: Proud to share, enjoyable to use
  */
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { SankeyFlowV3, NodePosition } from '../components/sankeyflowv3';
 import { NodeHoverCard } from '../components/NodeHoverCard';
 import { ComparisonDrawer } from '../components/ComparisonDrawer';
