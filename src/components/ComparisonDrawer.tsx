@@ -36,6 +36,9 @@ export interface ComparisonDrawerProps {
   /** Which state we're showing */
   variant?: 'before' | 'after';
   
+  /** Whether this is a terminal node (Outcome vs Step) */
+  isTerminal?: boolean;
+  
   /** Accent color for the current view */
   accentColor?: string;
   
@@ -53,7 +56,7 @@ export interface ComparisonDrawerProps {
 const FOMU_LANGUAGE = {
   before: {
     subtitle: 'What this means for each stakeholder',
-    question: 'Does this match what youre seeing?',
+    question: 'Does this match what you're seeing?',
     cta: 'Help us get this right →',
     ctaSubtext: 'Your input shapes the solution',
   },
@@ -244,6 +247,7 @@ export const ComparisonDrawer = memo(({
   isOpen,
   onClose,
   variant = 'before',
+  isTerminal = false,
   accentColor = '#00e5ff',
   socialProof,
   onFeedbackClick,
@@ -251,6 +255,9 @@ export const ComparisonDrawer = memo(({
   
   // Get FOMU language for current variant
   const fomu = FOMU_LANGUAGE[variant];
+  
+  // Determine node type label
+  const nodeTypeLabel = isTerminal ? 'Outcome' : 'Step';
   
   // Close on escape key
   useEffect(() => {
@@ -324,7 +331,7 @@ export const ComparisonDrawer = memo(({
                 className="text-lg font-semibold"
                 style={{ color: 'rgba(255, 255, 255, 0.95)' }}
               >
-                {comparison?.nodeName || 'Node'} Step
+                {comparison?.nodeName || 'Node'} {nodeTypeLabel}
               </h2>
               <p 
                 className="text-sm mt-0.5"
