@@ -1,8 +1,10 @@
 /**
  * NarrativeBar.tsx
  * 
- * Cinematic horizontal narrative - dramatic storytelling.
- * Floating text with strong visual hierarchy.
+ * Human-centered narrative - perspective-based storytelling.
+ * No chrome, just floating text with a storytelling feel.
+ * 
+ * Inspired by: Hans Rosling, Spotify Wrapped, NYT visual essays
  */
 
 import { memo, useMemo } from 'react';
@@ -14,9 +16,9 @@ import { memo, useMemo } from 'react';
 export type NarrativeVariant = 'before' | 'after';
 
 export interface NarrativeScript {
-  part1: string;
-  part2: string;
-  part3: string;
+  setup: string;      // The human context
+  tension: string;    // The problem they feel
+  impact: string;     // The cost that matters
   cta: string;
 }
 
@@ -29,57 +31,57 @@ export interface NarrativeBarProps {
 }
 
 // ============================================
-// NARRATIVE SCRIPTS
+// NARRATIVE SCRIPTS - Human perspective
 // ============================================
 
 const NARRATIVES: Record<string, Record<NarrativeVariant, NarrativeScript>> = {
   orders: {
     before: {
-      part1: "Every week, 500 orders enter your pipeline",
-      part2: "but 87 (18%) require manual rework",
-      part3: "leaving just 72% delivered on-time.",
-      cta: "Does this match?",
+      setup: "Your team processes 500 orders every week",
+      tension: "but 87 of them need manual fixing",
+      impact: "that's 140 customers waiting longer than promised.",
+      cta: "Is this what you're seeing?",
     },
     after: {
-      part1: "With streamlined validation, 500 orders flow through",
-      part2: "only 5 (1%) need manual review",
-      part3: "delivering 94% on-time.",
-      cta: "Feel achievable?",
+      setup: "With validation upstream, 500 orders flow through",
+      tension: "only 5 need a human touch",
+      impact: "94% of customers get what they expected, on time.",
+      cta: "Does this feel possible?",
     },
   },
   dollars: {
     before: {
-      part1: "Every week, $4,100 enters your processing budget",
-      part2: "but $987 (24%) becomes pure waste",
-      part3: "that's $51K/year lost to fixing mistakes.",
-      cta: "Does this match?",
+      setup: "Finance allocates $4,100 every week to processing",
+      tension: "but $987 of that pays for fixing mistakes",
+      impact: "that's $51K a year spent cleaning up problems.",
+      cta: "Is this what you're seeing?",
     },
     after: {
-      part1: "With automation, your $4,100 budget works harder",
-      part2: "$3,096 (76%) flows to value creation",
-      part3: "recovering $161K/year for growth.",
-      cta: "Feel achievable?",
+      setup: "With automation catching errors early",
+      tension: "$3,096 flows straight to productive work",
+      impact: "$161K a year goes to growth instead of firefighting.",
+      cta: "Does this feel possible?",
     },
   },
   time: {
     before: {
-      part1: "Every week, your team has 117 hours of capacity",
-      part2: "but 30 hours (26%) disappear into rework",
-      part3: "a third of your time fixing instead of building.",
-      cta: "Does this match?",
+      setup: "Your team has 117 hours of capacity each week",
+      tension: "but 30 of those hours go to rework",
+      impact: "your best people spend a third of their time fixing.",
+      cta: "Is this what you're seeing?",
     },
     after: {
-      part1: "With errors caught upstream, 117 hours stay focused",
-      part2: "111 hours (95%) flow to strategic work",
-      part3: "a team that builds instead of firefights.",
-      cta: "Feel achievable?",
+      setup: "With problems caught before they spread",
+      tension: "111 hours stay focused on real work",
+      impact: "a team that builds instead of firefights.",
+      cta: "Does this feel possible?",
     },
   },
 };
 
 const CTA_LABEL: Record<NarrativeVariant, string> = {
-  before: "Help us get this right →",
-  after: "Share your concerns →",
+  before: "Tell us what's different →",
+  after: "Share what concerns you →",
 };
 
 // ============================================
@@ -98,11 +100,14 @@ export const NarrativeBar = memo(({
   const ctaLabel = CTA_LABEL[variant];
   
   const visibility = useMemo(() => ({
-    part1: progress >= 0.05,
-    part2: progress >= 0.35,
-    part3: progress >= 0.65,
+    setup: progress >= 0.05,
+    tension: progress >= 0.35,
+    impact: progress >= 0.65,
     cta: progress >= 0.90,
   }), [progress]);
+
+  // Serif font for storytelling feel
+  const narrativeFont = 'Georgia, "Times New Roman", serif';
   
   return (
     <div 
@@ -112,100 +117,102 @@ export const NarrativeBar = memo(({
         transition: 'opacity 0.5s ease-out',
       }}
     >
-      {/* Narrative container with subtle backdrop */}
-      <div 
-        className="inline-block px-8 py-4 rounded-2xl"
-        style={{
-          background: 'rgba(0, 0, 0, 0.3)',
-          backdropFilter: 'blur(8px)',
-          border: '1px solid rgba(255, 255, 255, 0.05)',
-        }}
+      {/* Story text - no background, just floating */}
+      <p 
+        className="text-xl md:text-2xl leading-relaxed"
+        style={{ fontFamily: narrativeFont }}
       >
-        {/* Story text */}
-        <p className="text-lg md:text-xl leading-relaxed tracking-wide">
-          {/* Part 1 - italic, storytelling */}
-          <span
-            className="italic transition-all duration-500"
-            style={{
-              color: visibility.part2 ? 'rgba(255, 255, 255, 0.35)' : 'rgba(255, 255, 255, 0.75)',
-              opacity: visibility.part1 ? 1 : 0,
-            }}
-          >
-            "{script.part1}"
-          </span>
-          
-          {/* Connector */}
-          <span
-            className="mx-3 transition-opacity duration-300"
-            style={{
-              color: 'rgba(255, 255, 255, 0.2)',
-              opacity: visibility.part2 ? 1 : 0,
-            }}
-          >
-            —
-          </span>
-          
-          {/* Part 2 - emphasis on the problem */}
-          <span
-            className="font-medium transition-all duration-500"
-            style={{
-              color: visibility.part3 ? 'rgba(255, 255, 255, 0.35)' : 'rgba(255, 255, 255, 0.9)',
-              opacity: visibility.part2 ? 1 : 0,
-            }}
-          >
-            {script.part2}
-          </span>
-          
-          {/* Connector */}
-          <span
-            className="mx-3 transition-opacity duration-300"
-            style={{
-              color: 'rgba(255, 255, 255, 0.2)',
-              opacity: visibility.part3 ? 1 : 0,
-            }}
-          >
-            —
-          </span>
-          
-          {/* Part 3 - the punchline, bold and colored */}
-          <span
-            className="font-semibold text-xl md:text-2xl transition-all duration-500"
-            style={{
-              color: accentColor,
-              textShadow: `0 0 30px ${accentColor}60`,
-              opacity: visibility.part3 ? 1 : 0,
-            }}
-          >
-            {script.part3}
-          </span>
-        </p>
-        
-        {/* CTA row */}
-        <div
-          className="mt-4 flex items-center justify-center gap-4 transition-all duration-700"
+        {/* Setup - the human context */}
+        <span
+          className="transition-all duration-500"
           style={{
-            opacity: visibility.cta ? 1 : 0,
-            transform: visibility.cta ? 'translateY(0)' : 'translateY(5px)',
+            color: visibility.tension ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.85)',
+            fontStyle: 'italic',
+            opacity: visibility.setup ? 1 : 0,
           }}
         >
-          <span 
-            className="text-sm italic"
-            style={{ color: 'rgba(255, 255, 255, 0.5)' }}
-          >
-            {script.cta}
-          </span>
-          <button
-            onClick={onFeedbackClick}
-            className="px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg"
-            style={{
-              background: accentColor,
-              color: '#000',
-              boxShadow: `0 4px 20px ${accentColor}50`,
-            }}
-          >
-            {ctaLabel}
-          </button>
-        </div>
+          {script.setup}
+        </span>
+        
+        {/* Connector */}
+        <span
+          className="mx-2 transition-opacity duration-300"
+          style={{
+            color: 'rgba(255, 255, 255, 0.25)',
+            opacity: visibility.tension ? 1 : 0,
+          }}
+        >
+          —
+        </span>
+        
+        {/* Tension - the problem */}
+        <span
+          className="transition-all duration-500"
+          style={{
+            color: visibility.impact ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.9)',
+            fontWeight: 500,
+            opacity: visibility.tension ? 1 : 0,
+          }}
+        >
+          {script.tension}
+        </span>
+        
+        {/* Connector */}
+        <span
+          className="mx-2 transition-opacity duration-300"
+          style={{
+            color: 'rgba(255, 255, 255, 0.25)',
+            opacity: visibility.impact ? 1 : 0,
+          }}
+        >
+          —
+        </span>
+        
+        {/* Impact - the punchline */}
+        <span
+          className="transition-all duration-500"
+          style={{
+            color: accentColor,
+            fontWeight: 600,
+            fontStyle: 'normal',
+            textShadow: `0 0 40px ${accentColor}50`,
+            opacity: visibility.impact ? 1 : 0,
+          }}
+        >
+          {script.impact}
+        </span>
+      </p>
+      
+      {/* CTA - subtle, inviting */}
+      <div
+        className="mt-5 flex items-center justify-center gap-4 transition-all duration-700"
+        style={{
+          opacity: visibility.cta ? 1 : 0,
+          transform: visibility.cta ? 'translateY(0)' : 'translateY(5px)',
+        }}
+      >
+        <span 
+          className="text-sm"
+          style={{ 
+            color: 'rgba(255, 255, 255, 0.5)',
+            fontFamily: narrativeFont,
+            fontStyle: 'italic',
+          }}
+        >
+          {script.cta}
+        </span>
+        <button
+          onClick={onFeedbackClick}
+          className="px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105"
+          style={{
+            background: 'transparent',
+            color: accentColor,
+            border: `1px solid ${accentColor}`,
+            boxShadow: `0 0 20px ${accentColor}20`,
+          }}
+        >
+          {ctaLabel}
+        </button>
       </div>
     </div>
   );
