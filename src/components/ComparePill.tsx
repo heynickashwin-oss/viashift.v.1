@@ -1,12 +1,12 @@
 /**
  * ComparePill.tsx
  * 
- * Small, tactile pill that appears below nodes after narrative completes.
- * Shows stakeholder perspective count, invites click to open drawer.
+ * Tactile pill that appears below nodes after animation.
+ * Invites users to explore stakeholder perspectives via drawer.
  * 
  * Design principles:
- * - Understated until hovered (premium feel)
- * - Matches toggle card styling
+ * - Clear affordance (looks clickable without being shouty)
+ * - Matches global interactive element pattern
  * - Fades in as "the only new thing" after animation
  */
 
@@ -14,7 +14,7 @@ import { memo } from 'react';
 
 export interface ComparePillProps {
   /** Number of stakeholder perspectives available */
-  viewCount: number;
+  lensCount: number;
   
   /** Whether the pill is visible (fades in after animation) */
   visible: boolean;
@@ -33,72 +33,74 @@ export interface ComparePillProps {
 }
 
 export const ComparePill = memo(({
-  viewCount,
+  lensCount,
   visible,
   onClick,
   position,
   accentColor = '#00e5ff',
 }: ComparePillProps) => {
-  if (viewCount === 0) return null;
+  if (lensCount === 0) return null;
   
   return (
     <button
       onClick={onClick}
-      className="absolute transition-all duration-500 ease-out group"
+      className="absolute transition-all duration-500 ease-out group cursor-pointer"
       style={{
         left: position.x,
         top: position.y,
-        transform: 'translateX(-50%)',
+        transform: `translateX(-50%) translateY(${visible ? 0 : -8}px)`,
         opacity: visible ? 1 : 0,
         pointerEvents: visible ? 'auto' : 'none',
       }}
     >
+      {/* Main pill container - global interactive element pattern */}
       <div
-        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all duration-300"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300 group-hover:-translate-y-0.5"
         style={{
-          background: 'rgba(255, 255, 255, 0.02)',
-          border: '1px solid rgba(255, 255, 255, 0.06)',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+          background: 'rgba(255, 255, 255, 0.03)',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
         }}
       >
-        {/* Indicator dot */}
+        {/* Compare text */}
         <span
-          className="w-1.5 h-1.5 rounded-full transition-all duration-300 group-hover:scale-125"
+          className="text-xs font-medium transition-colors duration-300 group-hover:text-white"
           style={{
-            background: `rgba(255, 255, 255, 0.4)`,
-          }}
-        />
-        
-        {/* View count text */}
-        <span
-          className="text-xs font-medium transition-colors duration-300"
-          style={{
-            color: 'rgba(255, 255, 255, 0.5)',
+            color: 'rgba(255, 255, 255, 0.6)',
           }}
         >
-          {viewCount} {viewCount === 1 ? 'view' : 'views'}
+          Compare Lenses
+        </span>
+        
+        {/* Chevron indicator - signals clickability */}
+        <span
+          className="text-xs transition-all duration-300 group-hover:translate-x-0.5"
+          style={{
+            color: 'rgba(255, 255, 255, 0.4)',
+          }}
+        >
+          →
         </span>
       </div>
       
-      {/* Hover state overlay */}
+      {/* Hover state glow */}
       <div
-        className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none"
+        className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none -z-10"
         style={{
-          background: `linear-gradient(135deg, ${accentColor}15 0%, ${accentColor}08 100%)`,
-          border: `1px solid ${accentColor}40`,
-          boxShadow: `0 4px 16px ${accentColor}15`,
+          background: `radial-gradient(ellipse at center, ${accentColor}20 0%, transparent 70%)`,
+          transform: 'scale(1.5)',
+          filter: 'blur(8px)',
         }}
       />
       
-      {/* Hover text color change */}
-      <style>{`
-        .group:hover .compare-pill-dot {
-          background: ${accentColor};
-        }
-        .group:hover .compare-pill-text {
-          color: ${accentColor};
-        }
-      `}</style>
+      {/* Hover border enhancement */}
+      <div
+        className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none"
+        style={{
+          border: `1px solid ${accentColor}50`,
+          boxShadow: `0 4px 16px ${accentColor}20`,
+        }}
+      />
     </button>
   );
 });
