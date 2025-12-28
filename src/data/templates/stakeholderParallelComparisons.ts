@@ -8,7 +8,11 @@
  * Finance sees cost, Ops sees bottleneck, Sales sees delays, Users see frustration.
  */
 
-import type { NodeComparison } from '../../types/stakeholderComparison';
+import {
+  getComparisonsForView as getComparisonsForLens,
+  getNodeComparisonForView as getNodeComparisonForLens,
+  getViewCountForNode as getLensCountForNode,
+} from '../data/templates/stakeholderParallelComparisons';
 import type { StakeholderViewType } from './stakeholderParallelData';
 
 // ============================================
