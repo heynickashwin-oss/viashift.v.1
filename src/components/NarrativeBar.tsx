@@ -120,70 +120,88 @@ export const NarrativeBar = memo(({
           className="text-lg md:text-xl leading-relaxed"
           style={{ fontFamily: narrativeFont }}
         >
-          {/* Setup */}
+          {/* Setup - subtle entrance */}
           <span
-            className="transition-all duration-500"
+            className="inline-block transition-all duration-700 ease-out"
             style={{
               color: visibility.tension ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.85)',
               fontStyle: 'italic',
               opacity: visibility.setup ? 1 : 0,
+              transform: visibility.setup 
+                ? 'translate(0, 0)' 
+                : 'translate(-4px, 3px)',
             }}
           >
             {script.setup}
           </span>
           
           <span
-            className="mx-2 transition-opacity duration-300"
+            className="inline-block transition-all duration-500 ease-out mx-2"
             style={{
               color: 'rgba(255, 255, 255, 0.25)',
               opacity: visibility.tension ? 1 : 0,
+              transform: visibility.tension
+                ? 'translate(0, 0)'
+                : 'translate(-3px, 2px)',
             }}
           >
             —
           </span>
           
-          {/* Tension */}
+          {/* Tension - slightly more movement */}
           <span
-            className="transition-all duration-500"
+            className="inline-block transition-all duration-700 ease-out"
             style={{
               color: visibility.impact ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.9)',
               fontWeight: 500,
               opacity: visibility.tension ? 1 : 0,
+              transform: visibility.tension 
+                ? 'translate(0, 0)' 
+                : 'translate(-6px, 4px)',
             }}
           >
             {script.tension}
           </span>
           
           <span
-            className="mx-2 transition-opacity duration-300"
+            className="inline-block transition-all duration-500 ease-out mx-2"
             style={{
               color: 'rgba(255, 255, 255, 0.25)',
               opacity: visibility.impact ? 1 : 0,
+              transform: visibility.impact
+                ? 'translate(0, 0)'
+                : 'translate(-3px, 2px)',
             }}
           >
             —
           </span>
           
-          {/* Impact */}
+          {/* Impact - the punchline, most movement */}
           <span
-            className="transition-all duration-500"
+            className="inline-block transition-all duration-700 ease-out"
             style={{
               color: accentColor,
               fontWeight: 600,
               fontStyle: 'normal',
               textShadow: `0 0 30px ${accentColor}40`,
               opacity: visibility.impact ? 1 : 0,
+              transform: visibility.impact 
+                ? 'translate(0, 0)' 
+                : 'translate(-8px, 5px)',
             }}
           >
             {script.impact}
           </span>
         </p>
         
-        {/* Inline CTA */}
+        {/* Inline CTA - gentle entrance */}
         <div
-          className="flex items-center gap-2 transition-all duration-500"
+          className="flex items-center gap-2 transition-all duration-700 ease-out"
           style={{
             opacity: visibility.cta ? 1 : 0,
+            transform: visibility.cta 
+              ? 'translate(0, 0)' 
+              : 'translate(-6px, 4px)',
           }}
         >
           <span 
