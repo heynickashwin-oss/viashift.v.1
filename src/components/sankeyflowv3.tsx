@@ -282,8 +282,8 @@ const AnimatedValue = ({
 const LAYOUT = {
   padding: { top: 20, right: 40, bottom: 60, left: 40 },  // Reduced side padding for wider nodes
   nodeWidth: 90,  // Wider nodes to contain labels internally
-  nodeMinHeight: 40,
-  nodeMaxHeight: 90,
+  nodeMinHeight: 48,  // Increased min height for label readability
+  nodeMaxHeight: 95,
   drawDuration: TIMING.draw,         // 16000ms - from design system
   staggerDelay: TIMING.staggerDelay, // 200ms - from design system
   forgeDuration: TIMING.slower,      // 2000ms - from design system
@@ -1348,7 +1348,7 @@ useEffect(() => {
                 {/* Flow label near target node - shows displayLabel or value */}
                 {showLabels && layerDrawProgress > 0.6 && (
                   <g
-                    transform={`translate(${link.targetPoint.x - 15}, ${link.targetPoint.y})`}
+                    transform={`translate(${link.targetPoint.x - 8}, ${link.targetPoint.y})`}
                     style={{
                       opacity: Math.min(0.85, (layerDrawProgress - 0.6) * 2),
                       transition: 'opacity var(--duration-normal) ease-out',
@@ -1544,58 +1544,70 @@ useEffect(() => {
                 />
 
                 {/* Node label - INTERNAL, centered in node */}
-                <text
-                  x={node.width / 2}
-                  y={node.displayValue ? node.height / 2 - 6 : node.height / 2}
-                  dy="0.35em"
-                  textAnchor="middle"
-                  fill={node.type === 'loss' ? theme.colors.accent : '#ffffff'}
-                  fontSize={11}
-                  fontWeight={600}
-                  fontFamily="Inter, system-ui, sans-serif"
-                  style={{
-                    textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-                    pointerEvents: 'none',
-                  }}
-                >
-                  {getAbbreviatedLabel(node.label)}
-                </text>
+                {(() => {
+                  // Dynamic sizing based on node height
+                  const isSmallNode = node.height < 55;
+                  const labelFontSize = isSmallNode ? 9 : 11;
+                  const valueFontSize = isSmallNode ? 8 : 10;
+                  const verticalGap = isSmallNode ? 4 : 6;
+                  
+                  return (
+                    <>
+                      <text
+                        x={node.width / 2}
+                        y={node.displayValue ? node.height / 2 - verticalGap : node.height / 2}
+                        dy="0.35em"
+                        textAnchor="middle"
+                        fill={node.type === 'loss' ? theme.colors.accent : '#ffffff'}
+                        fontSize={labelFontSize}
+                        fontWeight={600}
+                        fontFamily="Inter, system-ui, sans-serif"
+                        style={{
+                          textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                          pointerEvents: 'none',
+                        }}
+                      >
+                        {getAbbreviatedLabel(node.label, isSmallNode ? 10 : 12)}
+                      </text>
 
-                {/* Node displayValue - shown below label, inside node */}
-                {node.displayValue && (
-                  <text
-                    x={node.width / 2}
-                    y={node.height / 2 + 8}
-                    textAnchor="middle"
-                    fill={node.type === 'loss' ? 'rgba(255,150,150,0.9)' : node.type === 'revenue' || node.type === 'solution' ? theme.colors.primary : 'rgba(255,255,255,0.75)'}
-                    fontSize={10}
-                    fontWeight={500}
-                    fontFamily="Inter, system-ui, sans-serif"
-                    style={{
-                      textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-                      pointerEvents: 'none',
-                    }}
-                  >
-                    {node.displayValue}
-                  </text>
-                )}
+                      {/* Node displayValue - shown below label, inside node */}
+                      {node.displayValue && (
+                        <text
+                          x={node.width / 2}
+                          y={node.height / 2 + verticalGap + 2}
+                          textAnchor="middle"
+                          fill={node.type === 'loss' ? 'rgba(255,150,150,0.9)' : node.type === 'revenue' || node.type === 'solution' ? theme.colors.primary : 'rgba(255,255,255,0.75)'}
+                          fontSize={valueFontSize}
+                          fontWeight={500}
+                          fontFamily="Inter, system-ui, sans-serif"
+                          style={{
+                            textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                            pointerEvents: 'none',
+                          }}
+                        >
+                          {node.displayValue}
+                        </text>
+                      )}
 
-                {/* NEW badge - only show if no displayValue, inside node */}
-                {node.type === 'new' && !node.displayValue && (
-                  <text
-                    x={node.width / 2}
-                    y={node.height / 2 + 10}
-                    textAnchor="middle"
-                    fill={theme.colors.secondary}
-                    fontSize={9}
-                    fontWeight={700}
-                    style={{
-                      pointerEvents: 'none',
-                    }}
-                  >
-                    NEW
-                  </text>
-                )}
+                      {/* NEW badge - only show if no displayValue, inside node */}
+                      {node.type === 'new' && !node.displayValue && (
+                        <text
+                          x={node.width / 2}
+                          y={node.height / 2 + verticalGap + 2}
+                          textAnchor="middle"
+                          fill={theme.colors.secondary}
+                          fontSize={isSmallNode ? 7 : 9}
+                          fontWeight={700}
+                          style={{
+                            pointerEvents: 'none',
+                          }}
+                        >
+                          NEW
+                        </text>
+                      )}
+                    </>
+                  );
+                })()}
               </g>
             );
           })}
