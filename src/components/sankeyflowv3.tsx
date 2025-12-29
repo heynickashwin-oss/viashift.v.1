@@ -1119,10 +1119,6 @@ useEffect(() => {
               animation: glowPulse var(--pulse-solution) var(--ease-in-out) infinite;
             }
 
-            .new-glow {
-              animation: glowPulse var(--pulse-solution) var(--ease-in-out) infinite;
-            }
-
             .loss-flow {
               animation: lossFlowPulse var(--pulse-loss) var(--ease-in-out) infinite;
             }
@@ -1137,74 +1133,59 @@ useEffect(() => {
           `}
         </style>
         <defs>
+          {/* === FLOW GRADIENTS === */}
+          {/* Neutral flow - default for most flows */}
+          <linearGradient id="grad-neutral" x1="0%" x2="100%">
+            <stop offset="0%" stopColor="rgba(255, 255, 255, 0.12)" />
+            <stop offset="100%" stopColor="rgba(255, 255, 255, 0.08)" />
+          </linearGradient>
+          {/* Primary flow - for emphasis */}
           <linearGradient id="grad-primary" x1="0%" x2="100%">
             <stop offset="0%" stopColor={theme.colors.primary} />
             <stop offset="100%" stopColor={theme.colors.secondary} />
           </linearGradient>
+          {/* Secondary/success flow - for revenue/new targets */}
           <linearGradient id="grad-secondary" x1="0%" x2="100%">
             <stop offset="0%" stopColor={theme.colors.secondary} />
             <stop offset="100%" stopColor={theme.colors.secondary + '99'} />
           </linearGradient>
+          {/* Loss flow */}
           <linearGradient id="grad-loss" x1="0%" x2="100%">
-            <stop offset="0%" stopColor={theme.colors.accent + 'AA'} />
-            <stop offset="100%" stopColor={theme.colors.loss + '88'} />
+            <stop offset="0%" stopColor="var(--color-loss)" />
+            <stop offset="100%" stopColor="rgba(255, 107, 107, 0.6)" />
           </linearGradient>
           
-          {/* Premium node gradients - neutral nodes have subtle teal tint to feel like flow */}
-          <linearGradient id="nodeGrad-default" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="rgba(45, 60, 65, 0.92)" />
-            <stop offset="25%" stopColor="rgba(35, 50, 55, 0.90)" />
-            <stop offset="50%" stopColor="rgba(30, 45, 50, 0.88)" />
-            <stop offset="75%" stopColor="rgba(25, 40, 45, 0.86)" />
-            <stop offset="100%" stopColor="rgba(20, 35, 40, 0.85)" />
-          </linearGradient>
-          <linearGradient id="nodeGrad-source" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="rgba(50, 65, 72, 0.92)" />
-            <stop offset="25%" stopColor="rgba(40, 55, 62, 0.90)" />
-            <stop offset="50%" stopColor="rgba(32, 48, 55, 0.88)" />
-            <stop offset="75%" stopColor="rgba(26, 42, 48, 0.86)" />
-            <stop offset="100%" stopColor="rgba(22, 38, 44, 0.85)" />
-          </linearGradient>
-          <linearGradient id="nodeGrad-solution" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={theme.colors.primary + 'FF'} />
-            <stop offset="20%" stopColor={theme.colors.primary + 'DD'} />
-            <stop offset="50%" stopColor={theme.colors.primary + 'BB'} />
-            <stop offset="80%" stopColor={theme.colors.primary + 'AA'} />
-            <stop offset="100%" stopColor={theme.colors.primary + '88'} />
-          </linearGradient>
-          <linearGradient id="nodeGrad-loss" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="rgba(180, 60, 60, 0.9)" />
-            <stop offset="25%" stopColor="rgba(150, 50, 50, 0.88)" />
-            <stop offset="50%" stopColor="rgba(120, 40, 45, 0.85)" />
-            <stop offset="75%" stopColor="rgba(100, 35, 40, 0.82)" />
-            <stop offset="100%" stopColor="rgba(80, 30, 35, 0.8)" />
-          </linearGradient>
-          <linearGradient id="nodeGrad-new" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={theme.colors.secondary + 'FF'} />
-            <stop offset="20%" stopColor={theme.colors.secondary + 'DD'} />
-            <stop offset="50%" stopColor={theme.colors.secondary + 'BB'} />
-            <stop offset="80%" stopColor={theme.colors.secondary + 'AA'} />
-            <stop offset="100%" stopColor={theme.colors.secondary + '88'} />
-          </linearGradient>
-          <linearGradient id="nodeGrad-revenue" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="rgba(60, 180, 100, 0.95)" />
-            <stop offset="20%" stopColor="rgba(50, 160, 90, 0.92)" />
-            <stop offset="50%" stopColor="rgba(40, 140, 80, 0.88)" />
-            <stop offset="80%" stopColor="rgba(35, 120, 70, 0.85)" />
-            <stop offset="100%" stopColor="rgba(30, 100, 60, 0.82)" />
+          {/* === NODE GRADIENT - Single neutral for ALL nodes === */}
+          {/* Per design system: all nodes share identical neutral base */}
+          {/* State (success/loss/default) indicated via border and glow only */}
+          <linearGradient id="nodeGrad-neutral" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="var(--sankey-node-neutral-start, rgba(30, 32, 38, 0.95))" />
+            <stop offset="100%" stopColor="var(--sankey-node-neutral-end, rgba(22, 24, 28, 0.98))" />
           </linearGradient>
           
-          {/* Inner highlight for metallic effect */}
+          {/* Inner highlight for subtle depth */}
           <linearGradient id="nodeHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="rgba(255, 255, 255, 0.12)" />
+            <stop offset="0%" stopColor="rgba(255, 255, 255, 0.08)" />
             <stop offset="50%" stopColor="rgba(255, 255, 255, 0.02)" />
-            <stop offset="100%" stopColor="rgba(0, 0, 0, 0.1)" />
+            <stop offset="100%" stopColor="rgba(0, 0, 0, 0.05)" />
           </linearGradient>
           
-          {/* Subtle drop shadow for node depth */}
+          {/* === FILTERS === */}
+          {/* Node drop shadow */}
           <filter id="nodeDropShadow" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="rgba(0,0,0,0.4)" />
+            <feDropShadow dx="0" dy="3" stdDeviation="4" floodColor="rgba(0,0,0,0.5)" />
           </filter>
+          
+          {/* Success glow - for solution/new nodes */}
+          <filter id="successGlow" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="8" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          
+          {/* Flow glow */}
           <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="6" result="blur" />
             <feMerge>
@@ -1253,13 +1234,16 @@ useEffect(() => {
         {/* Links */}
         <g>
           {layout?.links.map(link => {
-            // Only color flow red if it enters a LOSS TYPE NODE (not based on link.type)
-            // This makes intermediate flows neutral, and only terminal losses red
+            // Flow color logic per design system:
+            // - Loss flows: red (entering loss nodes)
+            // - Success flows: secondary color (entering revenue/new nodes)
+            // - Default flows: neutral gray (all others)
             const targetIsLoss = link.target.type === 'loss';
             const targetIsGain = link.target.type === 'revenue' || link.target.type === 'new';
             
+            // Per design system: neutral by default, color only for semantic emphasis
             const gradId = targetIsLoss ? 'grad-loss' :
-                          targetIsGain ? 'grad-secondary' : 'grad-primary';
+                          targetIsGain ? 'grad-secondary' : 'grad-neutral';
 
             const linkLayer = Math.max(link.source.layer, link.target.layer);
             const layerDrawProgress = getLayerProgress(linkLayer, drawProgress);
@@ -1343,10 +1327,10 @@ useEffect(() => {
             const nodeScale = easeOutBack(Math.min(1, layerProgress * 1.2));
             const nodeOpacity = layerProgress;
 
-            const gradId = `nodeGrad-${node.type || 'default'}`;
+            // Per design system: ALL nodes use neutral gradient
+            // State (success/loss/default) indicated via border and glow only
             const isLossNode = node.type === 'loss';
-            const isSolutionNode = node.type === 'solution';
-            const isNewNode = node.type === 'new' || node.type === 'revenue';
+            const isSuccessNode = node.type === 'solution' || node.type === 'new' || node.type === 'revenue';
             
             // Delta significance for shifted state glow
             const significance = nodeSignificance?.get(node.id);
@@ -1358,13 +1342,22 @@ useEffect(() => {
             // Determine glow color based on delta direction (improvement = green, regression = red)
             const deltaPercent = significance?.deltaPercent || 0;
             const isImprovement = deltaPercent < 0 && isLossNode || deltaPercent > 0 && !isLossNode;
-            const glowColor = isImprovement ? '#22c55e' : '#ef4444'; // green for improvements, red for regressions
+            const glowColor = isImprovement ? 'var(--color-success, #22c55e)' : 'var(--color-loss, #ef4444)';
             
             const pulseOpacity = getNodePulse(node);
-            const strokeColor = isLossNode ? theme.colors.accent :
-                               isSolutionNode ? theme.colors.primary :
-                               isNewNode ? theme.colors.secondary :
-                               'rgba(255, 255, 255, 0.2)';
+            
+            // Per design system: border indicates state
+            // - Default: subtle gray border (12% white)
+            // - Success (solution/new/revenue): secondary color at 60% opacity
+            // - Loss: loss color at 50% opacity
+            const strokeColor = isLossNode 
+              ? 'var(--color-loss, #ff6b6b)'
+              : isSuccessNode 
+                ? 'var(--color-brand-secondary, #00ffaa)'
+                : 'var(--border-default, rgba(255, 255, 255, 0.12))';
+            
+            const strokeOpacity = isLossNode ? 0.5 : isSuccessNode ? 0.6 : 1;
+            const strokeWidth = isLossNode ? 1.5 : isSuccessNode ? 2 : 1;
 
             return (
               <g
@@ -1416,30 +1409,32 @@ useEffect(() => {
                   />
                 )}
                 
-                {/* Original glow behind node (for solution/new nodes) */}
-                {(isSolutionNode || isNewNode) && !hasSignificantDelta && (
+                {/* Success glow behind node - per design system: "success glows, loss doesn't" */}
+                {isSuccessNode && !hasSignificantDelta && (
                   <rect
                     x={-4}
                     y={-4}
                     width={node.width + 8}
                     height={node.height + 8}
                     rx={5}
-                    fill={isSolutionNode ? theme.colors.primary : theme.colors.secondary}
+                    fill="var(--color-brand-secondary, #00ffaa)"
                     opacity={0.2 * pulseOpacity}
-                    filter="url(#solutionGlow)"
-                    className={isSolutionNode ? 'solution-glow' : 'new-glow'}
+                    filter="url(#successGlow)"
+                    className="solution-glow"
                   />
                 )}
 
-                {/* Node rectangle - base layer */}
+                {/* Node rectangle - neutral base with state-based border */}
                 <rect
                   width={node.width}
                   height={node.height}
                   rx={3}
-                  fill={`url(#${gradId})`}
+                  fill="url(#nodeGrad-neutral)"
                   stroke={strokeColor}
-                  strokeWidth={isLossNode || isSolutionNode || isNewNode ? 1.5 : 1}
+                  strokeWidth={strokeWidth}
+                  strokeOpacity={strokeOpacity}
                   opacity={pulseOpacity}
+                  filter="url(#nodeDropShadow)"
                   style={{
                     transform: `scale(${nodeScale})`,
                     transformOrigin: `${node.width / 2}px ${node.height / 2}px`,
