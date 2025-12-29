@@ -120,65 +120,69 @@ export const NarrativeBar = memo(({
           className="text-lg md:text-xl leading-relaxed"
           style={{ fontFamily: narrativeFont }}
         >
-          {/* Setup - subtle entrance */}
+          {/* Setup - 300ms, subtle entrance */}
           <span
-            className="inline-block transition-all duration-700 ease-out"
+            className="inline-block"
             style={{
               color: visibility.tension ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.85)',
               fontStyle: 'italic',
               opacity: visibility.setup ? 1 : 0,
               transform: visibility.setup 
-                ? 'translate(0, 0) scale(1)' 
-                : 'translate(-30px, 20px) scale(0.95)',
+                ? 'translate(0, 0)' 
+                : 'translate(-8px, 4px)',
+              transition: 'opacity 300ms ease-out, transform 300ms ease-out, color 400ms ease-out',
             }}
           >
             {script.setup}
           </span>
           
           <span
-            className="inline-block transition-all duration-500 ease-out mx-2"
+            className="inline-block mx-2"
             style={{
               color: 'rgba(255, 255, 255, 0.25)',
               opacity: visibility.tension ? 1 : 0,
               transform: visibility.tension
                 ? 'translate(0, 0)'
-                : 'translate(-3px, 2px)',
+                : 'translate(-4px, 2px)',
+              transition: 'opacity 250ms ease-out, transform 250ms ease-out',
             }}
           >
             —
           </span>
           
-          {/* Tension - slightly more movement */}
+          {/* Tension - 350ms, slightly more movement */}
           <span
-            className="inline-block transition-all duration-700 ease-out"
+            className="inline-block"
             style={{
               color: visibility.impact ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.9)',
               fontWeight: 500,
               opacity: visibility.tension ? 1 : 0,
               transform: visibility.tension 
                 ? 'translate(0, 0)' 
-                : 'translate(-6px, 4px)',
+                : 'translate(-12px, 5px)',
+              transition: 'opacity 350ms ease-out, transform 350ms ease-out, color 400ms ease-out',
             }}
           >
             {script.tension}
           </span>
           
           <span
-            className="inline-block transition-all duration-500 ease-out mx-2"
+            className="inline-block mx-2"
             style={{
               color: 'rgba(255, 255, 255, 0.25)',
               opacity: visibility.impact ? 1 : 0,
               transform: visibility.impact
                 ? 'translate(0, 0)'
-                : 'translate(-3px, 2px)',
+                : 'translate(-4px, 2px)',
+              transition: 'opacity 250ms ease-out, transform 250ms ease-out',
             }}
           >
             —
           </span>
           
-          {/* Impact - the punchline, most movement */}
+          {/* Impact - 400ms, the punchline with most movement */}
           <span
-            className="inline-block transition-all duration-700 ease-out"
+            className="inline-block"
             style={{
               color: accentColor,
               fontWeight: 600,
@@ -187,21 +191,23 @@ export const NarrativeBar = memo(({
               opacity: visibility.impact ? 1 : 0,
               transform: visibility.impact 
                 ? 'translate(0, 0)' 
-                : 'translate(-8px, 5px)',
+                : 'translate(-16px, 6px)',
+              transition: 'opacity 400ms ease-out, transform 400ms ease-out',
             }}
           >
             {script.impact}
           </span>
         </p>
         
-        {/* Inline CTA - gentle entrance */}
+        {/* Inline CTA - 350ms gentle entrance */}
         <div
-          className="flex items-center gap-2 transition-all duration-700 ease-out"
+          className="flex items-center gap-2"
           style={{
             opacity: visibility.cta ? 1 : 0,
             transform: visibility.cta 
               ? 'translate(0, 0)' 
-              : 'translate(-6px, 4px)',
+              : 'translate(-10px, 4px)',
+            transition: 'opacity 350ms ease-out, transform 350ms ease-out',
           }}
         >
           <span 
