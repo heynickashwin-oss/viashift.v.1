@@ -136,13 +136,14 @@ export const NarrativeBar = memo(({
             }}
           >
             {script.setup}
-            {/* Drawing underline - fades when text dims */}
+            {/* Drawing underline */}
             <span
-              className="absolute bottom-0 left-0 h-[1px]"
+              className="absolute left-0 h-[1px]"
               style={{
-                background: `linear-gradient(90deg, ${accentColor}60 0%, ${accentColor}20 100%)`,
+                bottom: '-2px',
+                background: accentColor,
+                opacity: visibility.tension ? 0.2 : 0.5,
                 width: visibility.setup ? '100%' : '0%',
-                opacity: visibility.tension ? 0.3 : 1,
                 transition: 'width 600ms ease-out, opacity 400ms ease-out',
                 transitionDelay: visibility.setup && !visibility.tension ? '150ms' : '0ms',
               }}
@@ -177,13 +178,14 @@ export const NarrativeBar = memo(({
             }}
           >
             {script.tension}
-            {/* Drawing underline - fades when text dims */}
+            {/* Drawing underline */}
             <span
-              className="absolute bottom-0 left-0 h-[1px]"
+              className="absolute left-0 h-[1px]"
               style={{
-                background: `linear-gradient(90deg, ${accentColor}60 0%, ${accentColor}20 100%)`,
+                bottom: '-2px',
+                background: accentColor,
+                opacity: visibility.impact ? 0.2 : 0.6,
                 width: visibility.tension ? '100%' : '0%',
-                opacity: visibility.impact ? 0.3 : 1,
                 transition: 'width 700ms ease-out, opacity 400ms ease-out',
                 transitionDelay: visibility.tension && !visibility.impact ? '150ms' : '0ms',
               }}
@@ -222,8 +224,9 @@ export const NarrativeBar = memo(({
             {script.impact}
             {/* Drawing underline - more prominent for punchline */}
             <span
-              className="absolute bottom-0 left-0 h-[2px]"
+              className="absolute left-0 h-[2px]"
               style={{
+                bottom: '-2px',
                 background: accentColor,
                 boxShadow: `0 0 8px ${accentColor}60`,
                 width: visibility.impact ? '100%' : '0%',
