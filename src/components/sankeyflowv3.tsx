@@ -280,13 +280,15 @@ const AnimatedValue = ({
 // ============================================
 
 const LAYOUT = {
-  padding: { top: 20, right: 40, bottom: 60, left: 40 },  // Reduced side padding for wider nodes
-  nodeWidth: 90,  // Wider nodes to contain labels internally
-  nodeMinHeight: 55,  // Increased min height for label readability
-  nodeMaxHeight: 110,  // Increased max height
-  drawDuration: TIMING.draw,         // 16000ms - from design system
-  staggerDelay: TIMING.staggerDelay, // 200ms - from design system
-  forgeDuration: TIMING.slower,      // 2000ms - from design system
+  padding: { top: 20, right: 40, bottom: 60, left: 40 },
+  nodeWidth: 90,
+  // Typography-based minimum: 2 lines of text must fit without overlap
+  // Label (11px, line-height ~14px) + Value (10px, line-height ~13px) + gap (14px) + padding (12px) = 53px
+  nodeMinHeight: 52,  // HARD minimum - never go below this
+  nodeMaxHeight: 110,
+  drawDuration: TIMING.draw,
+  staggerDelay: TIMING.staggerDelay,
+  forgeDuration: TIMING.slower,
 };
 const layerXPercent: Record<number, number> = {
   0: 0.00,    // Far left - Sources
@@ -429,7 +431,7 @@ const SankeyFlowV3Inner = ({
   const layout = useMemo(() => {
     if (!state.data.nodes.length || dimensions.width < 100) return null;
     
-    const { padding, nodeWidth } = LAYOUT;
+    const { padding, nodeWidth, nodeMinHeight, nodeMaxHeight } = LAYOUT;
     const maxLayer = Math.max(...state.data.nodes.map(n => n.layer), 0);
     const usableWidth = dimensions.width - padding.left - padding.right;
     const usableHeight = dimensions.height - padding.top - padding.bottom;
@@ -456,7 +458,8 @@ const SankeyFlowV3Inner = ({
     const maxThickness = baseMaxThickness;
     
     // Dynamic gap: less gap when more nodes per layer
-    const baseGap = Math.max(12, Math.min(35, usableHeight / (maxNodesInLayer * 5)));
+    // Reduced gaps to give more room for nodes
+    const baseGap = Math.max(8, Math.min(25, usableHeight / (maxNodesInLayer * 6)));
     const nodeGap = baseGap;
 
     // === STEP 1: Calculate base link thicknesses (unscaled) ===
@@ -507,17 +510,23 @@ const SankeyFlowV3Inner = ({
       layerNodes.sort((a, b) => (a.y ?? 0.5) - (b.y ?? 0.5));
     });
 
-    // Calculate total height needed per layer
+    // Calculate total height needed per layer, accounting for minimum heights
     let maxTotalHeight = 0;
     nodesByLayer.forEach((layerNodes) => {
-      let totalHeight = layerNodes.reduce((sum, n) => sum + (nodeBaseHeight.get(n.id) || minThickness), 0);
-      totalHeight += (layerNodes.length - 1) * nodeGap;
+      let totalHeight = layerNodes.reduce((sum, n) => {
+        const baseHeight = nodeBaseHeight.get(n.id) || minThickness;
+        // Use the larger of base height or minimum
+        return sum + Math.max(baseHeight, nodeMinHeight);
+      }, 0);
+      totalHeight += (layerNodes.length - 1) * nodeGap;  // Unscaled gap
       maxTotalHeight = Math.max(maxTotalHeight, totalHeight);
     });
 
-    // Scale factor to fit in available height (use 85% to leave breathing room)
-    // Increased cap to allow bigger visualization
-    const scaleFactor = Math.min(2.0, (usableHeight * 0.85) / Math.max(maxTotalHeight, 1));
+    // Scale factor to fit in available height
+    // Use 85% to leave breathing room, cap at 2.0 to prevent oversizing
+    // Floor at 1.0 - don't scale DOWN below natural size (minimums are already enforced)
+    const rawScaleFactor = (usableHeight * 0.85) / Math.max(maxTotalHeight, 1);
+    const scaleFactor = Math.max(1.0, Math.min(2.0, rawScaleFactor));
 
     // === STEP 4: Position nodes ===
     const nodes: LayoutNode[] = [];
@@ -538,14 +547,18 @@ const SankeyFlowV3Inner = ({
       const x = padding.left + xPercent * usableWidth;
       
       // Calculate total scaled height for this layer
+      // ENFORCE hard minimum - no node can be smaller than nodeMinHeight
       let totalLayerHeight = 0;
       const scaledHeights: number[] = [];
       layerNodes.forEach(node => {
-        const height = (nodeBaseHeight.get(node.id) || minThickness) * scaleFactor;
+        const rawHeight = (nodeBaseHeight.get(node.id) || minThickness) * scaleFactor;
+        // Clamp to minimum and maximum
+        const height = Math.max(nodeMinHeight, Math.min(nodeMaxHeight, rawHeight));
         scaledHeights.push(height);
         totalLayerHeight += height;
       });
-      totalLayerHeight += (layerNodes.length - 1) * nodeGap * scaleFactor;
+      // Use unscaled gap - scaling the gap can eat into space when minimums are enforced
+      totalLayerHeight += (layerNodes.length - 1) * nodeGap;
 
       // Center the layer vertically - bias slightly toward top (0.4 instead of 0.5)
       // This accounts for UI elements at top making true center feel low
@@ -565,7 +578,7 @@ const SankeyFlowV3Inner = ({
         nodes.push(layoutNode);
         nodeMap.set(node.id, layoutNode);
         
-        currentY += height + nodeGap * scaleFactor;
+        currentY += height + nodeGap;  // Use unscaled gap
       });
     });
 
