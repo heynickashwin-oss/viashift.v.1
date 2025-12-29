@@ -1136,8 +1136,8 @@ useEffect(() => {
           {/* === FLOW GRADIENTS === */}
           {/* Neutral flow - default for most flows */}
           <linearGradient id="grad-neutral" x1="0%" x2="100%">
-            <stop offset="0%" stopColor="rgba(255, 255, 255, 0.12)" />
-            <stop offset="100%" stopColor="rgba(255, 255, 255, 0.08)" />
+            <stop offset="0%" stopColor="rgba(255, 255, 255, 0.18)" />
+            <stop offset="100%" stopColor="rgba(255, 255, 255, 0.12)" />
           </linearGradient>
           {/* Primary flow - for emphasis */}
           <linearGradient id="grad-primary" x1="0%" x2="100%">
@@ -1236,10 +1236,10 @@ useEffect(() => {
           {layout?.links.map(link => {
             // Flow color logic per design system:
             // - Loss flows: red (entering loss nodes)
-            // - Success flows: secondary color (entering revenue/new nodes)
+            // - Success flows: secondary color (entering solution/revenue/new nodes)
             // - Default flows: neutral gray (all others)
             const targetIsLoss = link.target.type === 'loss';
-            const targetIsGain = link.target.type === 'revenue' || link.target.type === 'new';
+            const targetIsGain = link.target.type === 'revenue' || link.target.type === 'new' || link.target.type === 'solution';
             
             // Per design system: neutral by default, color only for semantic emphasis
             const gradId = targetIsLoss ? 'grad-loss' :
@@ -1423,6 +1423,23 @@ useEffect(() => {
                     className="solution-glow"
                   />
                 )}
+
+                {/* Outer stroke - creates separation from flows behind */}
+                <rect
+                  x={-1}
+                  y={-1}
+                  width={node.width + 2}
+                  height={node.height + 2}
+                  rx={4}
+                  fill="none"
+                  stroke="rgba(255, 255, 255, 0.15)"
+                  strokeWidth={1}
+                  opacity={pulseOpacity}
+                  style={{
+                    transform: `scale(${nodeScale})`,
+                    transformOrigin: `${node.width / 2}px ${node.height / 2}px`,
+                  }}
+                />
 
                 {/* Node rectangle - neutral base with state-based border */}
                 <rect
