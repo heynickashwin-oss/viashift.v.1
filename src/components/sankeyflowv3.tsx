@@ -510,23 +510,46 @@ const SankeyFlowV3Inner = ({
       layerNodes.sort((a, b) => (a.y ?? 0.5) - (b.y ?? 0.5));
     });
 
-    // Calculate total height needed per layer, accounting for minimum heights
+    // === KEY FIX: Scale heights to maintain proportionality while ensuring text fits ===
+    // Find the smallest and largest node heights
+    let smallestBaseHeight = Infinity;
+    let largestBaseHeight = 0;
+    nodeBaseHeight.forEach((height) => {
+      if (height < smallestBaseHeight) smallestBaseHeight = height;
+      if (height > largestBaseHeight) largestBaseHeight = height;
+    });
+    smallestBaseHeight = Math.max(smallestBaseHeight, minThickness);
+    largestBaseHeight = Math.max(largestBaseHeight, smallestBaseHeight);
+    
+    // Map the range [smallestBaseHeight, largestBaseHeight] to [nodeMinHeight, targetMaxHeight]
+    // This preserves proportionality while ensuring text fits
+    const heightRange = largestBaseHeight - smallestBaseHeight;
+    const targetMaxHeight = Math.min(nodeMaxHeight, usableHeight * 0.4); // Largest node shouldn't exceed 40% of height
+    const targetRange = targetMaxHeight - nodeMinHeight;
+    
+    // Function to map base height to final height
+    const mapHeight = (baseHeight: number): number => {
+      if (heightRange === 0) return nodeMinHeight; // All nodes same size
+      const normalized = (baseHeight - smallestBaseHeight) / heightRange; // 0 to 1
+      return nodeMinHeight + (normalized * targetRange);
+    };
+    
+    // Calculate total height needed per layer with mapped heights
     let maxTotalHeight = 0;
     nodesByLayer.forEach((layerNodes) => {
       let totalHeight = layerNodes.reduce((sum, n) => {
         const baseHeight = nodeBaseHeight.get(n.id) || minThickness;
-        // Use the larger of base height or minimum
-        return sum + Math.max(baseHeight, nodeMinHeight);
+        return sum + mapHeight(baseHeight);
       }, 0);
-      totalHeight += (layerNodes.length - 1) * nodeGap;  // Unscaled gap
+      totalHeight += (layerNodes.length - 1) * nodeGap;
       maxTotalHeight = Math.max(maxTotalHeight, totalHeight);
     });
-
-    // Scale factor to fit in available height
-    // Use 85% to leave breathing room, cap at 2.0 to prevent oversizing
-    // Floor at 1.0 - don't scale DOWN below natural size (minimums are already enforced)
-    const rawScaleFactor = (usableHeight * 0.85) / Math.max(maxTotalHeight, 1);
-    const scaleFactor = Math.max(1.0, Math.min(2.0, rawScaleFactor));
+    
+    // Check if we can scale up to use more space (never scale down to preserve minimums)
+    const fitRatio = (usableHeight * 0.85) / Math.max(maxTotalHeight, 1);
+    // Scale up if there's extra room, but never scale down (min = 1.0)
+    // Cap at 1.3x to prevent nodes becoming too large
+    const scaleFactor = Math.min(1.3, Math.max(1.0, fitRatio));
 
     // === STEP 4: Position nodes ===
     const nodes: LayoutNode[] = [];
@@ -546,23 +569,24 @@ const SankeyFlowV3Inner = ({
       
       const x = padding.left + xPercent * usableWidth;
       
-      // Calculate total scaled height for this layer
-      // ENFORCE hard minimum - no node can be smaller than nodeMinHeight
+      // Calculate heights using mapHeight (preserves proportionality, ensures min height)
+      // Then apply scaleFactor if we need to fit, but NEVER go below nodeMinHeight
       let totalLayerHeight = 0;
       const scaledHeights: number[] = [];
       layerNodes.forEach(node => {
-        const rawHeight = (nodeBaseHeight.get(node.id) || minThickness) * scaleFactor;
-        // Clamp to minimum and maximum
-        const height = Math.max(nodeMinHeight, Math.min(nodeMaxHeight, rawHeight));
+        const baseHeight = nodeBaseHeight.get(node.id) || minThickness;
+        const mappedHeight = mapHeight(baseHeight);
+        // Apply scale, but floor at nodeMinHeight to ensure text always fits
+        const height = Math.max(nodeMinHeight, mappedHeight * scaleFactor);
         scaledHeights.push(height);
         totalLayerHeight += height;
       });
-      // Use unscaled gap - scaling the gap can eat into space when minimums are enforced
       totalLayerHeight += (layerNodes.length - 1) * nodeGap;
 
       // Center the layer vertically - bias slightly toward top (0.4 instead of 0.5)
       // This accounts for UI elements at top making true center feel low
-      let currentY = padding.top + (usableHeight - totalLayerHeight) * 0.4;
+      // Floor at padding.top to handle overflow gracefully
+      let currentY = Math.max(padding.top, padding.top + (usableHeight - totalLayerHeight) * 0.4);
 
       layerNodes.forEach((node, idx) => {
         const height = scaledHeights[idx];
