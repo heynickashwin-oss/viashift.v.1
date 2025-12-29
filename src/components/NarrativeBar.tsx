@@ -128,8 +128,8 @@ export const NarrativeBar = memo(({
               fontStyle: 'italic',
               opacity: visibility.setup ? 1 : 0,
               transform: visibility.setup 
-                ? 'translate(0, 0)' 
-                : 'translate(-4px, 3px)',
+                ? 'translate(0, 0) scale(1)' 
+                : 'translate(-30px, 20px) scale(0.95)',
             }}
           >
             {script.setup}
