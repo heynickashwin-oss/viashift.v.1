@@ -24,6 +24,7 @@ import {
   B2B_LENS_DATA,
   b2bNarrativeScripts,
   b2bShiftedNarrativeScripts,
+  calculateNodeDeltas,
 } from '../data/templates/b2bSalesFunnelData';
 import {
   getB2BNodeComparisonForView,
@@ -135,6 +136,23 @@ export const B2BFunnelPOC = () => {
   
   // Get flow state for current lens and variant
   const flowState = useMemo(() => getB2BFlowStateForView(activeLens, variant), [activeLens, variant]);
+  
+  // Calculate node significance for delta-driven glow (shifted state only)
+  const nodeSignificance = useMemo(() => {
+    if (variant !== 'after') return undefined;
+    
+    const deltas = calculateNodeDeltas(activeLens);
+    const significanceMap = new Map<string, { deltaPercent: number; significance: 'hero' | 'high' | 'medium' | 'low' }>();
+    
+    deltas.forEach((delta, nodeId) => {
+      significanceMap.set(nodeId, {
+        deltaPercent: delta.deltaPercent,
+        significance: delta.significance,
+      });
+    });
+    
+    return significanceMap;
+  }, [activeLens, variant]);
   
   // Get current lens data
   const activeLensData = useMemo(() => {
@@ -496,6 +514,7 @@ export const B2BFunnelPOC = () => {
             animated={true}
             showLabels={true}
             hideUI={true}
+            nodeSignificance={nodeSignificance}
             onLayoutReady={handleLayoutReady}
             onAnimationComplete={handleAnimationComplete}
             onNodeHover={handleNodeHover}
