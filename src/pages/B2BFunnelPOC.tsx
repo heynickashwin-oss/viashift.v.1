@@ -16,6 +16,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { SankeyFlowV3, NodePosition } from '../components/sankeyflowv3';
 import { NodeHoverCard, SocialProof } from '../components/NodeHoverCard';
+import { ComparisonDrawer } from '../components/ComparisonDrawer';
 import { NodeInteractionDialog } from '../components/NodeInteractionDialog';
 import { 
   B2BFunnelViewType,
@@ -23,6 +24,10 @@ import {
   B2B_LENS_DATA,
   b2bNarrativeScripts,
 } from '../data/templates/b2bSalesFunnelData';
+import {
+  getB2BNodeComparisonForView,
+  getB2BViewCountForNode,
+} from '../data/templates/b2bSalesFunnelComparisons';
 import { DEFAULT_BRAND } from '../components/branding/brandUtils';
 
 // Animation duration must match LAYOUT.drawDuration in sankeyflowv3.tsx
@@ -120,6 +125,10 @@ export const B2BFunnelPOC = () => {
   const [feedbackNodeId, setFeedbackNodeId] = useState<string | null>(null);
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
   
+  // Drawer state for comparison cards
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  
   // Get flow state for current lens
   const flowState = useMemo(() => getB2BFlowStateForView(activeLens), [activeLens]);
   
@@ -138,6 +147,20 @@ export const B2BFunnelPOC = () => {
     return b2bNarrativeScripts[activeLens];
   }, [activeLens]);
   
+  // Get selected comparison for drawer
+  const selectedComparison = useMemo(() => {
+    if (!selectedNodeId) return null;
+    return getB2BNodeComparisonForView(activeLens, selectedNodeId);
+  }, [activeLens, selectedNodeId]);
+  
+  // Determine if selected node is terminal (for Step vs Outcome label)
+  const selectedNodeIsTerminal = useMemo(() => {
+    if (!selectedNodeId) return false;
+    const node = flowState.data.nodes.find(n => n.id === selectedNodeId);
+    const maxLayer = Math.max(...flowState.data.nodes.map(n => n.layer));
+    return node?.layer === maxLayer;
+  }, [selectedNodeId, flowState.data.nodes]);
+  
   // Get hovered node data
   const hoveredNodeData = useMemo(() => {
     const nodeId = activeNodeId;
@@ -146,6 +169,7 @@ export const B2BFunnelPOC = () => {
     const position = nodePositions.get(nodeId)!;
     const node = flowState.data.nodes.find(n => n.id === nodeId);
     const socialProof = SEED_SOCIAL_PROOF[activeLens]?.[nodeId];
+    const lensCount = getB2BViewCountForNode(activeLens, nodeId);
     
     // Determine max layer to detect terminal nodes
     const maxLayer = Math.max(...flowState.data.nodes.map(n => n.layer));
@@ -161,7 +185,7 @@ export const B2BFunnelPOC = () => {
         x: position.x + position.width + 16, // 16px to the right of node
         y: position.y + position.height / 2, // Centered vertically
       },
-      hasComparison: false, // Disabled for now - no B2B comparisons yet
+      hasComparison: lensCount > 0,
       socialProof,
     };
   }, [activeNodeId, nodePositions, flowState.data.nodes, activeLens]);
@@ -180,6 +204,8 @@ export const B2BFunnelPOC = () => {
     setAnimationComplete(false);
     setActiveLens(lensType);
     setHoveredNodeId(null);
+    setSelectedNodeId(null);
+    setDrawerOpen(false);
   }, []);
   
   const handleNodeHover = useCallback((nodeId: string | null) => {
@@ -216,6 +242,18 @@ export const B2BFunnelPOC = () => {
         lastHoveredNodeRef.current = null;
       }, 100);
     }
+  }, []);
+  
+  const handleCompareClick = useCallback(() => {
+    const nodeId = activeNodeId;
+    if (nodeId) {
+      setSelectedNodeId(nodeId);
+      setDrawerOpen(true);
+    }
+  }, [activeNodeId]);
+  
+  const handleDrawerClose = useCallback(() => {
+    setDrawerOpen(false);
   }, []);
   
   // Open feedback dialog - can be triggered from hover card or direct node click
@@ -443,11 +481,29 @@ export const B2BFunnelPOC = () => {
                 socialProof={hoveredNodeData.socialProof}
                 hasComparison={hoveredNodeData.hasComparison}
                 onFeedbackClick={() => handleFeedbackClick(hoveredNodeData.id)}
+                onCompareClick={handleCompareClick}
               />
             </div>
           )}
         </div>
       </div>
+      
+      {/* Comparison Drawer */}
+      <ComparisonDrawer
+        comparison={selectedComparison}
+        isOpen={drawerOpen}
+        onClose={handleDrawerClose}
+        variant="before"
+        isTerminal={selectedNodeIsTerminal}
+        accentColor={activeLensColor}
+        socialProof={selectedNodeId ? SEED_SOCIAL_PROOF[activeLens]?.[selectedNodeId] : undefined}
+        onFeedbackClick={() => {
+          if (selectedNodeId) {
+            handleFeedbackClick(selectedNodeId);
+            setDrawerOpen(false);
+          }
+        }}
+      />
       
       {/* Feedback Dialog */}
       {feedbackNodeInfo && (
