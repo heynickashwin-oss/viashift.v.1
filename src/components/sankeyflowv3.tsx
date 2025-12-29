@@ -282,8 +282,8 @@ const AnimatedValue = ({
 const LAYOUT = {
   padding: { top: 20, right: 40, bottom: 60, left: 40 },  // Reduced side padding for wider nodes
   nodeWidth: 90,  // Wider nodes to contain labels internally
-  nodeMinHeight: 48,  // Increased min height for label readability
-  nodeMaxHeight: 95,
+  nodeMinHeight: 55,  // Increased min height for label readability
+  nodeMaxHeight: 110,  // Increased max height
   drawDuration: TIMING.draw,         // 16000ms - from design system
   staggerDelay: TIMING.staggerDelay, // 200ms - from design system
   forgeDuration: TIMING.slower,      // 2000ms - from design system
@@ -448,14 +448,15 @@ const SankeyFlowV3Inner = ({
     
     // Dynamic thickness: scale based on available height and node density
     // More nodes = thinner flows to fit; fewer nodes = thicker flows for visual impact
-    const baseMinThickness = Math.max(8, Math.min(25, usableHeight / (maxNodesInLayer * 8)));
-    const baseMaxThickness = Math.max(baseMinThickness * 2, Math.min(80, usableHeight / (maxNodesInLayer * 3)));
+    // Increased minimums for better readability
+    const baseMinThickness = Math.max(12, Math.min(30, usableHeight / (maxNodesInLayer * 6)));
+    const baseMaxThickness = Math.max(baseMinThickness * 2.5, Math.min(100, usableHeight / (maxNodesInLayer * 2.5)));
     
     const minThickness = baseMinThickness;
     const maxThickness = baseMaxThickness;
     
     // Dynamic gap: less gap when more nodes per layer
-    const baseGap = Math.max(15, Math.min(40, usableHeight / (maxNodesInLayer * 4)));
+    const baseGap = Math.max(12, Math.min(35, usableHeight / (maxNodesInLayer * 5)));
     const nodeGap = baseGap;
 
     // === STEP 1: Calculate base link thicknesses (unscaled) ===
@@ -514,8 +515,9 @@ const SankeyFlowV3Inner = ({
       maxTotalHeight = Math.max(maxTotalHeight, totalHeight);
     });
 
-    // Scale factor to fit in available height (use 90% to leave some breathing room)
-    const scaleFactor = Math.min(1.5, (usableHeight * 0.90) / Math.max(maxTotalHeight, 1));
+    // Scale factor to fit in available height (use 85% to leave breathing room)
+    // Increased cap to allow bigger visualization
+    const scaleFactor = Math.min(2.0, (usableHeight * 0.85) / Math.max(maxTotalHeight, 1));
 
     // === STEP 4: Position nodes ===
     const nodes: LayoutNode[] = [];
@@ -1545,11 +1547,9 @@ useEffect(() => {
 
                 {/* Node label - INTERNAL, centered in node */}
                 {(() => {
-                  // Dynamic sizing based on node height
-                  const isSmallNode = node.height < 55;
-                  const labelFontSize = isSmallNode ? 9 : 11;
-                  const valueFontSize = isSmallNode ? 8 : 10;
-                  const verticalGap = isSmallNode ? 4 : 6;
+                  // Adjust spacing based on node height, but keep fonts readable
+                  const isCompactNode = node.height < 50;
+                  const verticalGap = isCompactNode ? 5 : 7;
                   
                   return (
                     <>
@@ -1559,7 +1559,7 @@ useEffect(() => {
                         dy="0.35em"
                         textAnchor="middle"
                         fill={node.type === 'loss' ? theme.colors.accent : '#ffffff'}
-                        fontSize={labelFontSize}
+                        fontSize={11}
                         fontWeight={600}
                         fontFamily="Inter, system-ui, sans-serif"
                         style={{
@@ -1567,17 +1567,17 @@ useEffect(() => {
                           pointerEvents: 'none',
                         }}
                       >
-                        {getAbbreviatedLabel(node.label, isSmallNode ? 10 : 12)}
+                        {getAbbreviatedLabel(node.label, 11)}
                       </text>
 
                       {/* Node displayValue - shown below label, inside node */}
                       {node.displayValue && (
                         <text
                           x={node.width / 2}
-                          y={node.height / 2 + verticalGap + 2}
+                          y={node.height / 2 + verticalGap}
                           textAnchor="middle"
                           fill={node.type === 'loss' ? 'rgba(255,150,150,0.9)' : node.type === 'revenue' || node.type === 'solution' ? theme.colors.primary : 'rgba(255,255,255,0.75)'}
-                          fontSize={valueFontSize}
+                          fontSize={10}
                           fontWeight={500}
                           fontFamily="Inter, system-ui, sans-serif"
                           style={{
@@ -1593,10 +1593,10 @@ useEffect(() => {
                       {node.type === 'new' && !node.displayValue && (
                         <text
                           x={node.width / 2}
-                          y={node.height / 2 + verticalGap + 2}
+                          y={node.height / 2 + verticalGap}
                           textAnchor="middle"
                           fill={theme.colors.secondary}
-                          fontSize={isSmallNode ? 7 : 9}
+                          fontSize={9}
                           fontWeight={700}
                           style={{
                             pointerEvents: 'none',
