@@ -287,7 +287,7 @@ const AnimatedValue = ({
 // ============================================
 
 const LAYOUT = {
-  padding: { top: 40, right: 100, bottom: 60, left: 100 },
+  padding: { top: 20, right: 100, bottom: 40, left: 100 },
   nodeWidth: 18,
   nodeMinHeight: 35,
   nodeMaxHeight: 90,
