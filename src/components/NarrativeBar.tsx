@@ -97,11 +97,13 @@ export const NarrativeBar = memo(({
   const script = NARRATIVES[lens]?.[variant] || NARRATIVES.orders.before;
   const ctaLabel = CTA_LABEL[variant];
   
+  // Sync visibility with Sankey layer progression:
+  // Layer 0 (Intake): 0-40% | Layer 1: 25-65% | Layer 2: 50-90% | Layer 3 (Outcomes): 75-100%
   const visibility = useMemo(() => ({
-    setup: progress >= 0.05,
-    tension: progress >= 0.35,
-    impact: progress >= 0.65,
-    cta: progress >= 0.90,
+    setup: progress >= 0.08,    // When intake node becomes visible
+    tension: progress >= 0.30,  // When split/processing layers are drawing
+    impact: progress >= 0.78,   // When outcomes layer starts appearing  
+    cta: progress >= 0.94,      // After outcomes fully visible
   }), [progress]);
 
   const narrativeFont = 'Georgia, "Times New Roman", serif';
