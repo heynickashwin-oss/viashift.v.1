@@ -397,12 +397,6 @@ export const StakeholderSankeyPOC = () => {
           variant="before"
           progress={animationProgress}
           accentColor={activeLensColor}
-          onFeedbackClick={() => {
-            const firstNode = flowState.data.nodes[0];
-            if (firstNode) {
-              handleFeedbackClick(firstNode.id);
-            }
-          }}
         />
       </div>
       
