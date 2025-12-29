@@ -367,6 +367,303 @@ export const b2bFunnelCurrentState: Record<B2BFunnelViewType, {
 };
 
 // ============================================
+// SHIFTED STATE DATA
+// What happens when stakeholders align and decide
+// Key changes:
+// - No Decision drops from 71% to 40%
+// - Won rate increases (alignment → confidence)
+// - Lost-Competitor increases slightly (faster clarity)
+// - Overall efficiency improves dramatically
+// ============================================
+
+// ============================================
+// SPEND VIEW - SHIFTED STATE
+// Same $200K, better outcomes
+// ============================================
+
+const spendShiftedData: SankeyData = {
+  nodes: [
+    // Layer 0: SOURCES (same investment)
+    { id: 'paid', label: 'Paid Search/Social', layer: 0, value: 50000, type: 'source', displayValue: '$50K/mo' },
+    { id: 'organic', label: 'SEO/Content', layer: 0, value: 30000, type: 'source', displayValue: '$30K/mo' },
+    { id: 'events', label: 'Events/Conferences', layer: 0, value: 60000, type: 'source', displayValue: '$60K/mo' },
+    { id: 'webinars', label: 'Webinars/Content', layer: 0, value: 35000, type: 'source', displayValue: '$35K/mo' },
+    { id: 'referrals', label: 'Referral Programs', layer: 0, value: 25000, type: 'source', displayValue: '$25K/mo' },
+    
+    // Layer 1: LEAD GENERATION (improved quality signals)
+    { id: 'high-intent', label: 'High-Intent Leads', layer: 1, value: 85000, type: 'default', displayValue: '$85K' },
+    { id: 'med-intent', label: 'Medium-Intent', layer: 1, value: 70000, type: 'default', displayValue: '$70K' },
+    { id: 'low-intent', label: 'Low-Intent', layer: 1, value: 45000, type: 'default', displayValue: '$45K' },
+    
+    // Layer 2: QUALIFICATION (faster, better)
+    { id: 'mql', label: 'Marketing Qualified', layer: 2, value: 130000, type: 'default', displayValue: '$130K' },
+    { id: 'disqualified', label: 'Disqualified Early', layer: 2, value: 70000, type: 'loss', displayValue: '$70K' },
+    
+    // Layer 3: SALES ENGAGEMENT (better handoff)
+    { id: 'sql', label: 'Sales Qualified', layer: 3, value: 78000, type: 'default', displayValue: '$78K' },
+    { id: 'nurture', label: 'Nurture Queue', layer: 3, value: 32000, type: 'default', displayValue: '$32K' },
+    { id: 'no-response', label: 'No Response', layer: 3, value: 20000, type: 'loss', displayValue: '$20K' },
+    
+    // Layer 4: PIPELINE (more qualified opps)
+    { id: 'opportunity', label: 'Active Opportunity', layer: 4, value: 65000, type: 'default', displayValue: '$65K' },
+    { id: 'lost-early', label: 'Lost Early Stage', layer: 4, value: 13000, type: 'loss', displayValue: '$13K' },
+    
+    // Layer 5: OUTCOMES (the shift!)
+    { id: 'won', label: '✓ Closed Won', layer: 5, value: 26000, type: 'revenue', displayValue: '$26K (13%)' },
+    { id: 'lost-competitor', label: '✗ Lost to Competitor', layer: 5, value: 13000, type: 'loss', displayValue: '$13K (6.5%)' },
+    { id: 'no-decision', label: '⚠ No Decision', layer: 5, value: 26000, type: 'loss', displayValue: '$26K (13%)' },
+  ],
+  links: [
+    // Sources → Lead Types (same distribution)
+    { from: 'paid', to: 'high-intent', value: 32000, type: 'default', displayLabel: '$32K' },
+    { from: 'paid', to: 'med-intent', value: 13000, type: 'default', displayLabel: '$13K' },
+    { from: 'paid', to: 'low-intent', value: 5000, type: 'default', displayLabel: '$5K' },
+    
+    { from: 'organic', to: 'high-intent', value: 16000, type: 'default', displayLabel: '$16K' },
+    { from: 'organic', to: 'med-intent', value: 10000, type: 'default', displayLabel: '$10K' },
+    { from: 'organic', to: 'low-intent', value: 4000, type: 'default', displayLabel: '$4K' },
+    
+    { from: 'events', to: 'high-intent', value: 15000, type: 'default', displayLabel: '$15K' },
+    { from: 'events', to: 'med-intent', value: 25000, type: 'default', displayLabel: '$25K' },
+    { from: 'events', to: 'low-intent', value: 20000, type: 'default', displayLabel: '$20K' },
+    
+    { from: 'webinars', to: 'high-intent', value: 15000, type: 'default', displayLabel: '$15K' },
+    { from: 'webinars', to: 'med-intent', value: 14000, type: 'default', displayLabel: '$14K' },
+    { from: 'webinars', to: 'low-intent', value: 6000, type: 'default', displayLabel: '$6K' },
+    
+    { from: 'referrals', to: 'high-intent', value: 18000, type: 'default', displayLabel: '$18K' },
+    { from: 'referrals', to: 'med-intent', value: 5000, type: 'default', displayLabel: '$5K' },
+    { from: 'referrals', to: 'low-intent', value: 2000, type: 'default', displayLabel: '$2K' },
+    
+    // Lead Types → Qualification (better MQL rates)
+    { from: 'high-intent', to: 'mql', value: 68000, type: 'default', displayLabel: '$68K' },
+    { from: 'high-intent', to: 'disqualified', value: 17000, type: 'loss', displayLabel: '$17K' },
+    { from: 'med-intent', to: 'mql', value: 42000, type: 'default', displayLabel: '$42K' },
+    { from: 'med-intent', to: 'disqualified', value: 28000, type: 'loss', displayLabel: '$28K' },
+    { from: 'low-intent', to: 'mql', value: 20000, type: 'default', displayLabel: '$20K' },
+    { from: 'low-intent', to: 'disqualified', value: 25000, type: 'loss', displayLabel: '$25K' },
+    
+    // MQL → Sales Engagement (improved handoff)
+    { from: 'mql', to: 'sql', value: 78000, type: 'default', displayLabel: '$78K' },
+    { from: 'mql', to: 'nurture', value: 32000, type: 'default', displayLabel: '$32K' },
+    { from: 'mql', to: 'no-response', value: 20000, type: 'loss', displayLabel: '$20K' },
+    
+    // SQL → Pipeline
+    { from: 'sql', to: 'opportunity', value: 65000, type: 'default', displayLabel: '$65K' },
+    { from: 'sql', to: 'lost-early', value: 13000, type: 'loss', displayLabel: '$13K' },
+    
+    // Opportunity → Outcomes (the big shift!)
+    { from: 'opportunity', to: 'won', value: 26000, type: 'revenue', displayLabel: '$26K' },
+    { from: 'opportunity', to: 'lost-competitor', value: 13000, type: 'loss', displayLabel: '$13K' },
+    { from: 'opportunity', to: 'no-decision', value: 26000, type: 'loss', displayLabel: '$26K' },
+  ],
+};
+
+const spendShiftedMetrics: SankeyMetric[] = [
+  { id: 'total', value: '$200K', label: 'Monthly GTM Spend', type: 'neutral' },
+  { id: 'won', value: '$26K', label: 'Cost per Won Deal', type: 'positive' },
+  { id: 'nodecision', value: '$26K', label: 'No Decision (↓72%)', type: 'positive' },
+];
+
+// ============================================
+// DEALS VIEW - SHIFTED STATE
+// Same 1000 leads, better conversion
+// ============================================
+
+const dealsShiftedData: SankeyData = {
+  nodes: [
+    // Layer 0: SOURCES (same volume)
+    { id: 'paid', label: 'Paid Leads', layer: 0, value: 280, type: 'source', displayValue: '280/mo' },
+    { id: 'organic', label: 'Organic Leads', layer: 0, value: 220, type: 'source', displayValue: '220/mo' },
+    { id: 'events', label: 'Event Leads', layer: 0, value: 300, type: 'source', displayValue: '300/mo' },
+    { id: 'webinars', label: 'Webinar Leads', layer: 0, value: 120, type: 'source', displayValue: '120/mo' },
+    { id: 'referrals', label: 'Referral Leads', layer: 0, value: 80, type: 'source', displayValue: '80/mo' },
+    
+    // Layer 1: LEAD QUALITY (better identification)
+    { id: 'high-intent', label: 'High-Intent', layer: 1, value: 380, type: 'default', displayValue: '380 leads' },
+    { id: 'med-intent', label: 'Medium-Intent', layer: 1, value: 390, type: 'default', displayValue: '390 leads' },
+    { id: 'low-intent', label: 'Low-Intent', layer: 1, value: 230, type: 'default', displayValue: '230 leads' },
+    
+    // Layer 2: QUALIFICATION (faster decisions)
+    { id: 'mql', label: 'MQLs', layer: 2, value: 450, type: 'default', displayValue: '450 MQLs' },
+    { id: 'disqualified', label: 'Disqualified Early', layer: 2, value: 550, type: 'loss', displayValue: '550 (55%)' },
+    
+    // Layer 3: SALES ENGAGEMENT (better handoff)
+    { id: 'sql', label: 'SQLs', layer: 3, value: 72, type: 'default', displayValue: '72 SQLs' },
+    { id: 'nurture', label: 'Nurture', layer: 3, value: 270, type: 'default', displayValue: '270 nurture' },
+    { id: 'no-response', label: 'No Response', layer: 3, value: 108, type: 'loss', displayValue: '108 ghost' },
+    
+    // Layer 4: PIPELINE (more qualified)
+    { id: 'opportunity', label: 'Opportunities', layer: 4, value: 60, type: 'default', displayValue: '60 opps' },
+    { id: 'lost-early', label: 'Lost Early', layer: 4, value: 12, type: 'loss', displayValue: '12 lost' },
+    
+    // Layer 5: OUTCOMES (the shift!)
+    { id: 'won', label: '✓ Closed Won', layer: 5, value: 18, type: 'revenue', displayValue: '18 deals (30%)' },
+    { id: 'lost-competitor', label: '✗ Lost Competitor', layer: 5, value: 18, type: 'loss', displayValue: '18 deals (30%)' },
+    { id: 'no-decision', label: '⚠ No Decision', layer: 5, value: 24, type: 'loss', displayValue: '24 deals (40%)' },
+  ],
+  links: [
+    // Sources → Lead Types
+    { from: 'paid', to: 'high-intent', value: 150, type: 'default', displayLabel: '150' },
+    { from: 'paid', to: 'med-intent', value: 80, type: 'default', displayLabel: '80' },
+    { from: 'paid', to: 'low-intent', value: 50, type: 'default', displayLabel: '50' },
+    
+    { from: 'organic', to: 'high-intent', value: 120, type: 'default', displayLabel: '120' },
+    { from: 'organic', to: 'med-intent', value: 70, type: 'default', displayLabel: '70' },
+    { from: 'organic', to: 'low-intent', value: 30, type: 'default', displayLabel: '30' },
+    
+    { from: 'events', to: 'high-intent', value: 40, type: 'default', displayLabel: '40' },
+    { from: 'events', to: 'med-intent', value: 150, type: 'default', displayLabel: '150' },
+    { from: 'events', to: 'low-intent', value: 110, type: 'default', displayLabel: '110' },
+    
+    { from: 'webinars', to: 'high-intent', value: 50, type: 'default', displayLabel: '50' },
+    { from: 'webinars', to: 'med-intent', value: 45, type: 'default', displayLabel: '45' },
+    { from: 'webinars', to: 'low-intent', value: 25, type: 'default', displayLabel: '25' },
+    
+    { from: 'referrals', to: 'high-intent', value: 60, type: 'default', displayLabel: '60' },
+    { from: 'referrals', to: 'med-intent', value: 14, type: 'default', displayLabel: '14' },
+    { from: 'referrals', to: 'low-intent', value: 6, type: 'default', displayLabel: '6' },
+    
+    // Lead Types → Qualification (faster disqual)
+    { from: 'high-intent', to: 'mql', value: 285, type: 'default', displayLabel: '285' },
+    { from: 'high-intent', to: 'disqualified', value: 95, type: 'loss', displayLabel: '95' },
+    { from: 'med-intent', to: 'mql', value: 140, type: 'default', displayLabel: '140' },
+    { from: 'med-intent', to: 'disqualified', value: 250, type: 'loss', displayLabel: '250' },
+    { from: 'low-intent', to: 'mql', value: 25, type: 'default', displayLabel: '25' },
+    { from: 'low-intent', to: 'disqualified', value: 205, type: 'loss', displayLabel: '205' },
+    
+    // MQL → Sales Engagement (16% SQL rate - improved)
+    { from: 'mql', to: 'sql', value: 72, type: 'default', displayLabel: '72' },
+    { from: 'mql', to: 'nurture', value: 270, type: 'default', displayLabel: '270' },
+    { from: 'mql', to: 'no-response', value: 108, type: 'loss', displayLabel: '108' },
+    
+    // SQL → Pipeline
+    { from: 'sql', to: 'opportunity', value: 60, type: 'default', displayLabel: '60' },
+    { from: 'sql', to: 'lost-early', value: 12, type: 'loss', displayLabel: '12' },
+    
+    // Opportunity → Outcomes (30% win, 30% competitor, 40% no decision)
+    { from: 'opportunity', to: 'won', value: 18, type: 'revenue', displayLabel: '18' },
+    { from: 'opportunity', to: 'lost-competitor', value: 18, type: 'loss', displayLabel: '18' },
+    { from: 'opportunity', to: 'no-decision', value: 24, type: 'loss', displayLabel: '24' },
+  ],
+};
+
+const dealsShiftedMetrics: SankeyMetric[] = [
+  { id: 'total', value: '1,000', label: 'Leads/Month', type: 'neutral' },
+  { id: 'won', value: '18', label: 'Deals Won (↑125%)', type: 'positive' },
+  { id: 'nodecision', value: '24', label: 'No Decision (↓20%)', type: 'positive' },
+];
+
+// ============================================
+// VELOCITY VIEW - SHIFTED STATE
+// Faster cycles, earlier clarity
+// ============================================
+
+const velocityShiftedData: SankeyData = {
+  nodes: [
+    // Layer 0: SOURCES - Days from first touch (faster response)
+    { id: 'paid', label: 'Paid (Fast)', layer: 0, value: 5, type: 'source', displayValue: '5 days avg' },
+    { id: 'organic', label: 'Organic (Med)', layer: 0, value: 10, type: 'source', displayValue: '10 days avg' },
+    { id: 'events', label: 'Events (Faster)', layer: 0, value: 21, type: 'source', displayValue: '21 days avg' },
+    { id: 'webinars', label: 'Webinars (Med)', layer: 0, value: 14, type: 'source', displayValue: '14 days avg' },
+    { id: 'referrals', label: 'Referrals (Fast)', layer: 0, value: 3, type: 'source', displayValue: '3 days avg' },
+    
+    // Layer 1: QUALIFICATION TIME (much faster)
+    { id: 'fast-qual', label: 'Fast Qualification', layer: 1, value: 2, type: 'default', displayValue: '2 days' },
+    { id: 'slow-qual', label: 'Standard Qual', layer: 1, value: 7, type: 'default', displayValue: '7 days' },
+    { id: 'stalled-qual', label: 'Exit Early', layer: 1, value: 14, type: 'loss', displayValue: '14 days (saved)' },
+    
+    // Layer 2: MQL STAGE (faster)
+    { id: 'mql', label: 'MQL Stage', layer: 2, value: 14, type: 'default', displayValue: '14 days avg' },
+    { id: 'dropped', label: 'Dropped Fast', layer: 2, value: 21, type: 'loss', displayValue: '21 days (saved)' },
+    
+    // Layer 3: SQL STAGE (faster handoff)
+    { id: 'sql', label: 'SQL Stage', layer: 3, value: 10, type: 'default', displayValue: '10 days avg' },
+    { id: 'nurture-loop', label: 'Nurture Loop', layer: 3, value: 30, type: 'default', displayValue: '30 days' },
+    { id: 'ghosted', label: 'Exit Early', layer: 3, value: 14, type: 'loss', displayValue: '14 days (saved)' },
+    
+    // Layer 4: OPPORTUNITY STAGE (faster decisions)
+    { id: 'active-opp', label: 'Active Pipeline', layer: 4, value: 30, type: 'default', displayValue: '30 days avg' },
+    { id: 'stalled-opp', label: 'Exit Early', layer: 4, value: 45, type: 'loss', displayValue: '45 days (saved)' },
+    
+    // Layer 5: OUTCOMES - Total cycle time (the shift!)
+    { id: 'won', label: '✓ Won (60 days)', layer: 5, value: 60, type: 'revenue', displayValue: '60 day cycle' },
+    { id: 'lost-fast', label: '✗ Lost Clear', layer: 5, value: 30, type: 'loss', displayValue: '30 day cycle' },
+    { id: 'no-decision', label: '⚠ No Decision', layer: 5, value: 90, type: 'loss', displayValue: '90 day cycle' },
+  ],
+  links: [
+    // Sources → Qualification speed (faster response)
+    { from: 'paid', to: 'fast-qual', value: 4, type: 'default', displayLabel: '4d' },
+    { from: 'paid', to: 'slow-qual', value: 1, type: 'default', displayLabel: '1d' },
+    
+    { from: 'organic', to: 'fast-qual', value: 6, type: 'default', displayLabel: '6d' },
+    { from: 'organic', to: 'slow-qual', value: 3, type: 'default', displayLabel: '3d' },
+    { from: 'organic', to: 'stalled-qual', value: 1, type: 'loss', displayLabel: '1d' },
+    
+    { from: 'events', to: 'fast-qual', value: 5, type: 'default', displayLabel: '5d' },
+    { from: 'events', to: 'slow-qual', value: 12, type: 'default', displayLabel: '12d' },
+    { from: 'events', to: 'stalled-qual', value: 4, type: 'loss', displayLabel: '4d' },
+    
+    { from: 'webinars', to: 'fast-qual', value: 8, type: 'default', displayLabel: '8d' },
+    { from: 'webinars', to: 'slow-qual', value: 5, type: 'default', displayLabel: '5d' },
+    { from: 'webinars', to: 'stalled-qual', value: 1, type: 'loss', displayLabel: '1d' },
+    
+    { from: 'referrals', to: 'fast-qual', value: 3, type: 'default', displayLabel: '3d' },
+    
+    // Qualification → MQL (faster)
+    { from: 'fast-qual', to: 'mql', value: 20, type: 'default', displayLabel: '20d' },
+    { from: 'slow-qual', to: 'mql', value: 15, type: 'default', displayLabel: '15d' },
+    { from: 'slow-qual', to: 'dropped', value: 6, type: 'loss', displayLabel: '6d' },
+    { from: 'stalled-qual', to: 'dropped', value: 6, type: 'loss', displayLabel: '6d' },
+    
+    // MQL → SQL (faster handoff)
+    { from: 'mql', to: 'sql', value: 14, type: 'default', displayLabel: '14d' },
+    { from: 'mql', to: 'nurture-loop', value: 14, type: 'default', displayLabel: '14d' },
+    { from: 'mql', to: 'ghosted', value: 7, type: 'loss', displayLabel: '7d' },
+    
+    // SQL → Opportunity (faster qualification)
+    { from: 'sql', to: 'active-opp', value: 10, type: 'default', displayLabel: '10d' },
+    { from: 'sql', to: 'stalled-opp', value: 4, type: 'loss', displayLabel: '4d' },
+    { from: 'nurture-loop', to: 'active-opp', value: 10, type: 'default', displayLabel: '10d' },
+    { from: 'nurture-loop', to: 'stalled-opp', value: 4, type: 'loss', displayLabel: '4d' },
+    
+    // Opportunity → Outcomes (faster decisions!)
+    { from: 'active-opp', to: 'won', value: 10, type: 'revenue', displayLabel: '10d' },
+    { from: 'active-opp', to: 'lost-fast', value: 6, type: 'loss', displayLabel: '6d' },
+    { from: 'active-opp', to: 'no-decision', value: 4, type: 'loss', displayLabel: '4d' },
+    { from: 'stalled-opp', to: 'no-decision', value: 8, type: 'loss', displayLabel: '8d' },
+  ],
+};
+
+const velocityShiftedMetrics: SankeyMetric[] = [
+  { id: 'total', value: '90', label: 'Days Avg Cycle (↓50%)', type: 'positive' },
+  { id: 'won', value: '60', label: 'Days to Won (↓33%)', type: 'positive' },
+  { id: 'nodecision', value: '90', label: 'Days to No Decision (↓50%)', type: 'positive' },
+];
+
+// ============================================
+// EXPORTED SHIFTED STATE DATA
+// ============================================
+
+export const b2bFunnelShiftedState: Record<B2BFunnelViewType, {
+  data: SankeyData;
+  metrics: SankeyMetric[];
+}> = {
+  spend: {
+    data: spendShiftedData,
+    metrics: spendShiftedMetrics,
+  },
+  deals: {
+    data: dealsShiftedData,
+    metrics: dealsShiftedMetrics,
+  },
+  velocity: {
+    data: velocityShiftedData,
+    metrics: velocityShiftedMetrics,
+  },
+};
+
+// ============================================
 // NODE COMPARISON DATA
 // Maps equivalent concepts across views
 // ============================================
@@ -424,25 +721,70 @@ export const b2bNarrativeScripts: Record<B2BFunnelViewType, {
   },
 };
 
+export const b2bShiftedNarrativeScripts: Record<B2BFunnelViewType, {
+  setup: string;
+  tension: string;
+  impact: string;
+  cta: string;
+}> = {
+  spend: {
+    setup: 'Same $200K investment, but stakeholders aligned early',
+    tension: 'No Decision drops from $92K to $26K',
+    impact: "that's $792K/year recovered — reinvested in growth.",
+    cta: 'What would you do with $792K?',
+  },
+  deals: {
+    setup: 'Same 1,000 leads, but buyers can actually decide',
+    tension: '18 deals close instead of 8 — No Decision drops to 40%',
+    impact: "that's 125% more wins from the same pipeline.",
+    cta: 'What would 10 more deals/month mean?',
+  },
+  velocity: {
+    setup: 'Same process, but alignment happens in weeks not months',
+    tension: 'Win cycle drops to 60 days, No Decision to 90',
+    impact: '50% faster decisions — reps can work 2x the deals.',
+    cta: 'What would your team do with 2x capacity?',
+  },
+};
+
 // ============================================
 // HELPER: Get FlowState for B2B Funnel
 // ============================================
 
-export function getB2BFlowStateForView(viewType: B2BFunnelViewType): FlowState {
+export function getB2BFlowStateForView(viewType: B2BFunnelViewType, variant: 'before' | 'after' = 'before'): FlowState {
   const config = b2bViewConfigs[viewType];
-  const { data, metrics } = b2bFunnelCurrentState[viewType];
+  const stateData = variant === 'before' ? b2bFunnelCurrentState : b2bFunnelShiftedState;
+  const { data, metrics } = stateData[viewType];
   
-  return {
-    data,
-    metrics,
-    stageLabel: config.title,
-    anchoredMetric: viewType === 'spend' 
-      ? { value: '$92K', label: 'No Decision/Mo', type: 'loss', nodeId: 'no-decision' }
-      : viewType === 'deals'
-      ? { value: '71%', label: 'No Decision Rate', type: 'loss', nodeId: 'no-decision' }
-      : { value: '180+', label: 'Days Wasted', type: 'loss', nodeId: 'no-decision' },
-    insight: config.insight,
-  };
+  if (variant === 'before') {
+    return {
+      data,
+      metrics,
+      stageLabel: config.title,
+      anchoredMetric: viewType === 'spend' 
+        ? { value: '$92K', label: 'No Decision/Mo', type: 'loss', nodeId: 'no-decision' }
+        : viewType === 'deals'
+        ? { value: '71%', label: 'No Decision Rate', type: 'loss', nodeId: 'no-decision' }
+        : { value: '180+', label: 'Days Wasted', type: 'loss', nodeId: 'no-decision' },
+      insight: config.insight,
+    };
+  } else {
+    return {
+      data,
+      metrics,
+      stageLabel: config.title + ' — Shifted',
+      anchoredMetric: viewType === 'spend' 
+        ? { value: '$26K', label: 'No Decision (↓72%)', type: 'positive', nodeId: 'no-decision' }
+        : viewType === 'deals'
+        ? { value: '40%', label: 'No Decision (↓44%)', type: 'positive', nodeId: 'no-decision' }
+        : { value: '90', label: 'Days (↓50%)', type: 'positive', nodeId: 'no-decision' },
+      insight: viewType === 'spend'
+        ? '$66K/month recovered — $792K/year reinvested in growth'
+        : viewType === 'deals'
+        ? '18 wins vs 8 — 125% increase from same pipeline'
+        : '60-day win cycle, 90-day No Decision — 50% faster clarity',
+    };
+  }
 }
 
 // ============================================
