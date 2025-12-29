@@ -591,7 +591,7 @@ const velocityComparisons: NodeComparison[] = [
 ];
 
 // ============================================
-// EXPORT BY VIEW TYPE
+// EXPORT BY VIEW TYPE - CURRENT STATE
 // ============================================
 
 export const b2bFunnelComparisons: Record<B2BFunnelViewType, NodeComparison[]> = {
@@ -600,11 +600,480 @@ export const b2bFunnelComparisons: Record<B2BFunnelViewType, NodeComparison[]> =
   velocity: velocityComparisons,
 };
 
+// ============================================
+// SHIFTED STATE COMPARISONS
+// What stakeholders see after alignment
+// ============================================
+
+// ============================================
+// SPEND VIEW - SHIFTED COMPARISONS
+// ============================================
+
+const spendShiftedComparisons: NodeComparison[] = [
+  {
+    nodeId: 'mql',
+    nodeName: 'Marketing Qualified',
+    priority: 'medium',
+    insights: {
+      finance: {
+        value: '$130K',
+        label: 'Cost to MQL',
+        sentiment: 'gain',
+        detail: 'Same spend, 8% more MQLs through better targeting',
+      },
+      ops: {
+        value: '45%',
+        label: 'MQL rate',
+        sentiment: 'gain',
+        detail: 'Above industry benchmark—quality signals working',
+      },
+      sales: {
+        value: '450',
+        label: 'MQLs/month',
+        sentiment: 'gain',
+        detail: '15% more volume, better quality',
+      },
+    },
+    alignmentNarrative: 'Better targeting and faster feedback loops improved MQL quality and volume.',
+  },
+  {
+    nodeId: 'sql',
+    nodeName: 'Sales Qualified',
+    priority: 'high',
+    insights: {
+      finance: {
+        value: '$78K',
+        label: 'Cost to SQL',
+        sentiment: 'gain',
+        detail: 'More SQLs for slightly more spend—efficiency up',
+      },
+      sales: {
+        value: '16%',
+        label: 'MQL→SQL',
+        sentiment: 'gain',
+        detail: 'Above industry average—handoff working',
+      },
+      ops: {
+        value: '72',
+        label: 'SQLs/month',
+        sentiment: 'gain',
+        detail: '41% more SQLs—enough to hit targets',
+      },
+      users: {
+        value: '45 days',
+        label: 'MQL to SQL',
+        sentiment: 'gain',
+        detail: '46% faster—leads stay warm',
+      },
+    },
+    alignmentNarrative: 'Marketing and sales aligned on MQL criteria. Handoff is smooth, leads are warm.',
+  },
+  {
+    nodeId: 'opportunity',
+    nodeName: 'Active Opportunity',
+    priority: 'high',
+    insights: {
+      finance: {
+        value: '$65K',
+        label: 'Pipeline investment',
+        sentiment: 'gain',
+        detail: 'More spend in active deals = more at-bats',
+      },
+      sales: {
+        value: '60',
+        label: 'Active opps',
+        sentiment: 'gain',
+        detail: '43% more pipe—enough to hit number',
+      },
+      ops: {
+        value: '30 days',
+        label: 'Avg stage time',
+        sentiment: 'gain',
+        detail: '33% faster cycle—momentum maintained',
+      },
+      users: {
+        value: '10-12',
+        label: 'Per rep',
+        sentiment: 'gain',
+        detail: 'Right workload—focus on winnable deals',
+      },
+    },
+    alignmentNarrative: 'More opportunities, faster cycles. Reps have the right workload to close.',
+  },
+  {
+    nodeId: 'no-decision',
+    nodeName: 'No Decision',
+    priority: 'high',
+    insights: {
+      finance: {
+        value: '$26K',
+        label: 'Monthly (↓72%)',
+        sentiment: 'gain',
+        detail: '$66K/month recovered—$792K/year reinvested',
+      },
+      sales: {
+        value: '40%',
+        label: 'Of opportunities',
+        sentiment: 'gain',
+        detail: 'Down from 71%—still work to do, but major progress',
+      },
+      ops: {
+        value: '90 days',
+        label: 'Before clarity',
+        sentiment: 'gain',
+        detail: '50% faster—capacity freed for real deals',
+      },
+      users: {
+        value: 'Focus',
+        label: 'Rep sentiment',
+        sentiment: 'gain',
+        detail: 'Clear signals on which deals to work',
+      },
+      leadership: {
+        value: '$792K',
+        label: 'Annual savings',
+        sentiment: 'gain',
+        detail: 'Reinvested in growth initiatives',
+      },
+    },
+    alignmentNarrative: 'The hidden killer is tamed. Stakeholder alignment surfaces "no" faster, saving $792K/year.',
+  },
+  {
+    nodeId: 'won',
+    nodeName: 'Closed Won',
+    priority: 'high',
+    insights: {
+      finance: {
+        value: '$11K',
+        label: 'Cost per deal',
+        sentiment: 'gain',
+        detail: 'CAC down 13% with more volume',
+      },
+      sales: {
+        value: '18',
+        label: 'Deals/month',
+        sentiment: 'gain',
+        detail: '125% increase—hitting plan',
+      },
+      leadership: {
+        value: '30%',
+        label: 'Win rate',
+        sentiment: 'gain',
+        detail: 'Up from 19%—alignment drives confidence',
+      },
+    },
+    alignmentNarrative: 'More wins, lower CAC. When stakeholders align early, deals close.',
+  },
+];
+
+// ============================================
+// DEALS VIEW - SHIFTED COMPARISONS
+// ============================================
+
+const dealsShiftedComparisons: NodeComparison[] = [
+  {
+    nodeId: 'disqualified',
+    nodeName: 'Disqualified Early',
+    priority: 'medium',
+    insights: {
+      finance: {
+        value: '$70K',
+        label: 'Spent on non-buyers',
+        sentiment: 'gain',
+        detail: 'Down from $80K—saving $10K/month',
+      },
+      ops: {
+        value: '55%',
+        label: 'Disqual rate',
+        sentiment: 'gain',
+        detail: 'Down 6 points—better targeting working',
+      },
+      users: {
+        value: 'Efficient',
+        label: 'SDR impact',
+        sentiment: 'gain',
+        detail: 'Less time on dead ends, more on real prospects',
+      },
+    },
+    alignmentNarrative: 'Better targeting means fewer wasted calls. SDRs focus on real buyers.',
+  },
+  {
+    nodeId: 'opportunity',
+    nodeName: 'Opportunities',
+    priority: 'high',
+    insights: {
+      sales: {
+        value: '60',
+        label: 'Active opps',
+        sentiment: 'gain',
+        detail: '43% more at-bats from same lead volume',
+      },
+      ops: {
+        value: '16%',
+        label: 'MQL→Opp',
+        sentiment: 'gain',
+        detail: 'Improved from 11%—better qualification',
+      },
+      users: {
+        value: '10-12',
+        label: 'Per rep',
+        sentiment: 'gain',
+        detail: 'Manageable workload, focused effort',
+      },
+    },
+    alignmentNarrative: 'Same 1,000 leads produce 43% more opportunities. The funnel is tighter.',
+  },
+  {
+    nodeId: 'no-decision',
+    nodeName: 'No Decision',
+    priority: 'high',
+    insights: {
+      sales: {
+        value: '24',
+        label: 'Deals stuck',
+        sentiment: 'gain',
+        detail: 'Down from 30—20% fewer zombie deals',
+      },
+      users: {
+        value: '2-3',
+        label: 'Per rep/month',
+        sentiment: 'gain',
+        detail: 'Manageable—clear when to walk away',
+      },
+      leadership: {
+        value: '1.3x',
+        label: 'vs competitors',
+        sentiment: 'gain',
+        detail: 'Now losing to "nothing" only slightly more than rivals',
+      },
+      ops: {
+        value: 'Clean pipe',
+        label: 'Forecast',
+        sentiment: 'gain',
+        detail: 'Dead deals exit faster—forecasting improves',
+      },
+    },
+    alignmentNarrative: 'Cleaner pipeline. When buyers can\'t align, we know in 90 days not 180.',
+  },
+  {
+    nodeId: 'won',
+    nodeName: 'Closed Won',
+    priority: 'high',
+    insights: {
+      sales: {
+        value: '18',
+        label: 'Wins/month',
+        sentiment: 'gain',
+        detail: '125% increase—exceeding plan',
+      },
+      leadership: {
+        value: '1.8%',
+        label: 'Lead→Win',
+        sentiment: 'gain',
+        detail: 'More than doubled from 0.8%',
+      },
+      finance: {
+        value: '$11K',
+        label: 'CAC',
+        sentiment: 'gain',
+        detail: 'Down from $25K with higher volume',
+      },
+    },
+    alignmentNarrative: '18 wins from 1,000 leads. Conversion more than doubled.',
+  },
+];
+
+// ============================================
+// VELOCITY VIEW - SHIFTED COMPARISONS
+// ============================================
+
+const velocityShiftedComparisons: NodeComparison[] = [
+  {
+    nodeId: 'fast-qual',
+    nodeName: 'Fast Qualification',
+    priority: 'high',
+    insights: {
+      ops: {
+        value: '2 days',
+        label: 'Avg time',
+        sentiment: 'gain',
+        detail: '33% faster than before—momentum maintained',
+      },
+      sales: {
+        value: '62%',
+        label: 'Conversion',
+        sentiment: 'gain',
+        detail: 'Fast response = even higher conversion',
+      },
+      users: {
+        value: '< 30 min',
+        label: 'Response time',
+        sentiment: 'gain',
+        detail: 'Automation handles initial response',
+      },
+    },
+    alignmentNarrative: 'Speed-to-lead optimized. Every minute matters.',
+  },
+  {
+    nodeId: 'stalled-qual',
+    nodeName: 'Exit Early',
+    priority: 'medium',
+    insights: {
+      ops: {
+        value: '14 days',
+        label: 'To clarity',
+        sentiment: 'gain',
+        detail: 'Know if it\'s real in 2 weeks, not 2 months',
+      },
+      sales: {
+        value: 'Freed',
+        label: 'Capacity',
+        sentiment: 'gain',
+        detail: 'Bad fits exit fast—no wasted cycles',
+      },
+      users: {
+        value: 'Clear',
+        label: 'Signals',
+        sentiment: 'gain',
+        detail: 'Know when to walk away',
+      },
+    },
+    alignmentNarrative: 'Early exits are wins. Knowing "no" fast beats slow "maybe".',
+  },
+  {
+    nodeId: 'active-opp',
+    nodeName: 'Active Pipeline',
+    priority: 'high',
+    insights: {
+      ops: {
+        value: '30 days',
+        label: 'Avg stage time',
+        sentiment: 'gain',
+        detail: '33% faster than before',
+      },
+      sales: {
+        value: '60',
+        label: 'Active deals',
+        sentiment: 'gain',
+        detail: '43% more deals moving',
+      },
+      users: {
+        value: '3-4',
+        label: 'Touches/week',
+        sentiment: 'gain',
+        detail: 'Right cadence, maintained momentum',
+      },
+    },
+    alignmentNarrative: 'Deals move with purpose. Stakeholder alignment keeps momentum.',
+  },
+  {
+    nodeId: 'stalled-opp',
+    nodeName: 'Exit Early',
+    priority: 'medium',
+    insights: {
+      ops: {
+        value: '45 days',
+        label: 'To clarity',
+        sentiment: 'gain',
+        detail: 'Half the time wasted on dead deals',
+      },
+      users: {
+        value: 'Freedom',
+        label: 'Rep impact',
+        sentiment: 'gain',
+        detail: 'Permission to walk away early',
+      },
+      sales: {
+        value: '12',
+        label: 'Exits/month',
+        sentiment: 'gain',
+        detail: 'Clean exits, not zombie deals',
+      },
+      leadership: {
+        value: 'Accurate',
+        label: 'Forecast',
+        sentiment: 'gain',
+        detail: 'What\'s in pipe is real',
+      },
+    },
+    alignmentNarrative: 'Stalled deals exit cleanly. Forecast accuracy improves.',
+  },
+  {
+    nodeId: 'no-decision',
+    nodeName: 'No Decision',
+    priority: 'high',
+    insights: {
+      ops: {
+        value: '90 days',
+        label: 'Cycle time',
+        sentiment: 'gain',
+        detail: '50% faster than before—capacity freed',
+      },
+      users: {
+        value: '60 hrs',
+        label: 'Rep time saved',
+        sentiment: 'gain',
+        detail: 'Per deal that would have dragged 180+ days',
+      },
+      sales: {
+        value: '1.5x',
+        label: 'Capacity',
+        sentiment: 'gain',
+        detail: 'Reps can work 50% more real deals',
+      },
+      leadership: {
+        value: '20%',
+        label: 'Capacity freed',
+        sentiment: 'gain',
+        detail: 'Down from 30%—reinvested in winnable deals',
+      },
+    },
+    alignmentNarrative: 'No Decisions resolve in 90 days, not 180. That\'s 60 hours per rep per deal saved.',
+  },
+  {
+    nodeId: 'won',
+    nodeName: 'Won Deals',
+    priority: 'high',
+    insights: {
+      ops: {
+        value: '60 days',
+        label: 'Avg cycle',
+        sentiment: 'gain',
+        detail: '33% faster than before',
+      },
+      sales: {
+        value: '30 hrs',
+        label: 'Rep time',
+        sentiment: 'gain',
+        detail: '25% more efficient per win',
+      },
+      leadership: {
+        value: 'Replicable',
+        label: 'Pattern',
+        sentiment: 'gain',
+        detail: 'Winning motion is documented and scaled',
+      },
+    },
+    alignmentNarrative: '60-day win cycles. The winning pattern is now the default.',
+  },
+];
+
+// ============================================
+// EXPORT BY VIEW TYPE - SHIFTED STATE
+// ============================================
+
+export const b2bFunnelShiftedComparisons: Record<B2BFunnelViewType, NodeComparison[]> = {
+  spend: spendShiftedComparisons,
+  deals: dealsShiftedComparisons,
+  velocity: velocityShiftedComparisons,
+};
+
 /**
- * Get comparisons for a specific view type
+ * Get comparisons for a specific view type and variant
  */
-export function getB2BComparisonsForView(viewType: B2BFunnelViewType): NodeComparison[] {
-  return b2bFunnelComparisons[viewType] || [];
+export function getB2BComparisonsForView(viewType: B2BFunnelViewType, variant: 'before' | 'after' = 'before'): NodeComparison[] {
+  const comparisons = variant === 'before' ? b2bFunnelComparisons : b2bFunnelShiftedComparisons;
+  return comparisons[viewType] || [];
 }
 
 /**
@@ -612,24 +1081,25 @@ export function getB2BComparisonsForView(viewType: B2BFunnelViewType): NodeCompa
  */
 export function getB2BNodeComparisonForView(
   viewType: B2BFunnelViewType,
-  nodeId: string
+  nodeId: string,
+  variant: 'before' | 'after' = 'before'
 ): NodeComparison | undefined {
-  const comparisons = b2bFunnelComparisons[viewType];
-  return comparisons?.find(c => c.nodeId === nodeId);
+  const comparisons = variant === 'before' ? b2bFunnelComparisons : b2bFunnelShiftedComparisons;
+  return comparisons[viewType]?.find(c => c.nodeId === nodeId);
 }
 
 /**
  * Check if a node has comparison data in a view
  */
-export function b2bNodeHasComparison(viewType: B2BFunnelViewType, nodeId: string): boolean {
-  return !!getB2BNodeComparisonForView(viewType, nodeId);
+export function b2bNodeHasComparison(viewType: B2BFunnelViewType, nodeId: string, variant: 'before' | 'after' = 'before'): boolean {
+  return !!getB2BNodeComparisonForView(viewType, nodeId, variant);
 }
 
 /**
  * Get count of stakeholder perspectives for a node
  */
-export function getB2BViewCountForNode(viewType: B2BFunnelViewType, nodeId: string): number {
-  const comparison = getB2BNodeComparisonForView(viewType, nodeId);
+export function getB2BViewCountForNode(viewType: B2BFunnelViewType, nodeId: string, variant: 'before' | 'after' = 'before'): number {
+  const comparison = getB2BNodeComparisonForView(viewType, nodeId, variant);
   if (!comparison) return 0;
   return Object.keys(comparison.insights).length;
 }
