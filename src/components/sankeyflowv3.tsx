@@ -1546,15 +1546,19 @@ useEffect(() => {
 
                 {/* Node label - INTERNAL, centered in node */}
                 {(() => {
-                  // Small nodes (< 40px): show only 1 line (value preferred, more compact)
-                  // Medium+ nodes: show both label and value
-                  const isSmallNode = node.height < 40;
-                  const isMediumNode = node.height >= 40 && node.height < 55;
+                  // Small nodes (< 42px): show only 1 line (value preferred, more compact)
+                  // Medium nodes (42-55px): show both with tighter spacing
+                  // Large nodes (55px+): show both with comfortable spacing
+                  const isSmallNode = node.height < 42;
+                  const isMediumNode = node.height >= 42 && node.height < 55;
                   
-                  // Font sizes: 10px for small nodes, 11px for medium+
+                  // Font sizes
                   const labelFontSize = isSmallNode ? 9 : 11;
                   const valueFontSize = isSmallNode ? 9 : 10;
-                  const verticalGap = isMediumNode ? 5 : 7;
+                  
+                  // Vertical offset from center for each line
+                  // Need enough gap to prevent overlap: ~8px per line from center
+                  const verticalOffset = isMediumNode ? 8 : 10;
                   
                   if (isSmallNode) {
                     // Small node: show ONLY value (or label if no value), centered
@@ -1584,7 +1588,7 @@ useEffect(() => {
                     <>
                       <text
                         x={node.width / 2}
-                        y={node.displayValue ? node.height / 2 - verticalGap : node.height / 2}
+                        y={node.displayValue ? node.height / 2 - verticalOffset : node.height / 2}
                         dy="0.35em"
                         textAnchor="middle"
                         fill={node.type === 'loss' ? theme.colors.accent : '#ffffff'}
@@ -1603,7 +1607,7 @@ useEffect(() => {
                       {node.displayValue && (
                         <text
                           x={node.width / 2}
-                          y={node.height / 2 + verticalGap}
+                          y={node.height / 2 + verticalOffset}
                           textAnchor="middle"
                           fill={node.type === 'loss' ? 'rgba(255,150,150,0.9)' : node.type === 'revenue' || node.type === 'solution' ? theme.colors.primary : 'rgba(255,255,255,0.75)'}
                           fontSize={valueFontSize}
@@ -1622,7 +1626,7 @@ useEffect(() => {
                       {node.type === 'new' && !node.displayValue && (
                         <text
                           x={node.width / 2}
-                          y={node.height / 2 + verticalGap}
+                          y={node.height / 2 + verticalOffset}
                           textAnchor="middle"
                           fill={theme.colors.secondary}
                           fontSize={9}
