@@ -388,8 +388,8 @@ const SankeyFlowV3Inner = ({
 
     // === STEP 1: Calculate base link thicknesses (unscaled) ===
     const maxLinkValue = Math.max(...state.data.links.map(l => l.value), 1);
-    const minThickness = 4;
-    const maxThickness = 40;
+    const minThickness = 20;  // Increased from 4 - ensures readable nodes
+    const maxThickness = 60;  // Increased from 40 - better visual range
     
     // Map from "from->to" to base thickness
     const baseThickness = new Map<string, number>();
@@ -437,7 +437,7 @@ const SankeyFlowV3Inner = ({
     });
 
     // Calculate total height needed per layer
-    const nodeGap = 50;
+    const nodeGap = 30;  // Reduced slightly since nodes are now bigger
     let maxTotalHeight = 0;
     nodesByLayer.forEach((layerNodes) => {
       let totalHeight = layerNodes.reduce((sum, n) => sum + (nodeBaseHeight.get(n.id) || minThickness), 0);
@@ -1095,31 +1095,62 @@ useEffect(() => {
             <stop offset="0%" stopColor={theme.colors.accent + 'AA'} />
             <stop offset="100%" stopColor={theme.colors.loss + '88'} />
           </linearGradient>
-          <linearGradient id="nodeGrad-default" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="rgba(30, 30, 35, 0.9)" />
-            <stop offset="100%" stopColor="rgba(20, 20, 25, 0.95)" />
+          
+          {/* Premium metallic node gradients */}
+          <linearGradient id="nodeGrad-default" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="rgba(65, 65, 75, 0.95)" />
+            <stop offset="15%" stopColor="rgba(45, 45, 55, 0.95)" />
+            <stop offset="50%" stopColor="rgba(35, 35, 42, 0.95)" />
+            <stop offset="85%" stopColor="rgba(28, 28, 35, 0.95)" />
+            <stop offset="100%" stopColor="rgba(22, 22, 28, 0.95)" />
           </linearGradient>
-          <linearGradient id="nodeGrad-source" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="rgba(30, 30, 35, 0.85)" />
-            <stop offset="100%" stopColor="rgba(20, 20, 25, 0.9)" />
+          <linearGradient id="nodeGrad-source" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="rgba(70, 70, 82, 0.92)" />
+            <stop offset="20%" stopColor="rgba(50, 50, 60, 0.92)" />
+            <stop offset="50%" stopColor="rgba(38, 38, 48, 0.92)" />
+            <stop offset="80%" stopColor="rgba(30, 30, 38, 0.92)" />
+            <stop offset="100%" stopColor="rgba(24, 24, 30, 0.92)" />
           </linearGradient>
-          <linearGradient id="nodeGrad-solution" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor={theme.colors.primary + 'DD'} />
+          <linearGradient id="nodeGrad-solution" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={theme.colors.primary + 'FF'} />
+            <stop offset="20%" stopColor={theme.colors.primary + 'DD'} />
             <stop offset="50%" stopColor={theme.colors.primary + 'BB'} />
-            <stop offset="100%" stopColor={theme.colors.primary + '99'} />
+            <stop offset="80%" stopColor={theme.colors.primary + 'AA'} />
+            <stop offset="100%" stopColor={theme.colors.primary + '88'} />
           </linearGradient>
-          <linearGradient id="nodeGrad-loss" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor={theme.colors.accent + 'BB'} />
-            <stop offset="100%" stopColor={theme.colors.accent + '88'} />
+          <linearGradient id="nodeGrad-loss" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="rgba(180, 60, 60, 0.9)" />
+            <stop offset="25%" stopColor="rgba(150, 50, 50, 0.88)" />
+            <stop offset="50%" stopColor="rgba(120, 40, 45, 0.85)" />
+            <stop offset="75%" stopColor="rgba(100, 35, 40, 0.82)" />
+            <stop offset="100%" stopColor="rgba(80, 30, 35, 0.8)" />
           </linearGradient>
-          <linearGradient id="nodeGrad-new" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor={theme.colors.secondary + 'DD'} />
-            <stop offset="100%" stopColor={theme.colors.secondary + 'AA'} />
+          <linearGradient id="nodeGrad-new" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={theme.colors.secondary + 'FF'} />
+            <stop offset="20%" stopColor={theme.colors.secondary + 'DD'} />
+            <stop offset="50%" stopColor={theme.colors.secondary + 'BB'} />
+            <stop offset="80%" stopColor={theme.colors.secondary + 'AA'} />
+            <stop offset="100%" stopColor={theme.colors.secondary + '88'} />
           </linearGradient>
-          <linearGradient id="nodeGrad-revenue" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor={theme.colors.secondary + 'DD'} />
-            <stop offset="100%" stopColor={theme.colors.secondary + 'AA'} />
+          <linearGradient id="nodeGrad-revenue" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="rgba(60, 180, 100, 0.95)" />
+            <stop offset="20%" stopColor="rgba(50, 160, 90, 0.92)" />
+            <stop offset="50%" stopColor="rgba(40, 140, 80, 0.88)" />
+            <stop offset="80%" stopColor="rgba(35, 120, 70, 0.85)" />
+            <stop offset="100%" stopColor="rgba(30, 100, 60, 0.82)" />
           </linearGradient>
+          
+          {/* Inner highlight for metallic effect */}
+          <linearGradient id="nodeHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="rgba(255, 255, 255, 0.12)" />
+            <stop offset="50%" stopColor="rgba(255, 255, 255, 0.02)" />
+            <stop offset="100%" stopColor="rgba(0, 0, 0, 0.1)" />
+          </linearGradient>
+          
+          {/* Subtle drop shadow for node depth */}
+          <filter id="nodeDropShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="rgba(0,0,0,0.4)" />
+          </filter>
           <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="6" result="blur" />
             <feMerge>
@@ -1292,6 +1323,7 @@ useEffect(() => {
                          : nodeOpacity,
                   cursor: 'pointer',
                   transition: exitPhase !== 'none' ? 'opacity 0.3s' : 'none',
+                  filter: 'url(#nodeDropShadow)',
                 }}
                 onClick={() => onNodeClick?.(node.id, { 
                   label: node.label, 
@@ -1308,7 +1340,7 @@ useEffect(() => {
                     y={-3}
                     width={node.width + 6}
                     height={node.height + 6}
-                    rx={0}
+                    rx={5}
                     fill="none"
                     stroke="rgba(255, 255, 255, 0.7)"
                     strokeWidth={2}
@@ -1323,7 +1355,7 @@ useEffect(() => {
                     y={isHeroNode ? -8 : isHighSignificance ? -6 : -4}
                     width={node.width + (isHeroNode ? 16 : isHighSignificance ? 12 : 8)}
                     height={node.height + (isHeroNode ? 16 : isHighSignificance ? 12 : 8)}
-                    rx={0}
+                    rx={6}
                     fill={glowColor}
                     opacity={isHeroNode ? 0.35 : isHighSignificance ? 0.25 : 0.15}
                     filter={isHeroNode ? 'url(#heroGlow)' : isHighSignificance ? 'url(#highGlow)' : 'url(#mediumGlow)'}
@@ -1338,7 +1370,7 @@ useEffect(() => {
                     y={-4}
                     width={node.width + 8}
                     height={node.height + 8}
-                    rx={0}
+                    rx={5}
                     fill={isSolutionNode ? theme.colors.primary : theme.colors.secondary}
                     opacity={0.2 * pulseOpacity}
                     filter="url(#solutionGlow)"
@@ -1346,14 +1378,43 @@ useEffect(() => {
                   />
                 )}
 
-                {/* Node rectangle */}
+                {/* Node rectangle - base layer */}
                 <rect
                   width={node.width}
                   height={node.height}
-                  rx={0}
+                  rx={3}
                   fill={`url(#${gradId})`}
                   stroke={strokeColor}
                   strokeWidth={isLossNode || isSolutionNode || isNewNode ? 1.5 : 1}
+                  opacity={pulseOpacity}
+                  style={{
+                    transform: `scale(${nodeScale})`,
+                    transformOrigin: `${node.width / 2}px ${node.height / 2}px`,
+                  }}
+                />
+                
+                {/* Metallic highlight overlay */}
+                <rect
+                  width={node.width}
+                  height={node.height}
+                  rx={3}
+                  fill="url(#nodeHighlight)"
+                  opacity={pulseOpacity * 0.6}
+                  style={{
+                    transform: `scale(${nodeScale})`,
+                    transformOrigin: `${node.width / 2}px ${node.height / 2}px`,
+                    pointerEvents: 'none',
+                  }}
+                />
+                
+                {/* Subtle top edge highlight for 3D effect */}
+                <line
+                  x1={2}
+                  y1={1}
+                  x2={node.width - 2}
+                  y2={1}
+                  stroke="rgba(255, 255, 255, 0.15)"
+                  strokeWidth={1}
                   opacity={pulseOpacity}
                   style={{
                     transform: `scale(${nodeScale})`,
