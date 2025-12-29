@@ -282,10 +282,6 @@ const AnimatedValue = ({
 const LAYOUT = {
   padding: { top: 20, right: 40, bottom: 60, left: 40 },
   nodeWidth: 90,
-  // Typography-based minimum: 2 lines of text must fit without overlap
-  // Label (11px, line-height ~14px) + Value (10px, line-height ~13px) + gap (14px) + padding (12px) = 53px
-  nodeMinHeight: 52,  // HARD minimum - never go below this
-  nodeMaxHeight: 110,
   drawDuration: TIMING.draw,
   staggerDelay: TIMING.staggerDelay,
   forgeDuration: TIMING.slower,
@@ -431,7 +427,7 @@ const SankeyFlowV3Inner = ({
   const layout = useMemo(() => {
     if (!state.data.nodes.length || dimensions.width < 100) return null;
     
-    const { padding, nodeWidth, nodeMinHeight, nodeMaxHeight } = LAYOUT;
+    const { padding, nodeWidth } = LAYOUT;
     const maxLayer = Math.max(...state.data.nodes.map(n => n.layer), 0);
     const usableWidth = dimensions.width - padding.left - padding.right;
     const usableHeight = dimensions.height - padding.top - padding.bottom;
@@ -510,46 +506,19 @@ const SankeyFlowV3Inner = ({
       layerNodes.sort((a, b) => (a.y ?? 0.5) - (b.y ?? 0.5));
     });
 
-    // === KEY FIX: Scale heights to maintain proportionality while ensuring text fits ===
-    // Find the smallest and largest node heights
-    let smallestBaseHeight = Infinity;
-    let largestBaseHeight = 0;
-    nodeBaseHeight.forEach((height) => {
-      if (height < smallestBaseHeight) smallestBaseHeight = height;
-      if (height > largestBaseHeight) largestBaseHeight = height;
-    });
-    smallestBaseHeight = Math.max(smallestBaseHeight, minThickness);
-    largestBaseHeight = Math.max(largestBaseHeight, smallestBaseHeight);
-    
-    // Map the range [smallestBaseHeight, largestBaseHeight] to [nodeMinHeight, targetMaxHeight]
-    // This preserves proportionality while ensuring text fits
-    const heightRange = largestBaseHeight - smallestBaseHeight;
-    const targetMaxHeight = Math.min(nodeMaxHeight, usableHeight * 0.4); // Largest node shouldn't exceed 40% of height
-    const targetRange = targetMaxHeight - nodeMinHeight;
-    
-    // Function to map base height to final height
-    const mapHeight = (baseHeight: number): number => {
-      if (heightRange === 0) return nodeMinHeight; // All nodes same size
-      const normalized = (baseHeight - smallestBaseHeight) / heightRange; // 0 to 1
-      return nodeMinHeight + (normalized * targetRange);
-    };
-    
-    // Calculate total height needed per layer with mapped heights
+    // === SIMPLE SANKEY SCALING - proportional heights ===
+    // Calculate total height needed per layer (unscaled)
     let maxTotalHeight = 0;
     nodesByLayer.forEach((layerNodes) => {
       let totalHeight = layerNodes.reduce((sum, n) => {
-        const baseHeight = nodeBaseHeight.get(n.id) || minThickness;
-        return sum + mapHeight(baseHeight);
+        return sum + (nodeBaseHeight.get(n.id) || minThickness);
       }, 0);
       totalHeight += (layerNodes.length - 1) * nodeGap;
       maxTotalHeight = Math.max(maxTotalHeight, totalHeight);
     });
-    
-    // Check if we can scale up to use more space (never scale down to preserve minimums)
-    const fitRatio = (usableHeight * 0.85) / Math.max(maxTotalHeight, 1);
-    // Scale up if there's extra room, but never scale down (min = 1.0)
-    // Cap at 1.3x to prevent nodes becoming too large
-    const scaleFactor = Math.min(1.3, Math.max(1.0, fitRatio));
+
+    // Scale to fit available height (use 85% to leave breathing room)
+    const scaleFactor = (usableHeight * 0.85) / Math.max(maxTotalHeight, 1);
 
     // === STEP 4: Position nodes ===
     const nodes: LayoutNode[] = [];
@@ -557,36 +526,29 @@ const SankeyFlowV3Inner = ({
 
     nodesByLayer.forEach((layerNodes, layer) => {
       // Dynamic X positioning: spread layers evenly, leaving room for labels
-      // Reserve ~10% on left for source labels, ~15% on right for outcome labels
-      const leftMargin = 0.05;  // 5% for source labels
-      const rightMargin = 0.12; // 12% for outcome labels
+      const leftMargin = 0.05;
+      const rightMargin = 0.12;
       const spreadWidth = 1 - leftMargin - rightMargin;
       
-      // Calculate position: evenly distributed across available width
       const xPercent = layerCount === 1 
         ? 0.5 
         : leftMargin + (layer / (layerCount - 1)) * spreadWidth;
       
       const x = padding.left + xPercent * usableWidth;
       
-      // Calculate heights using mapHeight (preserves proportionality, ensures min height)
-      // Then apply scaleFactor if we need to fit, but NEVER go below nodeMinHeight
+      // Simple proportional scaling - Sankey stays Sankey
       let totalLayerHeight = 0;
       const scaledHeights: number[] = [];
       layerNodes.forEach(node => {
         const baseHeight = nodeBaseHeight.get(node.id) || minThickness;
-        const mappedHeight = mapHeight(baseHeight);
-        // Apply scale, but floor at nodeMinHeight to ensure text always fits
-        const height = Math.max(nodeMinHeight, mappedHeight * scaleFactor);
+        const height = baseHeight * scaleFactor;
         scaledHeights.push(height);
         totalLayerHeight += height;
       });
       totalLayerHeight += (layerNodes.length - 1) * nodeGap;
 
-      // Center the layer vertically - bias slightly toward top (0.4 instead of 0.5)
-      // This accounts for UI elements at top making true center feel low
-      // Floor at padding.top to handle overflow gracefully
-      let currentY = Math.max(padding.top, padding.top + (usableHeight - totalLayerHeight) * 0.4);
+      // Center vertically, bias toward top
+      let currentY = padding.top + (usableHeight - totalLayerHeight) * 0.4;
 
       layerNodes.forEach((node, idx) => {
         const height = scaledHeights[idx];
@@ -602,7 +564,7 @@ const SankeyFlowV3Inner = ({
         nodes.push(layoutNode);
         nodeMap.set(node.id, layoutNode);
         
-        currentY += height + nodeGap;  // Use unscaled gap
+        currentY += height + nodeGap;
       });
     });
 
@@ -1584,10 +1546,40 @@ useEffect(() => {
 
                 {/* Node label - INTERNAL, centered in node */}
                 {(() => {
-                  // Adjust spacing based on node height, but keep fonts readable
-                  const isCompactNode = node.height < 50;
-                  const verticalGap = isCompactNode ? 5 : 7;
+                  // Small nodes (< 40px): show only 1 line (value preferred, more compact)
+                  // Medium+ nodes: show both label and value
+                  const isSmallNode = node.height < 40;
+                  const isMediumNode = node.height >= 40 && node.height < 55;
                   
+                  // Font sizes: 10px for small nodes, 11px for medium+
+                  const labelFontSize = isSmallNode ? 9 : 11;
+                  const valueFontSize = isSmallNode ? 9 : 10;
+                  const verticalGap = isMediumNode ? 5 : 7;
+                  
+                  if (isSmallNode) {
+                    // Small node: show ONLY value (or label if no value), centered
+                    const displayText = node.displayValue || getAbbreviatedLabel(node.label, 8);
+                    return (
+                      <text
+                        x={node.width / 2}
+                        y={node.height / 2}
+                        dy="0.35em"
+                        textAnchor="middle"
+                        fill={node.type === 'loss' ? theme.colors.accent : '#ffffff'}
+                        fontSize={valueFontSize}
+                        fontWeight={600}
+                        fontFamily="Inter, system-ui, sans-serif"
+                        style={{
+                          textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                          pointerEvents: 'none',
+                        }}
+                      >
+                        {displayText}
+                      </text>
+                    );
+                  }
+                  
+                  // Medium+ nodes: show both label and value
                   return (
                     <>
                       <text
@@ -1596,7 +1588,7 @@ useEffect(() => {
                         dy="0.35em"
                         textAnchor="middle"
                         fill={node.type === 'loss' ? theme.colors.accent : '#ffffff'}
-                        fontSize={11}
+                        fontSize={labelFontSize}
                         fontWeight={600}
                         fontFamily="Inter, system-ui, sans-serif"
                         style={{
@@ -1604,7 +1596,7 @@ useEffect(() => {
                           pointerEvents: 'none',
                         }}
                       >
-                        {getAbbreviatedLabel(node.label, 11)}
+                        {getAbbreviatedLabel(node.label, isMediumNode ? 9 : 11)}
                       </text>
 
                       {/* Node displayValue - shown below label, inside node */}
@@ -1614,7 +1606,7 @@ useEffect(() => {
                           y={node.height / 2 + verticalGap}
                           textAnchor="middle"
                           fill={node.type === 'loss' ? 'rgba(255,150,150,0.9)' : node.type === 'revenue' || node.type === 'solution' ? theme.colors.primary : 'rgba(255,255,255,0.75)'}
-                          fontSize={10}
+                          fontSize={valueFontSize}
                           fontWeight={500}
                           fontFamily="Inter, system-ui, sans-serif"
                           style={{
