@@ -156,8 +156,8 @@ export const B2BFunnelPOC = () => {
   // Get selected comparison for drawer
   const selectedComparison = useMemo(() => {
     if (!selectedNodeId) return null;
-    return getB2BNodeComparisonForView(activeLens, selectedNodeId);
-  }, [activeLens, selectedNodeId]);
+    return getB2BNodeComparisonForView(activeLens, selectedNodeId, variant);
+  }, [activeLens, selectedNodeId, variant]);
   
   // Determine if selected node is terminal (for Step vs Outcome label)
   const selectedNodeIsTerminal = useMemo(() => {
@@ -175,7 +175,7 @@ export const B2BFunnelPOC = () => {
     const position = nodePositions.get(nodeId)!;
     const node = flowState.data.nodes.find(n => n.id === nodeId);
     const socialProof = SEED_SOCIAL_PROOF[activeLens]?.[nodeId];
-    const lensCount = getB2BViewCountForNode(activeLens, nodeId);
+    const lensCount = getB2BViewCountForNode(activeLens, nodeId, variant);
     
     // Determine max layer to detect terminal nodes
     const maxLayer = Math.max(...flowState.data.nodes.map(n => n.layer));
@@ -194,7 +194,7 @@ export const B2BFunnelPOC = () => {
       hasComparison: lensCount > 0,
       socialProof,
     };
-  }, [activeNodeId, nodePositions, flowState.data.nodes, activeLens]);
+  }, [activeNodeId, nodePositions, flowState.data.nodes, activeLens, variant]);
   
   // Callbacks
   const handleLayoutReady = useCallback((positions: Map<string, NodePosition>) => {
