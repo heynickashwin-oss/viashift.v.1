@@ -287,7 +287,7 @@ const AnimatedValue = ({
 // ============================================
 
 const LAYOUT = {
-  padding: { top: 100, right: 100, bottom: 120, left: 100 },
+  padding: { top: 40, right: 100, bottom: 60, left: 100 },
   nodeWidth: 18,
   nodeMinHeight: 35,
   nodeMaxHeight: 90,
@@ -951,7 +951,7 @@ useEffect(() => {
   return (
     <div
       ref={containerRef}
-      className={`sankey-v3 relative w-full h-full min-h-screen overflow-hidden ${className}`}
+      className={`sankey-v3 relative w-full h-full overflow-hidden ${className}`}
       style={{
         background: 'transparent',
       }}
