@@ -51,20 +51,29 @@ export interface ComparisonDrawerProps {
 
 // ============================================
 // FOMU LANGUAGE CONFIG
+// More inviting copy that changes based on variant
 // ============================================
 
 const FOMU_LANGUAGE = {
   before: {
     subtitle: 'What this means for each stakeholder',
-    question: "Does this match what you're seeing?",
-    cta: 'Help us get this right →',
-    ctaSubtext: 'Your input shapes the solution',
+    // Information zone
+    narrativePrefix: 'The pattern:',
+    // Action zone (distinct section)
+    actionHeading: 'Does this match your reality?',
+    actionSubheading: 'Your experience matters',
+    cta: 'Share what you\'re seeing →',
+    ctaSubtext: 'Takes 30 seconds. Shapes the solution.',
   },
   after: {
     subtitle: 'How this changes for each stakeholder',
-    question: 'Does this feel achievable?',
-    cta: 'Share your concerns →',
-    ctaSubtext: 'Surface doubts before they become blockers',
+    // Information zone
+    narrativePrefix: 'The shift:',
+    // Action zone (distinct section)
+    actionHeading: 'What would make this real?',
+    actionSubheading: 'Surface the blockers early',
+    cta: 'Share what\'s missing →',
+    ctaSubtext: 'Takes 30 seconds. Prevents surprises later.',
   },
 };
 
@@ -378,7 +387,7 @@ export const ComparisonDrawer = memo(({
               </div>
             )}
             
-            {/* Alignment narrative */}
+            {/* Alignment narrative - INFORMATION ZONE */}
             {comparison?.alignmentNarrative && (
               <div
                 className="p-4 rounded-xl transition-all duration-500 ease-out"
@@ -390,29 +399,55 @@ export const ComparisonDrawer = memo(({
                   transitionDelay: `${baseDelay + 100}ms`,
                 }}
               >
-                <p 
-                  className="text-sm leading-relaxed italic"
-                  style={{ color: 'rgba(255, 255, 255, 0.7)' }}
+                <span 
+                  className="text-xs font-medium uppercase tracking-wider"
+                  style={{ color: accentColor, opacity: 0.8 }}
                 >
-                  "{comparison.alignmentNarrative}"
+                  {fomu.narrativePrefix}
+                </span>
+                <p 
+                  className="text-sm leading-relaxed mt-1"
+                  style={{ color: 'rgba(255, 255, 255, 0.75)' }}
+                >
+                  {comparison.alignmentNarrative}
                 </p>
               </div>
             )}
             
-            {/* FOMU Feedback Section */}
+            {/* Visual divider */}
+            <div 
+              className="my-6 h-px transition-all duration-500"
+              style={{ 
+                background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 20%, rgba(255,255,255,0.1) 80%, transparent 100%)',
+                opacity: isOpen ? 1 : 0,
+                transitionDelay: `${baseDelay + 150}ms`,
+              }} 
+            />
+            
+            {/* ACTION ZONE - Distinctly separated */}
             <div
-              className="mt-6 p-5 rounded-xl transition-all duration-500 ease-out"
+              className="rounded-2xl transition-all duration-500 ease-out overflow-hidden"
               style={{
-                background: `linear-gradient(135deg, ${accentColor}08 0%, ${accentColor}04 100%)`,
-                border: `1px solid ${accentColor}20`,
+                background: variant === 'before'
+                  ? 'linear-gradient(135deg, rgba(251, 191, 36, 0.08) 0%, rgba(251, 191, 36, 0.03) 100%)'
+                  : 'linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(34, 197, 94, 0.03) 100%)',
+                border: variant === 'before'
+                  ? '1px solid rgba(251, 191, 36, 0.2)'
+                  : '1px solid rgba(34, 197, 94, 0.2)',
                 opacity: isOpen ? 1 : 0,
                 transform: isOpen ? 'translateY(0)' : 'translateY(20px)',
                 transitionDelay: `${baseDelay + 200}ms`,
               }}
             >
-              {/* Social proof row */}
-              {socialProof && (
-                <div className="mb-4">
+              {/* Social proof bar */}
+              {socialProof && (socialProof.thumbsUp > 0 || socialProof.thumbsDown > 0 || socialProof.comments > 0) && (
+                <div 
+                  className="px-5 py-2.5 border-b"
+                  style={{ 
+                    borderColor: variant === 'before' ? 'rgba(251, 191, 36, 0.1)' : 'rgba(34, 197, 94, 0.1)',
+                    background: 'rgba(0, 0, 0, 0.2)',
+                  }}
+                >
                   <SocialProofRow 
                     socialProof={socialProof} 
                     isVisible={isOpen}
@@ -421,33 +456,55 @@ export const ComparisonDrawer = memo(({
                 </div>
               )}
               
-              {/* FOMU question */}
-              <p 
-                className="text-base font-medium mb-4"
-                style={{ color: 'rgba(255, 255, 255, 0.9)' }}
-              >
-                {fomu.question}
-              </p>
-              
-              {/* Feedback CTA */}
-              <button
-                onClick={onFeedbackClick}
-                className="w-full py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-[1.02] group"
-                style={{
-                  background: accentColor,
-                  color: '#000',
-                }}
-              >
-                <span className="font-semibold">{fomu.cta}</span>
-              </button>
-              
-              {/* CTA subtext */}
-              <p 
-                className="text-xs text-center mt-2"
-                style={{ color: 'rgba(255, 255, 255, 0.4)' }}
-              >
-                {fomu.ctaSubtext}
-              </p>
+              {/* Action content */}
+              <div className="p-5">
+                {/* Heading */}
+                <h3 
+                  className="text-lg font-semibold mb-1"
+                  style={{ color: 'rgba(255, 255, 255, 0.95)' }}
+                >
+                  {fomu.actionHeading}
+                </h3>
+                <p 
+                  className="text-sm mb-5"
+                  style={{ color: 'rgba(255, 255, 255, 0.5)' }}
+                >
+                  {fomu.actionSubheading}
+                </p>
+                
+                {/* CTA Button - Prominent and inviting */}
+                <button
+                  onClick={onFeedbackClick}
+                  className="w-full py-4 px-6 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg group relative overflow-hidden"
+                  style={{
+                    background: variant === 'before'
+                      ? 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)'
+                      : 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                    color: '#000',
+                    boxShadow: variant === 'before'
+                      ? '0 4px 20px rgba(251, 191, 36, 0.3)'
+                      : '0 4px 20px rgba(34, 197, 94, 0.3)',
+                  }}
+                >
+                  {/* Shimmer effect */}
+                  <span 
+                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                    style={{
+                      background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%)',
+                      animation: 'shimmer 2s infinite',
+                    }}
+                  />
+                  <span className="font-bold text-base relative z-10">{fomu.cta}</span>
+                </button>
+                
+                {/* Subtext */}
+                <p 
+                  className="text-xs text-center mt-3"
+                  style={{ color: 'rgba(255, 255, 255, 0.45)' }}
+                >
+                  {fomu.ctaSubtext}
+                </p>
+              </div>
             </div>
           </div>
           
@@ -455,6 +512,16 @@ export const ComparisonDrawer = memo(({
           <div className="h-6" />
         </div>
       </div>
+      
+      {/* Shimmer animation keyframes */}
+      <style>
+        {`
+          @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+          }
+        `}
+      </style>
     </>
   );
 });
