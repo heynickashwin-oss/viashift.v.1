@@ -165,6 +165,8 @@ export interface SankeyFlowProps {
   onAnimationComplete?: () => void;
   /** Called when hovering over a node */
   onNodeHover?: (nodeId: string | null) => void;
+  /** Node significance data for delta-driven glow/pulse (shifted state) */
+  nodeSignificance?: Map<string, { deltaPercent: number; significance: 'hero' | 'high' | 'medium' | 'low' }>;
 }
 
 // ============================================
@@ -326,6 +328,7 @@ const SankeyFlowV3Inner = ({
   onLayoutReady,
   onAnimationComplete,
   onNodeHover,
+  nodeSignificance,
 }: SankeyFlowProps) => {
   const theme = useMemo(() => resolveTheme(brand), [brand]);
 
@@ -1025,6 +1028,22 @@ useEffect(() => {
               0%, 100% { opacity: 0.5; }
               50% { opacity: 0.65; }
             }
+            
+            @keyframes heroPulse {
+              0%, 100% { 
+                opacity: 0.3;
+                transform: scale(1);
+              }
+              50% { 
+                opacity: 0.5;
+                transform: scale(1.05);
+              }
+            }
+            
+            @keyframes heroGlowPulse {
+              0%, 100% { opacity: 0.25; }
+              50% { opacity: 0.45; }
+            }
 
             .node-hover:hover {
               filter: brightness(1.15);
@@ -1052,6 +1071,14 @@ useEffect(() => {
 
             .loss-flow {
               animation: lossFlowPulse 5.5s ease-in-out infinite;
+            }
+            
+            .hero-pulse {
+              animation: heroPulse 2s ease-in-out infinite;
+            }
+            
+            .hero-glow-rect {
+              animation: heroGlowPulse 2s ease-in-out infinite;
             }
           `}
         </style>
@@ -1109,6 +1136,28 @@ useEffect(() => {
           </filter>
           <filter id="solutionGlow" x="-100%" y="-100%" width="300%" height="300%">
             <feGaussianBlur stdDeviation="10" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          {/* Delta-driven glow filters for shifted state significance */}
+          <filter id="heroGlow" x="-150%" y="-150%" width="400%" height="400%">
+            <feGaussianBlur stdDeviation="15" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <filter id="highGlow" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="10" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <filter id="mediumGlow" x="-75%" y="-75%" width="250%" height="250%">
+            <feGaussianBlur stdDeviation="6" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />
@@ -1214,6 +1263,18 @@ useEffect(() => {
             const isSolutionNode = node.type === 'solution';
             const isNewNode = node.type === 'new' || node.type === 'revenue';
             
+            // Delta significance for shifted state glow
+            const significance = nodeSignificance?.get(node.id);
+            const isHeroNode = variant === 'after' && significance?.significance === 'hero';
+            const isHighSignificance = variant === 'after' && significance?.significance === 'high';
+            const isMediumSignificance = variant === 'after' && significance?.significance === 'medium';
+            const hasSignificantDelta = isHeroNode || isHighSignificance || isMediumSignificance;
+            
+            // Determine glow color based on delta direction (improvement = green, regression = red)
+            const deltaPercent = significance?.deltaPercent || 0;
+            const isImprovement = deltaPercent < 0 && isLossNode || deltaPercent > 0 && !isLossNode;
+            const glowColor = isImprovement ? '#22c55e' : '#ef4444'; // green for improvements, red for regressions
+            
             const pulseOpacity = getNodePulse(node);
             const strokeColor = isLossNode ? theme.colors.accent :
                                isSolutionNode ? theme.colors.primary :
@@ -1224,7 +1285,7 @@ useEffect(() => {
               <g
                 key={node.id}
                 transform={`translate(${node.x}, ${node.y})`}
-                className="node-transition node-hover"
+                className={`node-transition node-hover ${isHeroNode ? 'hero-pulse' : ''}`}
                 style={{
                   opacity: exitPhase === 'desaturate' ? nodeOpacity * 0.4
                          : exitPhase === 'gone' ? 0
@@ -1255,8 +1316,23 @@ useEffect(() => {
                   />
                 )}
                 
-                {/* Glow behind node */}
-                {(isSolutionNode || isNewNode) && (
+                {/* Delta-driven significance glow (shifted state only) */}
+                {hasSignificantDelta && (
+                  <rect
+                    x={isHeroNode ? -8 : isHighSignificance ? -6 : -4}
+                    y={isHeroNode ? -8 : isHighSignificance ? -6 : -4}
+                    width={node.width + (isHeroNode ? 16 : isHighSignificance ? 12 : 8)}
+                    height={node.height + (isHeroNode ? 16 : isHighSignificance ? 12 : 8)}
+                    rx={0}
+                    fill={glowColor}
+                    opacity={isHeroNode ? 0.35 : isHighSignificance ? 0.25 : 0.15}
+                    filter={isHeroNode ? 'url(#heroGlow)' : isHighSignificance ? 'url(#highGlow)' : 'url(#mediumGlow)'}
+                    className={isHeroNode ? 'hero-glow-rect' : ''}
+                  />
+                )}
+                
+                {/* Original glow behind node (for solution/new nodes) */}
+                {(isSolutionNode || isNewNode) && !hasSignificantDelta && (
                   <rect
                     x={-4}
                     y={-4}
