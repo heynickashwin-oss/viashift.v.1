@@ -389,10 +389,32 @@ const SankeyFlowV3Inner = ({
     const usableWidth = dimensions.width - padding.left - padding.right;
     const usableHeight = dimensions.height - padding.top - padding.bottom;
 
+    // === DYNAMIC SIZING based on data density ===
+    const nodeCount = state.data.nodes.length;
+    const linkCount = state.data.links.length;
+    const layerCount = maxLayer + 1;
+    
+    // Group nodes by layer to find max density
+    const tempNodesByLayer = new Map<number, number>();
+    state.data.nodes.forEach(n => {
+      tempNodesByLayer.set(n.layer, (tempNodesByLayer.get(n.layer) || 0) + 1);
+    });
+    const maxNodesInLayer = Math.max(...tempNodesByLayer.values(), 1);
+    
+    // Dynamic thickness: scale based on available height and node density
+    // More nodes = thinner flows to fit; fewer nodes = thicker flows for visual impact
+    const baseMinThickness = Math.max(8, Math.min(25, usableHeight / (maxNodesInLayer * 8)));
+    const baseMaxThickness = Math.max(baseMinThickness * 2, Math.min(80, usableHeight / (maxNodesInLayer * 3)));
+    
+    const minThickness = baseMinThickness;
+    const maxThickness = baseMaxThickness;
+    
+    // Dynamic gap: less gap when more nodes per layer
+    const baseGap = Math.max(15, Math.min(40, usableHeight / (maxNodesInLayer * 4)));
+    const nodeGap = baseGap;
+
     // === STEP 1: Calculate base link thicknesses (unscaled) ===
     const maxLinkValue = Math.max(...state.data.links.map(l => l.value), 1);
-    const minThickness = 20;  // Increased from 4 - ensures readable nodes
-    const maxThickness = 60;  // Increased from 40 - better visual range
     
     // Map from "from->to" to base thickness
     const baseThickness = new Map<string, number>();
@@ -440,7 +462,6 @@ const SankeyFlowV3Inner = ({
     });
 
     // Calculate total height needed per layer
-    const nodeGap = 30;  // Reduced slightly since nodes are now bigger
     let maxTotalHeight = 0;
     nodesByLayer.forEach((layerNodes) => {
       let totalHeight = layerNodes.reduce((sum, n) => sum + (nodeBaseHeight.get(n.id) || minThickness), 0);
@@ -448,15 +469,25 @@ const SankeyFlowV3Inner = ({
       maxTotalHeight = Math.max(maxTotalHeight, totalHeight);
     });
 
-    // Scale factor to fit in available height
-    const scaleFactor = Math.min(1.5, (usableHeight * 0.85) / Math.max(maxTotalHeight, 1));
+    // Scale factor to fit in available height (use 90% to leave some breathing room)
+    const scaleFactor = Math.min(1.5, (usableHeight * 0.90) / Math.max(maxTotalHeight, 1));
 
     // === STEP 4: Position nodes ===
     const nodes: LayoutNode[] = [];
     const nodeMap = new Map<string, LayoutNode>();
 
     nodesByLayer.forEach((layerNodes, layer) => {
-      const xPercent = layerXPercent[layer] ?? (layer / Math.max(maxLayer, 1));
+      // Dynamic X positioning: spread layers evenly, leaving room for labels
+      // Reserve ~10% on left for source labels, ~15% on right for outcome labels
+      const leftMargin = 0.05;  // 5% for source labels
+      const rightMargin = 0.12; // 12% for outcome labels
+      const spreadWidth = 1 - leftMargin - rightMargin;
+      
+      // Calculate position: evenly distributed across available width
+      const xPercent = layerCount === 1 
+        ? 0.5 
+        : leftMargin + (layer / (layerCount - 1)) * spreadWidth;
+      
       const x = padding.left + xPercent * usableWidth;
       
       // Calculate total scaled height for this layer
@@ -577,15 +608,30 @@ const SankeyFlowV3Inner = ({
     return { nodes, links };
   }, [state.data, dimensions]);
 
-  // DEBUG: Log layout info
+  // DEBUG: Log layout info with overflow detection
   useEffect(() => {
     if (layout) {
       console.log('=== SANKEY DEBUG ===');
       console.log('Nodes:', layout.nodes.length);
       console.log('Links:', layout.links.length);
-      layout.nodes.forEach(n => {
-        console.log(`  Node: ${n.id}, height: ${n.height.toFixed(1)}, y: ${n.y.toFixed(1)}`);
+      
+      // Calculate actual outgoing/incoming sums per node
+      const outgoingSums = new Map<string, number>();
+      const incomingSums = new Map<string, number>();
+      
+      layout.links.forEach(l => {
+        outgoingSums.set(l.from, (outgoingSums.get(l.from) || 0) + l.thickness);
+        incomingSums.set(l.to, (incomingSums.get(l.to) || 0) + l.thickness);
       });
+      
+      layout.nodes.forEach(n => {
+        const outgoing = outgoingSums.get(n.id) || 0;
+        const incoming = incomingSums.get(n.id) || 0;
+        const maxFlow = Math.max(outgoing, incoming);
+        const overflow = maxFlow > n.height;
+        console.log(`  Node: ${n.id}, height: ${n.height.toFixed(1)}, outgoing: ${outgoing.toFixed(1)}, incoming: ${incoming.toFixed(1)}${overflow ? ' ⚠️ OVERFLOW' : ''}`);
+      });
+      
       layout.links.forEach(l => {
         console.log(`  Link: ${l.from} → ${l.to}, thickness: ${l.thickness.toFixed(1)}, value: ${l.value}`);
       });
@@ -656,11 +702,15 @@ const SankeyFlowV3Inner = ({
   const getLayerProgress = useCallback((layer: number, overallProgress: number): number => {
     const layerCount = maxLayer + 1;
     
-    // Each layer takes 40% of total time, overlapping by 15%
-    const layerDuration = 0.4;
-    const layerOverlap = 0.15;
-    const layerStart = layer * (layerDuration - layerOverlap);
-    const layerEnd = layerStart + layerDuration;
+    // Dynamically scale timing based on layer count
+    // Each layer takes proportional time with 30% overlap
+    const overlapFactor = 0.3;
+    const effectiveSlots = layerCount - (layerCount - 1) * overlapFactor;
+    const slotDuration = 1 / effectiveSlots;
+    const layerDuration = slotDuration * (1 + overlapFactor);
+    
+    const layerStart = layer * slotDuration * (1 - overlapFactor);
+    const layerEnd = Math.min(1, layerStart + layerDuration);
 
     if (overallProgress <= layerStart) return 0;
     if (overallProgress >= layerEnd) return 1;
@@ -1109,20 +1159,20 @@ useEffect(() => {
             <stop offset="100%" stopColor={theme.colors.loss + '88'} />
           </linearGradient>
           
-          {/* Premium metallic node gradients */}
+          {/* Premium node gradients - neutral nodes have subtle teal tint to feel like flow */}
           <linearGradient id="nodeGrad-default" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="rgba(65, 65, 75, 0.95)" />
-            <stop offset="15%" stopColor="rgba(45, 45, 55, 0.95)" />
-            <stop offset="50%" stopColor="rgba(35, 35, 42, 0.95)" />
-            <stop offset="85%" stopColor="rgba(28, 28, 35, 0.95)" />
-            <stop offset="100%" stopColor="rgba(22, 22, 28, 0.95)" />
+            <stop offset="0%" stopColor="rgba(45, 60, 65, 0.92)" />
+            <stop offset="25%" stopColor="rgba(35, 50, 55, 0.90)" />
+            <stop offset="50%" stopColor="rgba(30, 45, 50, 0.88)" />
+            <stop offset="75%" stopColor="rgba(25, 40, 45, 0.86)" />
+            <stop offset="100%" stopColor="rgba(20, 35, 40, 0.85)" />
           </linearGradient>
           <linearGradient id="nodeGrad-source" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="rgba(70, 70, 82, 0.92)" />
-            <stop offset="20%" stopColor="rgba(50, 50, 60, 0.92)" />
-            <stop offset="50%" stopColor="rgba(38, 38, 48, 0.92)" />
-            <stop offset="80%" stopColor="rgba(30, 30, 38, 0.92)" />
-            <stop offset="100%" stopColor="rgba(24, 24, 30, 0.92)" />
+            <stop offset="0%" stopColor="rgba(50, 65, 72, 0.92)" />
+            <stop offset="25%" stopColor="rgba(40, 55, 62, 0.90)" />
+            <stop offset="50%" stopColor="rgba(32, 48, 55, 0.88)" />
+            <stop offset="75%" stopColor="rgba(26, 42, 48, 0.86)" />
+            <stop offset="100%" stopColor="rgba(22, 38, 44, 0.85)" />
           </linearGradient>
           <linearGradient id="nodeGrad-solution" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor={theme.colors.primary + 'FF'} />
