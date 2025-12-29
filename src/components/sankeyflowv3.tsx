@@ -193,6 +193,7 @@ interface LayoutLink {
   pathLength: number;
   displayLabel?: string;
   midpoint: { x: number; y: number };
+  targetPoint: { x: number; y: number };
 }
 
 // ============================================
@@ -298,10 +299,12 @@ const LAYOUT = {
   forgeDuration: 2000,     // Slower forge for after state
 };
 const layerXPercent: Record<number, number> = {
-  0: 0.05,
-  1: 0.28,
-  2: 0.58,
-  3: 0.92,
+  0: 0.02,    // Far left - Sources
+  1: 0.18,    // Lead quality
+  2: 0.34,    // Qualification
+  3: 0.50,    // Sales engagement
+  4: 0.66,    // Pipeline
+  5: 0.82,    // Outcomes - more room for labels
 };
 
 // ============================================
@@ -537,12 +540,21 @@ const SankeyFlowV3Inner = ({
       const cp1x = x0 + dx * 0.4;
       const cp2x = x0 + dx * 0.6;
 
-      // Calculate midpoint for label positioning
+      // Calculate midpoint for debugging (kept for reference)
       const t = 0.5;
       const mt = 1 - t;
       const midpoint = {
         x: mt*mt*mt*x0 + 3*mt*mt*t*cp1x + 3*mt*t*t*cp2x + t*t*t*x1,
         y: mt*mt*mt*y0 + 3*mt*mt*t*y0 + 3*mt*t*t*y1 + t*t*t*y1,
+      };
+      
+      // Calculate target point (near destination node) for label positioning
+      // Using t=0.9 to place labels close to where flows enter the next node
+      const tTarget = 0.9;
+      const mtTarget = 1 - tTarget;
+      const targetPoint = {
+        x: mtTarget*mtTarget*mtTarget*x0 + 3*mtTarget*mtTarget*tTarget*cp1x + 3*mtTarget*tTarget*tTarget*cp2x + tTarget*tTarget*tTarget*x1,
+        y: mtTarget*mtTarget*mtTarget*y0 + 3*mtTarget*mtTarget*tTarget*y0 + 3*mtTarget*tTarget*tTarget*y1 + tTarget*tTarget*tTarget*y1,
       };
 
       return {
@@ -558,6 +570,7 @@ const SankeyFlowV3Inner = ({
         pathLength: Math.sqrt(dx * dx + (y1 - y0) * (y1 - y0)) * 1.3,
         displayLabel: link.displayLabel,
         midpoint,
+        targetPoint,
       };
     }).filter(Boolean) as LayoutLink[];
 
@@ -1251,12 +1264,12 @@ useEffect(() => {
                   }}
                 />
 
-                {/* Flow label at midpoint - shows displayLabel or value */}
+                {/* Flow label near target node - shows displayLabel or value */}
                 {showLabels && layerDrawProgress > 0.6 && (
                   <g
-                    transform={`translate(${link.midpoint.x}, ${link.midpoint.y})`}
+                    transform={`translate(${link.targetPoint.x - 15}, ${link.targetPoint.y})`}
                     style={{
-                      opacity: Math.min(0.7, (layerDrawProgress - 0.6) * 1.75),
+                      opacity: Math.min(0.85, (layerDrawProgress - 0.6) * 2),
                       transition: 'opacity 0.3s ease-out',
                     }}
                   >
@@ -1264,13 +1277,13 @@ useEffect(() => {
                       x={0}
                       y={0}
                       dy="0.35em"
-                      textAnchor="middle"
-                      fill={isLoss ? theme.colors.accent : 'rgba(255, 255, 255, 0.85)'}
-                      fontSize={12}
-                      fontWeight={500}
+                      textAnchor="end"
+                      fill={isLoss ? theme.colors.accent : 'rgba(255, 255, 255, 0.9)'}
+                      fontSize={11}
+                      fontWeight={600}
                       fontFamily="Inter, system-ui, sans-serif"
                       style={{
-                        textShadow: '0 1px 3px rgba(0, 0, 0, 0.8), 0 0 8px rgba(0, 0, 0, 0.5)',
+                        textShadow: '0 1px 4px rgba(0, 0, 0, 0.9), 0 0 10px rgba(0, 0, 0, 0.7)',
                       }}
                     >
                       {link.displayLabel || link.value}
@@ -1323,7 +1336,6 @@ useEffect(() => {
                          : nodeOpacity,
                   cursor: 'pointer',
                   transition: exitPhase !== 'none' ? 'opacity 0.3s' : 'none',
-                  filter: 'url(#nodeDropShadow)',
                 }}
                 onClick={() => onNodeClick?.(node.id, { 
                   label: node.label, 
