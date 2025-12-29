@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import logoSrc from '../assets/logo.svg';
 
+/**
+ * SECURITY TODO: The current implementation uses URL params (?u=slug) to identify
+ * collaborators, which can be spoofed. Before production:
+ * 1. Implement signed invite tokens (JWT or HMAC-signed URLs)
+ * 2. Or require Supabase authentication
+ * 3. Add server-side validation of collaborator identity
+ * 
+ * Current risk: Anyone can submit feedback as any user by guessing ?u= parameter.
+ */
+
 function PenroseLogo({ size = 40 }: { size?: number }) {
   return <img src={logoSrc} width={size} height={size} alt="viashift" />;
 }
