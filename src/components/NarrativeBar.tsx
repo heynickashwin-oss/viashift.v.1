@@ -237,39 +237,41 @@ export const NarrativeBar = memo(({
           </span>
         </p>
         
-        {/* Inline CTA - 350ms gentle entrance */}
-        <div
-          className="flex items-center gap-2"
-          style={{
-            opacity: visibility.cta ? 1 : 0,
-            transform: visibility.cta 
-              ? 'translate(0, 0)' 
-              : 'translate(-10px, 4px)',
-            transition: 'opacity 350ms ease-out, transform 350ms ease-out',
-          }}
-        >
-          <span 
-            className="text-sm"
-            style={{ 
-              color: 'rgba(255, 255, 255, 0.5)',
-              fontFamily: narrativeFont,
-              fontStyle: 'italic',
-            }}
-          >
-            {script.cta}
-          </span>
-          <button
-            onClick={onFeedbackClick}
-            className="px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 hover:scale-105"
+        {/* Inline CTA - only show if feedback handler provided */}
+        {onFeedbackClick && (
+          <div
+            className="flex items-center gap-2"
             style={{
-              background: 'transparent',
-              color: accentColor,
-              border: `1px solid ${accentColor}80`,
+              opacity: visibility.cta ? 1 : 0,
+              transform: visibility.cta 
+                ? 'translate(0, 0)' 
+                : 'translate(-10px, 4px)',
+              transition: 'opacity 350ms ease-out, transform 350ms ease-out',
             }}
           >
-            {ctaLabel}
-          </button>
-        </div>
+            <span 
+              className="text-sm"
+              style={{ 
+                color: 'rgba(255, 255, 255, 0.5)',
+                fontFamily: narrativeFont,
+                fontStyle: 'italic',
+              }}
+            >
+              {script.cta}
+            </span>
+            <button
+              onClick={onFeedbackClick}
+              className="px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 hover:scale-105"
+              style={{
+                background: 'transparent',
+                color: accentColor,
+                border: `1px solid ${accentColor}80`,
+              }}
+            >
+              {ctaLabel}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
