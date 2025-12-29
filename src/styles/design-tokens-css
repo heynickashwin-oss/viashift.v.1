@@ -1,0 +1,327 @@
+/**
+ * viashift Design Tokens
+ * 
+ * Core design system values. Import this file in your root CSS/App.
+ * Brand colors can be overridden at runtime via ThemeProvider.
+ * 
+ * Usage:
+ *   transition: transform var(--duration-fast) var(--ease-out-cubic);
+ *   background: var(--bg-surface);
+ *   color: var(--text-primary);
+ */
+
+:root {
+  /* ========================================
+     BACKGROUND SURFACES
+     ======================================== */
+  --bg-canvas: #0a0a0f;
+  --bg-surface: #141418;
+  --bg-elevated: #1a1c22;
+  --bg-sunken: #0d0d12;
+
+  /* ========================================
+     BORDERS
+     ======================================== */
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-default: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.20);
+  --border-hover: rgba(255, 255, 255, 0.25);
+
+  /* ========================================
+     TEXT
+     ======================================== */
+  --text-primary: #f5f5f5;
+  --text-secondary: rgba(255, 255, 255, 0.70);
+  --text-muted: rgba(255, 255, 255, 0.50);
+  --text-dim: rgba(255, 255, 255, 0.35);
+
+  /* ========================================
+     BRAND COLORS (Defaults - override via ThemeProvider)
+     ======================================== */
+  --color-brand-primary: #00e5ff;
+  --color-brand-primary-muted: rgba(0, 229, 255, 0.15);
+  --color-brand-primary-strong: rgba(0, 229, 255, 0.40);
+  --color-brand-secondary: #00ffaa;
+  --color-brand-secondary-muted: rgba(0, 255, 170, 0.15);
+  --color-brand-secondary-strong: rgba(0, 255, 170, 0.40);
+  --color-brand-tertiary: #f59e0b;
+  --color-brand-tertiary-muted: rgba(245, 158, 11, 0.15);
+
+  /* ========================================
+     SEMANTIC COLORS (Fixed - never change with brand)
+     ======================================== */
+  --color-loss: #ff6b6b;
+  --color-loss-muted: rgba(255, 107, 107, 0.15);
+  --color-warning: #f59e0b;
+  --color-warning-muted: rgba(245, 158, 11, 0.15);
+  --color-info: #3b82f6;
+  --color-info-muted: rgba(59, 130, 246, 0.15);
+  --color-success: #22c55e;
+  --color-success-muted: rgba(34, 197, 94, 0.15);
+
+  /* ========================================
+     STAKEHOLDER COLORS (Fixed - semantic, not brand)
+     ======================================== */
+  --color-stakeholder-finance: #f59e0b;
+  --color-stakeholder-sales: #10b981;
+  --color-stakeholder-operations: #8b5cf6;
+  --color-stakeholder-users: #f97316;
+  --color-stakeholder-leadership: #3b82f6;
+
+  /* ========================================
+     DURATION SCALE
+     ======================================== */
+  --duration-instant: 100ms;    /* Micro-feedback: button press, toggle */
+  --duration-fast: 200ms;       /* Hover states, focus rings, interactive */
+  --duration-normal: 300ms;     /* Standard transitions, exits */
+  --duration-slow: 900ms;       /* Value count-up, reveals */
+  --duration-slower: 2000ms;    /* Forge layer, major sequences */
+  --duration-draw: 16000ms;     /* Full Sankey draw animation */
+  --duration-background: 1200ms; /* Background layer transitions */
+
+  /* ========================================
+     EASING FUNCTIONS
+     ======================================== */
+  --ease-out-cubic: cubic-bezier(0.33, 1, 0.68, 1);   /* Primary: arriving */
+  --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1); /* Node entrance: overshoot */
+  --ease-in: cubic-bezier(0.32, 0, 0.67, 0);          /* Leaving/exiting */
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);      /* Pulses, state changes */
+
+  /* ========================================
+     COMPOSITE TRANSITIONS (duration + easing)
+     ======================================== */
+  --transition-instant: var(--duration-instant) var(--ease-out-cubic);
+  --transition-fast: var(--duration-fast) ease;
+  --transition-normal: var(--duration-normal) var(--ease-out-cubic);
+  --transition-slow: var(--duration-slow) var(--ease-out-cubic);
+  --transition-slower: var(--duration-slower) var(--ease-in-out);
+
+  /* ========================================
+     STAGGER & SEQUENCE
+     ======================================== */
+  --stagger-delay: 200ms;
+  --layer-overlap: 0.3;
+
+  /* ========================================
+     PULSE ANIMATIONS
+     ======================================== */
+  --pulse-hero: 2000ms;         /* Attention-grabbing */
+  --pulse-solution: 3000ms;     /* Calm, confident */
+  --pulse-loss: 5500ms;         /* Troubled, compound */
+  --shimmer-duration: 1500ms;   /* Loading shimmer */
+
+  /* ========================================
+     EXIT SEQUENCE TIMING
+     ======================================== */
+  --exit-freeze: 0ms;
+  --exit-desaturate: 100ms;
+  --exit-gone: 400ms;
+
+  /* ========================================
+     SHADOWS
+     ======================================== */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.5);
+  --shadow-glow-primary: 0 0 20px var(--color-brand-primary-muted);
+  --shadow-glow-secondary: 0 0 20px var(--color-brand-secondary-muted);
+
+  /* ========================================
+     RADII
+     ======================================== */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  /* ========================================
+     SANKEY-SPECIFIC
+     ======================================== */
+  --sankey-node-neutral-start: rgba(30, 32, 38, 0.95);
+  --sankey-node-neutral-end: rgba(22, 24, 28, 0.98);
+  --sankey-flow-neutral: rgba(255, 255, 255, 0.08);
+  --sankey-flow-neutral-hover: rgba(255, 255, 255, 0.15);
+}
+
+/* ========================================
+   KEYFRAME ANIMATIONS
+   ======================================== */
+
+/* Hero pulse - attention-grabbing, moderate pace */
+@keyframes heroPulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.05);
+  }
+}
+
+/* Solution/success glow - calm, confident */
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1.0; }
+}
+
+/* Loss flow pulse - troubled, slower */
+@keyframes lossFlowPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.65; }
+}
+
+/* Hero glow rect */
+@keyframes heroGlowPulse {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.45; }
+}
+
+/* Fade up - standard content entrance */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Node entrance - with overshoot via ease-out-back */
+@keyframes nodeEnter {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Scale in - modals, popovers */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Slide in - drawers, panels */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Loading shimmer */
+@keyframes shimmer {
+  from { left: -100%; }
+  to { left: 100%; }
+}
+
+/* Spinner rotation */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Directional nudge - indicates "continue" */
+@keyframes nudgeRight {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(4px); }
+}
+
+/* Flow draw - stroke reveal */
+@keyframes flowDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+
+/* Animation classes */
+.animate-fade-up {
+  animation: fadeUp var(--duration-normal) var(--ease-out-cubic) forwards;
+}
+
+.animate-node-enter {
+  animation: nodeEnter var(--duration-slower) var(--ease-out-back) forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn var(--duration-normal) var(--ease-out-cubic) forwards;
+}
+
+.animate-slide-in {
+  animation: slideIn var(--duration-normal) var(--ease-out-cubic) forwards;
+}
+
+.animate-hero-pulse {
+  animation: heroPulse var(--pulse-hero) var(--ease-in-out) infinite;
+}
+
+.animate-glow-pulse {
+  animation: glowPulse var(--pulse-solution) var(--ease-in-out) infinite;
+}
+
+.animate-loss-pulse {
+  animation: lossFlowPulse var(--pulse-loss) var(--ease-in-out) infinite;
+}
+
+.animate-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.animate-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+  animation: shimmer var(--shimmer-duration) infinite;
+}
+
+.animate-spin {
+  animation: spin var(--duration-slower) linear infinite;
+}
+
+/* Transition classes */
+.transition-fast {
+  transition: all var(--transition-fast);
+}
+
+.transition-normal {
+  transition: all var(--transition-normal);
+}
+
+/* Interactive hover patterns */
+.hover-lift {
+  transition: transform var(--transition-fast), filter var(--transition-fast);
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.15);
+}
+
+.hover-glow {
+  transition: box-shadow var(--transition-fast);
+}
+.hover-glow:hover {
+  box-shadow: var(--shadow-glow-primary);
+}
