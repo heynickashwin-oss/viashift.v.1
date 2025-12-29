@@ -23,6 +23,7 @@ import {
   getB2BFlowStateForView,
   B2B_LENS_DATA,
   b2bNarrativeScripts,
+  b2bShiftedNarrativeScripts,
 } from '../data/templates/b2bSalesFunnelData';
 import {
   getB2BNodeComparisonForView,
@@ -75,6 +76,9 @@ export const B2BFunnelPOC = () => {
   // Lens state
   const [activeLens, setActiveLens] = useState<B2BFunnelViewType>('spend');
   
+  // Before/After toggle
+  const [variant, setVariant] = useState<'before' | 'after'>('before');
+  
   // Layout and animation state
   const [nodePositions, setNodePositions] = useState<Map<string, NodePosition>>(new Map());
   const [animationComplete, setAnimationComplete] = useState(false);
@@ -83,7 +87,7 @@ export const B2BFunnelPOC = () => {
   
   // Animation progress timer - syncs with Sankey draw
   useEffect(() => {
-    // Reset on lens change
+    // Reset on lens or variant change
     animationStartRef.current = Date.now();
     setAnimationProgress(0);
     
@@ -104,7 +108,7 @@ export const B2BFunnelPOC = () => {
     return () => {
       animationStartRef.current = null;
     };
-  }, [activeLens]);
+  }, [activeLens, variant]);
   
   // Hover state with delay for "hover bridge"
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
@@ -129,8 +133,8 @@ export const B2BFunnelPOC = () => {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   
-  // Get flow state for current lens
-  const flowState = useMemo(() => getB2BFlowStateForView(activeLens), [activeLens]);
+  // Get flow state for current lens and variant
+  const flowState = useMemo(() => getB2BFlowStateForView(activeLens, variant), [activeLens, variant]);
   
   // Get current lens data
   const activeLensData = useMemo(() => {
@@ -142,10 +146,12 @@ export const B2BFunnelPOC = () => {
     return activeLensData?.color || '#00e5ff';
   }, [activeLensData]);
   
-  // Get narrative script for current lens
+  // Get narrative script for current lens and variant
   const narrativeScript = useMemo(() => {
-    return b2bNarrativeScripts[activeLens];
-  }, [activeLens]);
+    return variant === 'before' 
+      ? b2bNarrativeScripts[activeLens]
+      : b2bShiftedNarrativeScripts[activeLens];
+  }, [activeLens, variant]);
   
   // Get selected comparison for drawer
   const selectedComparison = useMemo(() => {
@@ -203,6 +209,15 @@ export const B2BFunnelPOC = () => {
     // Reset state when changing lenses
     setAnimationComplete(false);
     setActiveLens(lensType);
+    setVariant('before'); // Reset to before state
+    setHoveredNodeId(null);
+    setSelectedNodeId(null);
+    setDrawerOpen(false);
+  }, []);
+  
+  const handleVariantToggle = useCallback(() => {
+    setAnimationComplete(false);
+    setVariant(v => v === 'before' ? 'after' : 'before');
     setHoveredNodeId(null);
     setSelectedNodeId(null);
     setDrawerOpen(false);
@@ -310,15 +325,37 @@ export const B2BFunnelPOC = () => {
           color: 'rgba(255, 255, 255, 0.6)',
         }}
       >
-        <span style={{ color: '#00e5ff' }}>STRESS TEST</span>
+        <span style={{ color: variant === 'before' ? '#ef4444' : '#22c55e' }}>
+          {variant === 'before' ? 'BEFORE' : 'AFTER'}
+        </span>
         {' | '}
         <span>{debugInfo.nodeCount} nodes</span>
         {' | '}
         <span>{debugInfo.linkCount} links</span>
         {' | '}
         <span>{debugInfo.layerCount} layers</span>
-        {' | '}
-        <span>{debugInfo.terminalCount} terminals</span>
+      </div>
+      
+      {/* Before/After Toggle */}
+      <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50">
+        <button
+          onClick={handleVariantToggle}
+          className="px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300"
+          style={{
+            background: variant === 'before' 
+              ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.1) 100%)'
+              : 'linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0.1) 100%)',
+            border: variant === 'before'
+              ? '1px solid rgba(239, 68, 68, 0.4)'
+              : '1px solid rgba(34, 197, 94, 0.4)',
+            color: variant === 'before' ? '#ef4444' : '#22c55e',
+            boxShadow: variant === 'before'
+              ? '0 4px 24px rgba(239, 68, 68, 0.15)'
+              : '0 4px 24px rgba(34, 197, 94, 0.15)',
+          }}
+        >
+          {variant === 'before' ? '→ See the Shift' : '← See Current State'}
+        </button>
       </div>
       
       {/* Toggle Cards - fixed height section */}
@@ -434,7 +471,7 @@ export const B2BFunnelPOC = () => {
           <span 
             className="text-lg font-semibold"
             style={{ 
-              color: activeLensColor,
+              color: variant === 'before' ? activeLensColor : '#22c55e',
               opacity: animationProgress > 0.78 ? 1 : 0,
               transition: 'opacity 0.4s ease-out',
             }}
@@ -451,10 +488,10 @@ export const B2BFunnelPOC = () => {
       <div className="flex-[4] min-h-0 flex justify-center">
         <div className="w-full max-w-[1600px] h-full relative">
           <SankeyFlowV3
-            key={activeLens}
+            key={`${activeLens}-${variant}`}
             state={flowState}
             stageLabels={[]}
-            variant="before"
+            variant={variant}
             brand={DEFAULT_BRAND}
             animated={true}
             showLabels={true}
@@ -493,7 +530,7 @@ export const B2BFunnelPOC = () => {
         comparison={selectedComparison}
         isOpen={drawerOpen}
         onClose={handleDrawerClose}
-        variant="before"
+        variant={variant}
         isTerminal={selectedNodeIsTerminal}
         accentColor={activeLensColor}
         socialProof={selectedNodeId ? SEED_SOCIAL_PROOF[activeLens]?.[selectedNodeId] : undefined}
