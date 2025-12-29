@@ -817,3 +817,82 @@ export const B2B_LENS_DATA = [
     shiftedInsight: 'Earlier disqualification → 50% faster cycle time',
   },
 ];
+
+// ============================================
+// DELTA CALCULATION FOR NODE SIGNIFICANCE
+// ============================================
+
+export interface NodeDelta {
+  nodeId: string;
+  currentValue: number;
+  shiftedValue: number;
+  delta: number;        // Absolute change
+  deltaPercent: number; // Percentage change (-1 to 1, negative = decrease)
+  significance: 'hero' | 'high' | 'medium' | 'low'; // For visual treatment
+}
+
+/**
+ * Calculate deltas between current and shifted states
+ * Used to drive visual significance indicators (glow, pulse)
+ */
+export function calculateNodeDeltas(viewType: B2BFunnelViewType): Map<string, NodeDelta> {
+  const currentData = b2bFunnelCurrentState[viewType].data;
+  const shiftedData = b2bFunnelShiftedState[viewType].data;
+  
+  const deltas = new Map<string, NodeDelta>();
+  
+  // Create lookup for shifted values
+  const shiftedValues = new Map<string, number>();
+  shiftedData.nodes.forEach(node => {
+    shiftedValues.set(node.id, node.value);
+  });
+  
+  // Calculate delta for each node
+  currentData.nodes.forEach(node => {
+    const shiftedValue = shiftedValues.get(node.id);
+    if (shiftedValue === undefined) return;
+    
+    const delta = shiftedValue - node.value;
+    const deltaPercent = node.value !== 0 
+      ? delta / node.value 
+      : (shiftedValue > 0 ? 1 : 0);
+    
+    const absDeltaPercent = Math.abs(deltaPercent);
+    
+    // Determine significance based on delta magnitude
+    let significance: 'hero' | 'high' | 'medium' | 'low';
+    if (absDeltaPercent >= 0.5) {
+      significance = 'hero';     // 50%+ change = hero node
+    } else if (absDeltaPercent >= 0.3) {
+      significance = 'high';     // 30-50% change
+    } else if (absDeltaPercent >= 0.15) {
+      significance = 'medium';   // 15-30% change
+    } else {
+      significance = 'low';      // <15% change
+    }
+    
+    deltas.set(node.id, {
+      nodeId: node.id,
+      currentValue: node.value,
+      shiftedValue,
+      delta,
+      deltaPercent,
+      significance,
+    });
+  });
+  
+  return deltas;
+}
+
+/**
+ * Get hero nodes (top impact nodes to highlight)
+ * Returns node IDs sorted by absolute delta
+ */
+export function getHeroNodes(viewType: B2BFunnelViewType, limit: number = 3): string[] {
+  const deltas = calculateNodeDeltas(viewType);
+  
+  return Array.from(deltas.values())
+    .sort((a, b) => Math.abs(b.deltaPercent) - Math.abs(a.deltaPercent))
+    .slice(0, limit)
+    .map(d => d.nodeId);
+}
