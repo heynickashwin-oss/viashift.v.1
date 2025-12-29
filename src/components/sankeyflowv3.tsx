@@ -78,6 +78,7 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
 import { BrandConfig, DEFAULT_BRAND, resolveTheme } from './branding/brandUtils';
+import { TIMING, EASING } from '../lib/theme';
 import { useNarrativeController } from '../hooks/useNarrativeController';
 import { NodeCallouts, NodePosition } from './NodeCallout';
 import { NarrativeScript } from '../data/templates/b2bSalesEnablement';
@@ -200,19 +201,8 @@ interface LayoutLink {
 // UTILITIES
 // ============================================
 
-function easeOutCubic(t: number): number {
-  return 1 - Math.pow(1 - t, 3);
-}
-
-function easeOutBack(t: number): number {
-  const c1 = 1.70158;
-  const c3 = c1 + 1;
-  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
-}
-
-function lerp(start: number, end: number, t: number): number {
-  return start + (end - start) * t;
-}
+// Use easing functions from design system
+const { outCubic: easeOutCubic, outBack: easeOutBack, lerp } = EASING;
 
 // Generate a stable identity key for the data
 function getDataIdentity(data: SankeyData): string {
@@ -225,7 +215,7 @@ function getDataIdentity(data: SankeyData): string {
 
 const AnimatedValue = ({
   value,
-  duration = 900,
+  duration = TIMING.slow,  // 900ms from design system
   delay = 0
 }: {
   value: string;
@@ -294,9 +284,9 @@ const LAYOUT = {
   nodeWidth: 18,
   nodeMinHeight: 35,
   nodeMaxHeight: 90,
-  drawDuration: 16000,     // Doubled from 8000 for better storytelling
-  staggerDelay: 200,       // Slightly more stagger
-  forgeDuration: 2000,     // Slower forge for after state
+  drawDuration: TIMING.draw,         // 16000ms - from design system
+  staggerDelay: TIMING.staggerDelay, // 200ms - from design system
+  forgeDuration: TIMING.slower,      // 2000ms - from design system
 };
 const layerXPercent: Record<number, number> = {
   0: 0.02,    // Far left - Sources
@@ -1034,7 +1024,7 @@ useEffect(() => {
                    radial-gradient(circle at 25% 30%, rgba(255, 255, 255, 0.02) 0%, transparent 40%)`
                 : `radial-gradient(circle at 30% 35%, ${theme.colors.primary}18 0%, transparent 50%),
                    radial-gradient(circle at 70% 55%, ${theme.colors.secondary}14 0%, transparent 45%)`,
-              transition: 'opacity 1.2s ease-out, background 1.2s ease-out',
+              transition: 'opacity var(--duration-background) ease-out, background var(--duration-background) ease-out',
             }}
           />
 
@@ -1058,7 +1048,7 @@ useEffect(() => {
           background: exitPhase === 'desaturate' ? 'rgba(10, 10, 15, 0.4)' : 'transparent',
           opacity: exitPhase === 'gone' ? 0 : 1,
           filter: exitPhase === 'desaturate' ? 'saturate(0.3) brightness(0.7)' : 'none',
-          transition: 'filter 0.3s ease-out, background 0.3s ease-out, opacity 0.3s ease-out',
+          transition: 'filter var(--duration-normal) ease-out, background var(--duration-normal) ease-out, opacity var(--duration-normal) ease-out',
           zIndex: exitPhase !== 'none' ? 100 : -1,
         }}
       />
@@ -1082,6 +1072,7 @@ useEffect(() => {
       <svg width={dimensions.width} height={dimensions.height} className="absolute inset-0">
         <style>
           {`
+            /* Keyframes now defined in design-tokens.css, these are kept for SVG scope */
             @keyframes glowPulse {
               0%, 100% { opacity: 0.8; }
               50% { opacity: 1.0; }
@@ -1110,38 +1101,38 @@ useEffect(() => {
 
             .node-hover:hover {
               filter: brightness(1.15);
-}
+            }
 
             .flow-hover:hover {
               filter: brightness(1.2);
             }
 
             .node-transition {
-              transition: transform 0.2s ease, filter 0.2s ease;
+              transition: transform var(--duration-fast) ease, filter var(--duration-fast) ease;
             }
 
             .flow-transition {
-              transition: filter 0.2s ease;
+              transition: filter var(--duration-fast) ease;
             }
 
             .solution-glow {
-              animation: glowPulse 3s ease-in-out infinite;
+              animation: glowPulse var(--pulse-solution) var(--ease-in-out) infinite;
             }
 
             .new-glow {
-              animation: glowPulse 3s ease-in-out infinite;
+              animation: glowPulse var(--pulse-solution) var(--ease-in-out) infinite;
             }
 
             .loss-flow {
-              animation: lossFlowPulse 5.5s ease-in-out infinite;
+              animation: lossFlowPulse var(--pulse-loss) var(--ease-in-out) infinite;
             }
             
             .hero-pulse {
-              animation: heroPulse 2s ease-in-out infinite;
+              animation: heroPulse var(--pulse-hero) var(--ease-in-out) infinite;
             }
             
             .hero-glow-rect {
-              animation: heroGlowPulse 2s ease-in-out infinite;
+              animation: heroGlowPulse var(--pulse-hero) var(--ease-in-out) infinite;
             }
           `}
         </style>
@@ -1294,7 +1285,7 @@ useEffect(() => {
                   style={{
                     strokeDasharray: link.pathLength,
                     strokeDashoffset: link.pathLength * (1 - layerDrawProgress),
-                    transition: exitPhase !== 'none' ? 'opacity 0.3s' : 'none',
+                    transition: exitPhase !== 'none' ? 'opacity var(--duration-normal)' : 'none',
                   }}
                 />
 
@@ -1310,7 +1301,7 @@ useEffect(() => {
                   style={{
                     strokeDasharray: link.pathLength,
                     strokeDashoffset: link.pathLength * (1 - layerDrawProgress),
-                    transition: exitPhase !== 'none' ? 'opacity 0.3s' : 'none',
+                    transition: exitPhase !== 'none' ? 'opacity var(--duration-normal)' : 'none',
                   }}
                 />
 
@@ -1320,7 +1311,7 @@ useEffect(() => {
                     transform={`translate(${link.targetPoint.x - 15}, ${link.targetPoint.y})`}
                     style={{
                       opacity: Math.min(0.85, (layerDrawProgress - 0.6) * 2),
-                      transition: 'opacity 0.3s ease-out',
+                      transition: 'opacity var(--duration-normal) ease-out',
                     }}
                   >
                     <text
@@ -1385,7 +1376,7 @@ useEffect(() => {
                          : exitPhase === 'gone' ? 0
                          : nodeOpacity,
                   cursor: 'pointer',
-                  transition: exitPhase !== 'none' ? 'opacity 0.3s' : 'none',
+                  transition: exitPhase !== 'none' ? 'opacity var(--duration-normal)' : 'none',
                 }}
                 onClick={() => onNodeClick?.(node.id, { 
                   label: node.label, 
@@ -1708,7 +1699,7 @@ useEffect(() => {
             }`,
             opacity: anchoredVisible ? 1 : 0,
             transform: anchoredVisible ? 'scale(1)' : 'scale(0.9)',
-            transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            transition: 'all 0.4s var(--ease-out-back)',
           }}
         >
           <div
