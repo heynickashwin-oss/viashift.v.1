@@ -272,9 +272,9 @@ const velocityCurrentData: SankeyData = {
     { id: 'referrals', label: 'Referrals (Fast)', layer: 0, value: 5, type: 'source', displayValue: '5 days avg' },
     
     // Layer 1: QUALIFICATION TIME
-    { id: 'fast-qual', label: 'Fast Qualification', layer: 1, value: 3, type: 'default', displayValue: '3 days' },
-    { id: 'slow-qual', label: 'Slow Qualification', layer: 1, value: 14, type: 'default', displayValue: '14 days' },
-    { id: 'stalled-qual', label: 'Stalled', layer: 1, value: 30, type: 'loss', displayValue: '30+ days' },
+    { id: 'fast-qual', label: 'Fast Qualification', layer: 1, y: 0.2, value: 3, type: 'default', displayValue: '3 days' },
+    { id: 'slow-qual', label: 'Slow Qualification', layer: 1, y: 0.5, value: 14, type: 'default', displayValue: '14 days' },
+    { id: 'stalled-qual', label: 'Stalled', layer: 1, y: 0.8, value: 30, type: 'loss', displayValue: '30+ days' },
     
     // Layer 2: MQL STAGE
     { id: 'mql', label: 'MQL Stage', layer: 2, value: 21, type: 'default', displayValue: '21 days avg' },
@@ -569,9 +569,9 @@ const velocityShiftedData: SankeyData = {
     { id: 'referrals', label: 'Referrals (Fast)', layer: 0, value: 3, type: 'source', displayValue: '3 days avg' },
     
     // Layer 1: QUALIFICATION TIME (much faster)
-    { id: 'fast-qual', label: 'Fast Qualification', layer: 1, value: 2, type: 'default', displayValue: '2 days' },
-    { id: 'slow-qual', label: 'Standard Qual', layer: 1, value: 7, type: 'default', displayValue: '7 days' },
-    { id: 'stalled-qual', label: 'Exit Early', layer: 1, value: 14, type: 'loss', displayValue: '14 days (saved)' },
+    { id: 'fast-qual', label: 'Fast Qualification', layer: 1, y: 0.2, value: 2, type: 'default', displayValue: '2 days' },
+    { id: 'slow-qual', label: 'Standard Qual', layer: 1, y: 0.5, value: 7, type: 'default', displayValue: '7 days' },
+    { id: 'stalled-qual', label: 'Exit Early', layer: 1, y: 0.8, value: 14, type: 'loss', displayValue: '14 days (saved)' },
     
     // Layer 2: MQL STAGE (faster)
     { id: 'mql', label: 'MQL Stage', layer: 2, value: 14, type: 'default', displayValue: '14 days avg' },
