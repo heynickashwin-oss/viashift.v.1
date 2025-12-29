@@ -309,13 +309,13 @@ export const StakeholderSankeyPOC = () => {
   
   return (
     <div 
-      className="min-h-screen w-full relative"
+      className="h-screen w-full flex flex-col"
       style={{ 
         background: 'linear-gradient(180deg, #0a0a0f 0%, #121218 50%, #0a0a0f 100%)',
       }}
     >
-      {/* Toggle Cards */}
-      <div className="absolute top-0 left-0 right-0 z-20 p-4">
+      {/* Toggle Cards - fixed height section */}
+      <div className="flex-none p-4 z-20">
         <div className="flex gap-2">
           {LENS_DATA.map((lens) => {
             const isActive = activeLens === lens.type;
@@ -387,8 +387,8 @@ export const StakeholderSankeyPOC = () => {
         </div>
       </div>
       
-      {/* Narrative - centered in gap between toggle and Sankey */}
-      <div className="absolute top-[240px] left-0 right-0 z-10">
+      {/* Narrative - fixed height, vertically centered in its section */}
+      <div className="flex-none h-20 flex items-center justify-center z-10">
         <NarrativeBar
           lens={activeLens}
           variant="before"
@@ -403,9 +403,9 @@ export const StakeholderSankeyPOC = () => {
         />
       </div>
       
-      {/* Sankey Visualization - vertically centered in remaining space */}
-      <div className="absolute top-[310px] bottom-[20px] left-0 right-0 flex items-center justify-center">
-        <div className="w-full max-w-[1400px] h-full">
+      {/* Sankey Visualization - fills remaining space */}
+      <div className="flex-1 min-h-0 flex justify-center">
+        <div className="w-full max-w-[1400px] h-full relative">
           <SankeyFlowV3
             key={activeLens}
             state={flowState}
@@ -420,29 +420,29 @@ export const StakeholderSankeyPOC = () => {
             onNodeHover={handleNodeHover}
             onNodeClick={(nodeId) => handleNodeClick(nodeId)}
           />
+          
+          {/* Node Hover Card - inside Sankey container for relative positioning */}
+          {hoveredNodeData && (
+            <div
+              onMouseEnter={() => handleCardHover(true)}
+              onMouseLeave={() => handleCardHover(false)}
+            >
+              <NodeHoverCard
+                name={hoveredNodeData.name}
+                metric={hoveredNodeData.metric}
+                nodeType={hoveredNodeData.nodeType}
+                visible={showHoverCard}
+                position={hoveredNodeData.position}
+                accentColor={activeLensColor}
+                socialProof={hoveredNodeData.socialProof}
+                hasComparison={hoveredNodeData.hasComparison}
+                onFeedbackClick={() => handleFeedbackClick(hoveredNodeData.id)}
+                onCompareClick={handleCompareClick}
+              />
+            </div>
+          )}
         </div>
       </div>
-      
-      {/* Node Hover Card */}
-      {hoveredNodeData && (
-        <div
-          onMouseEnter={() => handleCardHover(true)}
-          onMouseLeave={() => handleCardHover(false)}
-        >
-          <NodeHoverCard
-            name={hoveredNodeData.name}
-            metric={hoveredNodeData.metric}
-            nodeType={hoveredNodeData.nodeType}
-            visible={showHoverCard}
-            position={hoveredNodeData.position}
-            accentColor={activeLensColor}
-            socialProof={hoveredNodeData.socialProof}
-            hasComparison={hoveredNodeData.hasComparison}
-            onFeedbackClick={() => handleFeedbackClick(hoveredNodeData.id)}
-            onCompareClick={handleCompareClick}
-          />
-        </div>
-      )}
       
       {/* Comparison Drawer */}
       <ComparisonDrawer
