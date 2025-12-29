@@ -124,7 +124,7 @@ export const NarrativeBar = memo(({
         >
           {/* Setup - 300ms, subtle entrance */}
           <span
-            className="inline-block"
+            className="inline-block relative"
             style={{
               color: visibility.tension ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.85)',
               fontStyle: 'italic',
@@ -136,6 +136,17 @@ export const NarrativeBar = memo(({
             }}
           >
             {script.setup}
+            {/* Drawing underline - fades when text dims */}
+            <span
+              className="absolute bottom-0 left-0 h-[1px]"
+              style={{
+                background: `linear-gradient(90deg, ${accentColor}60 0%, ${accentColor}20 100%)`,
+                width: visibility.setup ? '100%' : '0%',
+                opacity: visibility.tension ? 0.3 : 1,
+                transition: 'width 600ms ease-out, opacity 400ms ease-out',
+                transitionDelay: visibility.setup && !visibility.tension ? '150ms' : '0ms',
+              }}
+            />
           </span>
           
           <span
@@ -154,7 +165,7 @@ export const NarrativeBar = memo(({
           
           {/* Tension - 350ms, slightly more movement */}
           <span
-            className="inline-block"
+            className="inline-block relative"
             style={{
               color: visibility.impact ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.9)',
               fontWeight: 500,
@@ -166,6 +177,17 @@ export const NarrativeBar = memo(({
             }}
           >
             {script.tension}
+            {/* Drawing underline - fades when text dims */}
+            <span
+              className="absolute bottom-0 left-0 h-[1px]"
+              style={{
+                background: `linear-gradient(90deg, ${accentColor}60 0%, ${accentColor}20 100%)`,
+                width: visibility.tension ? '100%' : '0%',
+                opacity: visibility.impact ? 0.3 : 1,
+                transition: 'width 700ms ease-out, opacity 400ms ease-out',
+                transitionDelay: visibility.tension && !visibility.impact ? '150ms' : '0ms',
+              }}
+            />
           </span>
           
           <span
@@ -184,7 +206,7 @@ export const NarrativeBar = memo(({
           
           {/* Impact - 400ms, the punchline with most movement */}
           <span
-            className="inline-block"
+            className="inline-block relative"
             style={{
               color: accentColor,
               fontWeight: 600,
@@ -198,6 +220,17 @@ export const NarrativeBar = memo(({
             }}
           >
             {script.impact}
+            {/* Drawing underline - more prominent for punchline */}
+            <span
+              className="absolute bottom-0 left-0 h-[2px]"
+              style={{
+                background: accentColor,
+                boxShadow: `0 0 8px ${accentColor}60`,
+                width: visibility.impact ? '100%' : '0%',
+                transition: 'width 800ms ease-out',
+                transitionDelay: '200ms',
+              }}
+            />
           </span>
         </p>
         
