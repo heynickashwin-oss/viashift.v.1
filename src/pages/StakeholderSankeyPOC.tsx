@@ -387,8 +387,11 @@ export const StakeholderSankeyPOC = () => {
         </div>
       </div>
       
-      {/* Narrative - fixed height, vertically centered in its section */}
-      <div className="flex-none h-20 flex items-center justify-center z-10">
+      {/* Spacer - pushes narrative to center of gap */}
+      <div className="flex-1" />
+      
+      {/* Narrative - centered between toggles and Sankey */}
+      <div className="flex-none flex items-center justify-center z-10">
         <NarrativeBar
           lens={activeLens}
           variant="before"
@@ -403,8 +406,11 @@ export const StakeholderSankeyPOC = () => {
         />
       </div>
       
-      {/* Sankey Visualization - fills remaining space */}
-      <div className="flex-1 min-h-0 flex justify-center">
+      {/* Spacer - equal to above, keeps narrative centered */}
+      <div className="flex-1" />
+      
+      {/* Sankey Visualization - takes 4x spacer size */}
+      <div className="flex-[4] min-h-0 flex justify-center">
         <div className="w-full max-w-[1400px] h-full relative">
           <SankeyFlowV3
             key={activeLens}
