@@ -280,21 +280,76 @@ const AnimatedValue = ({
 // ============================================
 
 const LAYOUT = {
-  padding: { top: 20, right: 100, bottom: 60, left: 100 },  // More bottom padding, less top
-  nodeWidth: 18,
-  nodeMinHeight: 35,
+  padding: { top: 20, right: 40, bottom: 60, left: 40 },  // Reduced side padding for wider nodes
+  nodeWidth: 90,  // Wider nodes to contain labels internally
+  nodeMinHeight: 40,
   nodeMaxHeight: 90,
   drawDuration: TIMING.draw,         // 16000ms - from design system
   staggerDelay: TIMING.staggerDelay, // 200ms - from design system
   forgeDuration: TIMING.slower,      // 2000ms - from design system
 };
 const layerXPercent: Record<number, number> = {
-  0: 0.02,    // Far left - Sources
-  1: 0.18,    // Lead quality
+  0: 0.00,    // Far left - Sources
+  1: 0.17,    // Lead quality
   2: 0.34,    // Qualification
-  3: 0.50,    // Sales engagement
-  4: 0.66,    // Pipeline
-  5: 0.82,    // Outcomes - more room for labels
+  3: 0.51,    // Sales engagement
+  4: 0.68,    // Pipeline
+  5: 0.85,    // Outcomes
+};
+
+// ============================================
+// LABEL ABBREVIATION HELPER
+// ============================================
+
+// Common abbreviations for B2B sales terms
+const LABEL_ABBREVIATIONS: Record<string, string> = {
+  'Marketing Qualified': 'MQL',
+  'Marketing Qualified Leads': 'MQL',
+  'Sales Qualified': 'SQL',
+  'Sales Qualified Leads': 'SQL',
+  'High-Intent Leads': 'High-Intent',
+  'Medium-Intent': 'Med-Intent',
+  'Medium-Intent Leads': 'Med-Intent',
+  'Low-Intent Leads': 'Low-Intent',
+  'Active Opportunity': 'Opportunity',
+  'Paid Search/Social': 'Paid',
+  'SEO/Content': 'Organic',
+  'Events/Conferences': 'Events',
+  'Webinars/Content': 'Webinars',
+  'Referral Programs': 'Referrals',
+  'Disqualified Early': 'Disqualified',
+  'Lost Early Stage': 'Lost Early',
+  'Lost to Competitor': 'Lost Comp.',
+  'Nurture Queue': 'Nurture',
+  'No Response': 'No Response',
+  'No Decision': 'No Decision',
+  'Closed Won': 'Won',
+};
+
+// Abbreviate label for internal node display
+const getAbbreviatedLabel = (label: string, maxLength: number = 12): string => {
+  // Check for known abbreviations first
+  if (LABEL_ABBREVIATIONS[label]) {
+    return LABEL_ABBREVIATIONS[label];
+  }
+  
+  // If short enough, use as-is
+  if (label.length <= maxLength) {
+    return label;
+  }
+  
+  // Try to find natural break point
+  const words = label.split(/[\s/-]+/);
+  if (words.length > 1) {
+    // Take first word if it fits, otherwise truncate
+    const firstWord = words[0];
+    if (firstWord.length <= maxLength) {
+      return firstWord;
+    }
+  }
+  
+  // Last resort: truncate with ellipsis
+  return label.slice(0, maxLength - 1) + '…';
 };
 
 // ============================================
@@ -1431,7 +1486,7 @@ useEffect(() => {
                   y={-1}
                   width={node.width + 2}
                   height={node.height + 2}
-                  rx={4}
+                  rx={6}
                   fill="none"
                   stroke="rgba(255, 255, 255, 0.15)"
                   strokeWidth={1}
@@ -1446,7 +1501,7 @@ useEffect(() => {
                 <rect
                   width={node.width}
                   height={node.height}
-                  rx={3}
+                  rx={5}
                   fill="url(#nodeGrad-neutral)"
                   stroke={strokeColor}
                   strokeWidth={strokeWidth}
@@ -1463,7 +1518,7 @@ useEffect(() => {
                 <rect
                   width={node.width}
                   height={node.height}
-                  rx={3}
+                  rx={5}
                   fill="url(#nodeHighlight)"
                   opacity={pulseOpacity * 0.6}
                   style={{
@@ -1488,50 +1543,55 @@ useEffect(() => {
                   }}
                 />
 
-                {/* Node label - Layer 0 on LEFT, all others on RIGHT */}
-                {/* When displayValue exists, offset label up so the pair is centered */}
+                {/* Node label - INTERNAL, centered in node */}
                 <text
-                  x={node.layer === 0 ? -16 : node.width + 16}
-                  y={node.displayValue ? node.height / 2 - 9 : node.height / 2}
+                  x={node.width / 2}
+                  y={node.displayValue ? node.height / 2 - 6 : node.height / 2}
                   dy="0.35em"
-                  textAnchor={node.layer === 0 ? 'end' : 'start'}
-                  fill={node.type === 'loss' ? theme.colors.accent : theme.colors.text}
-                  fontSize={15}
-                  fontWeight={node.type === 'solution' ? 600 : 500}
+                  textAnchor="middle"
+                  fill={node.type === 'loss' ? theme.colors.accent : '#ffffff'}
+                  fontSize={11}
+                  fontWeight={600}
                   fontFamily="Inter, system-ui, sans-serif"
                   style={{
-                    textShadow: node.type === 'solution' ? `0 0 15px ${theme.colors.primary}` : undefined,
+                    textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                    pointerEvents: 'none',
                   }}
                 >
-                  {node.label}
+                  {getAbbreviatedLabel(node.label)}
                 </text>
 
-                {/* Node displayValue - shown below label */}
+                {/* Node displayValue - shown below label, inside node */}
                 {node.displayValue && (
                   <text
-                    x={node.layer === 0 ? -16 : node.width + 16}
-                    y={node.height / 2 + 9}
-                    textAnchor={node.layer === 0 ? 'end' : 'start'}
-                    fill={node.type === 'loss' ? theme.colors.accent : node.type === 'revenue' ? theme.colors.primary : theme.colors.textMuted}
-                    fontSize={14}
+                    x={node.width / 2}
+                    y={node.height / 2 + 8}
+                    textAnchor="middle"
+                    fill={node.type === 'loss' ? 'rgba(255,150,150,0.9)' : node.type === 'revenue' || node.type === 'solution' ? theme.colors.primary : 'rgba(255,255,255,0.75)'}
+                    fontSize={10}
                     fontWeight={500}
                     fontFamily="Inter, system-ui, sans-serif"
-                    opacity={0.85}
+                    style={{
+                      textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                      pointerEvents: 'none',
+                    }}
                   >
                     {node.displayValue}
                   </text>
                 )}
 
-                {/* NEW badge - only show if no displayValue */}
+                {/* NEW badge - only show if no displayValue, inside node */}
                 {node.type === 'new' && !node.displayValue && (
                   <text
-                    x={node.layer === 0 ? -16 : node.width + 16}
-                    y={node.height / 2 + 12}
-                    textAnchor={node.layer === 0 ? 'end' : 'start'}
+                    x={node.width / 2}
+                    y={node.height / 2 + 10}
+                    textAnchor="middle"
                     fill={theme.colors.secondary}
-                    fontSize={11}
-                    fontWeight={600}
-                    opacity={0.7}
+                    fontSize={9}
+                    fontWeight={700}
+                    style={{
+                      pointerEvents: 'none',
+                    }}
                   >
                     NEW
                   </text>
