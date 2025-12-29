@@ -280,7 +280,7 @@ const AnimatedValue = ({
 // ============================================
 
 const LAYOUT = {
-  padding: { top: 20, right: 100, bottom: 40, left: 100 },
+  padding: { top: 20, right: 100, bottom: 60, left: 100 },  // More bottom padding, less top
   nodeWidth: 18,
   nodeMinHeight: 35,
   nodeMaxHeight: 90,
@@ -490,8 +490,9 @@ const SankeyFlowV3Inner = ({
       });
       totalLayerHeight += (layerNodes.length - 1) * nodeGap * scaleFactor;
 
-      // Center the layer vertically
-      let currentY = padding.top + (usableHeight - totalLayerHeight) / 2;
+      // Center the layer vertically - bias slightly toward top (0.4 instead of 0.5)
+      // This accounts for UI elements at top making true center feel low
+      let currentY = padding.top + (usableHeight - totalLayerHeight) * 0.4;
 
       layerNodes.forEach((node, idx) => {
         const height = scaledHeights[idx];
