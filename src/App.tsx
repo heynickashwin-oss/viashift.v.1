@@ -8,6 +8,7 @@ import { Shift } from './pages/Shift';
 import { ViewShift } from './pages/ViewShift';
 import FeedbackDropbox from './components/FeedbackDropbox';
 import { StakeholderSankeyPOC } from './pages/StakeholderSankeyPOC';
+import { B2BFunnelPOC } from './pages/B2BFunnelPOC';
 
 function RootRedirect() {
   const { user, loading } = useAuth();
@@ -39,6 +40,7 @@ function App() {
           <Route path="/view/:id" element={<ViewShift />} />
           <Route path="/feedback" element={<FeedbackDropbox />} />
           <Route path="/poc" element={<StakeholderSankeyPOC />} />
+          <Route path="/poc/b2b" element={<B2BFunnelPOC />} />
           <Route
             path="/create"
             element={
