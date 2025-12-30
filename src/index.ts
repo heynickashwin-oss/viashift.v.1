@@ -9,7 +9,7 @@
  */
 
 // Buttons
-export { Button } from './Button';
+export { Button } from './components/ui/Button';
 
 // Cards
 export { 
@@ -19,20 +19,20 @@ export {
   CardDescription, 
   CardContent, 
   CardFooter 
-} from './Card';
+} from './components/ui/card';
 
 // Form elements
-export { Input } from './Input';
-export { Textarea } from './Textarea';
-export { Dropdown, DropdownItem, DropdownDivider } from './Dropdown';
+export { Input } from './components/ui/Input';
+export { Textarea } from './components/ui/textarea';
+export { Dropdown, DropdownItem, DropdownDivider } from './components/ui/Dropdown';
 
 // Badges
-export { Badge, StakeholderBadge } from './Badge';
+export { Badge, StakeholderBadge } from './components/ui/badge';
 
 // Feedback
-export { Spinner, LoadingOverlay, LoadingState } from './Spinner';
-export { Tooltip } from './Tooltip';
+export { Spinner, LoadingOverlay, LoadingState } from './components/ui/spinner';
+export { Tooltip } from './components/ui/tooltip';
 
 // Layout
-export { Logo } from './Logo';
-export { UserMenu } from './UserMenu';
+export { Logo } from './components/ui/Logo';
+export { UserMenu } from './components/ui/UserMenu';
