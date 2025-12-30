@@ -148,20 +148,14 @@ export function NodeInteractionDialog({
   
   // ============================================
   // Load interaction history
+  // TODO: Deploy node_interactions table to Supabase
+  // For now, return empty list to prevent 404 spam
   // ============================================
   async function loadInteractions() {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('node_interactions')
-        .select('*')
-        .eq('shift_id', shiftId)
-        .eq('element_id', elementId)
-        .order('created_at', { ascending: false })
-        .limit(50);
-      
-      if (error) throw error;
-      setInteractions(data || []);
+      // Stubbed - table doesn't exist yet
+      setInteractions([]);
     } catch (err) {
       console.error('Error loading interactions:', err);
     } finally {
@@ -171,25 +165,15 @@ export function NodeInteractionDialog({
   
   // ============================================
   // Record a click (opening the dialog)
+  // TODO: Deploy node_interactions table
   // ============================================
   async function recordClick() {
-    try {
-      await supabase.from('node_interactions').insert({
-        shift_id: shiftId,
-        element_id: elementId,
-        element_type: elementType,
-        viewer_type: viewerType,
-        viewer_email: viewerEmail,
-        session_id: sessionId,
-        interaction_type: 'click',
-      });
-    } catch (err) {
-      console.error('Error recording click:', err);
-    }
+    // Stubbed - table doesn't exist yet
   }
   
   // ============================================
   // Submit an interaction
+  // TODO: Deploy node_interactions table
   // ============================================
   async function submitInteraction(
     type: 'edit' | 'thumbs_up' | 'thumbs_down' | 'comment' | 'suggestion',
@@ -197,26 +181,11 @@ export function NodeInteractionDialog({
   ) {
     setSubmitting(true);
     try {
-      const { error } = await supabase.from('node_interactions').insert({
-        shift_id: shiftId,
-        element_id: elementId,
-        element_type: elementType,
-        viewer_type: viewerType,
-        viewer_email: viewerEmail,
-        session_id: sessionId,
-        interaction_type: type,
-        ...data,
-      });
-      
-      if (error) throw error;
-      
-      // Update local state
+      // Stubbed - table doesn't exist yet
+      // Update local state optimistically
       if (type === 'thumbs_up' || type === 'thumbs_down') {
         setUserReaction(type);
       }
-      
-      // Reload interactions
-      await loadInteractions();
       
       // Clear inputs
       if (type === 'comment') setComment('');
