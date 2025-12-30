@@ -505,59 +505,9 @@ export const Dashboard = () => {
       if (shiftsError) throw shiftsError;
 
       // Fetch engagement data from node_interactions
+      // TODO: Deploy node_interactions table to Supabase
+      // For now, use empty engagement map to prevent 404 spam
       const engagementMap: Record<string, ShiftEngagement> = {};
-      
-      if (shiftsData && shiftsData.length > 0) {
-        const shiftIds = shiftsData.map(s => s.id);
-        
-        const { data: interactions, error: interactionsError } = await supabase
-          .from('node_interactions')
-          .select('*')
-          .in('shift_id', shiftIds);
-
-        if (!interactionsError && interactions) {
-          // Aggregate interactions by shift
-          interactions.forEach(interaction => {
-            if (!engagementMap[interaction.shift_id]) {
-              engagementMap[interaction.shift_id] = {
-                views: 0,
-                clicks: 0,
-                thumbsUp: 0,
-                thumbsDown: 0,
-                comments: 0,
-                edits: 0,
-                suggestions: 0,
-                advocateViews: 0,
-              };
-            }
-            
-            const eng = engagementMap[interaction.shift_id];
-            
-            switch (interaction.interaction_type) {
-              case 'view': eng.views++; break;
-              case 'click': eng.clicks++; break;
-              case 'thumbs_up': eng.thumbsUp++; break;
-              case 'thumbs_down': eng.thumbsDown++; break;
-              case 'comment': eng.comments++; break;
-              case 'edit': eng.edits++; break;
-              case 'suggestion': eng.suggestions++; break;
-            }
-            
-            // Track most recent activity
-            if (!eng.lastActivity || new Date(interaction.created_at) > new Date(eng.lastActivity)) {
-              eng.lastActivity = interaction.created_at;
-            }
-            
-            // Track advocate (champion) activity
-            if (interaction.viewer_type === 'champion') {
-              eng.advocateViews++;
-              if (!eng.advocateLastSeen || new Date(interaction.created_at) > new Date(eng.advocateLastSeen)) {
-                eng.advocateLastSeen = interaction.created_at;
-              }
-            }
-          });
-        }
-      }
 
       // Merge engagement into shifts
       const shiftsWithEngagement = (shiftsData || []).map(shift => ({
@@ -568,21 +518,10 @@ export const Dashboard = () => {
       setShifts(shiftsWithEngagement);
 
       // Check usage limits
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('tier')
-        .eq('id', user.id)
-        .single();
-
-      const tier = profile?.tier || 'free';
-
-      const { data: tierLimits } = await supabase
-        .from('tier_limits')
-        .select('shifts_per_month')
-        .eq('tier', tier)
-        .single();
-
-      const limit = tierLimits?.shifts_per_month || 3;
+      // TODO: Deploy profiles and tier_limits tables to Supabase
+      // For now, use fallback values to prevent 404 spam
+      const tier = 'free';
+      const limit = 3;
       const used = shiftsData?.length || 0;
       setLimits({ tier, limit, used });
     } catch (error) {
