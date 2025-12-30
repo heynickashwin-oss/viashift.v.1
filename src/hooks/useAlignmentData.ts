@@ -193,15 +193,24 @@ export function useAlignmentData(shiftId: string | undefined): AlignmentData {
   const [error, setError] = useState<string | null>(null);
 
   // Recalculate alignment (call before fetching for fresh data)
-  // TODO: Deploy recalculate_shift_alignment RPC function
-  // For now, do nothing to prevent 404 spam
   const recalculate = useCallback(async () => {
-    // Stubbed - RPC doesn't exist yet
+    if (!shiftId) return;
+    
+    try {
+      const { error: rpcError } = await supabase.rpc('recalculate_shift_alignment', {
+        p_shift_id: shiftId,
+      });
+      
+      if (rpcError) {
+        console.error('Error recalculating alignment:', rpcError);
+        // Don't throw - continue with stale data
+      }
+    } catch (err) {
+      console.error('Error calling recalculate:', err);
+    }
   }, [shiftId]);
 
   // Fetch all alignment data
-  // TODO: Deploy shift_alignment, stakeholder_engagement_detail, stakeholders tables
-  // For now, return empty data to prevent 404 spam
   const fetchData = useCallback(async () => {
     if (!shiftId) {
       setLoading(false);
@@ -212,18 +221,113 @@ export function useAlignmentData(shiftId: string | undefined): AlignmentData {
     setError(null);
 
     try {
-      // Stubbed - tables don't exist yet
-      setAlignment(null);
-      setStakeholders([]);
-      setCriticalGaps([]);
-      setNodes([]);
+      // Fetch shift alignment
+      const { data: alignmentData, error: alignmentError } = await supabase
+        .from('shift_alignment')
+        .select('*')
+        .eq('shift_id', shiftId)
+        .maybeSingle();
+
+      if (alignmentError) throw alignmentError;
+      setAlignment(alignmentData);
+
+      // Fetch stakeholder engagement (using view if available, fallback to table)
+      const { data: stakeholderData, error: stakeholderError } = await supabase
+        .from('stakeholder_engagement_detail')
+        .select('*')
+        .eq('shift_id', shiftId)
+        .order('engagement_depth', { ascending: false });
+
+      if (stakeholderError) {
+        // View might not exist yet, try direct table query
+        console.warn('stakeholder_engagement_detail view not available, using fallback');
+        const { data: fallbackData } = await supabase
+          .from('stakeholders')
+          .select('*')
+          .eq('shift_id', shiftId)
+          .order('engagement_depth', { ascending: false });
+        
+        setStakeholders(fallbackData?.map(s => ({
+          stakeholder_id: s.id,
+          shift_id: s.shift_id,
+          name: s.name,
+          email: s.email,
+          role: s.role,
+          stakeholder_type_label: LINK_TYPE_CONFIG[s.link_type as LinkType]?.label || 'Unknown',
+          link_type: s.link_type,
+          engagement_depth: s.engagement_depth || 0,
+          engagement_level: s.engagement_level || 'none',
+          nodes_interacted: s.nodes_interacted || 0,
+          nodes_reacted: s.nodes_reacted || 0,
+          view_count: s.view_count || 0,
+          total_duration_seconds: s.total_duration_seconds || 0,
+          is_critical_gap: s.is_critical_gap || false,
+          gap_reason: s.gap_reason,
+          first_viewed_at: s.first_viewed_at,
+          last_viewed_at: s.last_viewed_at,
+          engagement_bar: Math.round((s.engagement_depth || 0) * 10),
+        })) || []);
+      } else {
+        setStakeholders(stakeholderData || []);
+      }
+
+      // Fetch critical gaps
+      const { data: gapData, error: gapError } = await supabase
+        .from('critical_gaps_alert')
+        .select('*')
+        .eq('shift_id', shiftId);
+
+      if (gapError) {
+        // View might not exist, filter from stakeholders
+        console.warn('critical_gaps_alert view not available, using fallback');
+        setCriticalGaps(
+          stakeholders
+            .filter(s => s.is_critical_gap)
+            .map(s => ({
+              shift_id: s.shift_id,
+              shift_title: null,
+              stakeholder_id: s.stakeholder_id,
+              name: s.name,
+              email: s.email,
+              stakeholder_type: s.stakeholder_type_label,
+              engagement_depth: s.engagement_depth,
+              engagement_level: s.engagement_level,
+              gap_reason: s.gap_reason,
+              last_viewed_at: s.last_viewed_at,
+            }))
+        );
+      } else {
+        setCriticalGaps(gapData || []);
+      }
+
+      // Fetch node alignment
+      const { data: nodeData, error: nodeError } = await supabase
+        .from('node_alignment_grid')
+        .select('*')
+        .eq('shift_id', shiftId);
+
+      if (nodeError) {
+        // View might not exist, try direct table
+        const { data: fallbackNodeData } = await supabase
+          .from('node_alignment')
+          .select('*')
+          .eq('shift_id', shiftId);
+        
+        setNodes(fallbackNodeData?.map(n => ({
+          ...n,
+          total_reactions: (n.agree_count || 0) + (n.disagree_count || 0) + (n.question_count || 0),
+        })) || []);
+      } else {
+        setNodes(nodeData || []);
+      }
+
     } catch (err) {
       console.error('Error fetching alignment data:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(err instanceof Error ? err.message : 'Failed to load alignment data');
     } finally {
       setLoading(false);
     }
-  }, [shiftId]);
+  }, [shiftId, stakeholders]);
 
   // Refresh: recalculate then fetch
   const refresh = useCallback(async () => {
@@ -282,16 +386,26 @@ export function useAlignmentSummary(shiftId: string | undefined): AlignmentSumma
     }
 
     const fetch = async () => {
-      // TODO: Deploy shift_alignment table to Supabase
-      // For now, return default values to prevent 404 spam
+      const { data, error } = await supabase
+        .from('shift_alignment')
+        .select('status, overall_depth, overall_width, readiness_score, unique_viewers, total_reactions, total_critical_gaps')
+        .eq('shift_id', shiftId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching alignment summary:', error);
+        setSummary(prev => ({ ...prev, loading: false }));
+        return;
+      }
+
       setSummary({
-        status: 'no_signal',
-        depth: 0,
-        width: 0,
-        readiness: 0,
-        viewers: 0,
-        reactions: 0,
-        criticalGaps: 0,
+        status: data?.status || 'no_signal',
+        depth: data?.overall_depth || 0,
+        width: data?.overall_width || 0,
+        readiness: data?.readiness_score || 0,
+        viewers: data?.unique_viewers || 0,
+        reactions: data?.total_reactions || 0,
+        criticalGaps: data?.total_critical_gaps || 0,
         loading: false,
       });
     };
